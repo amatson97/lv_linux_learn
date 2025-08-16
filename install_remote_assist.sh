@@ -1,7 +1,8 @@
 #!/bin/bash
-# install_nordvpn_remote.sh
-# Installs NordVPN and sets up GNOME Remote Desktop + Meshnet info launcher
+# Installs NordVPN and sets up GNOME Remote Desktop + Meshnet info launcher.
 # Run once. If user added to nordvpn group, you must reboot and re-run script to finish.
+# The script will take the user through a guided install.
+# An unistaller has been provided to easily remove this from your system. Disclaimers added to .md and this install.
 
 set -e
 
@@ -112,6 +113,7 @@ main() {
   create_meshnet_info_desktop_icon
 
   green_echo "[✓] Setup complete! Use the desktop icon 'Show NordVPN Meshnet Info' on your desktop."
+  green_echo "[!] DISCLAIMER: Your can remove this from your system running ./uninstall_remote_assist.sh"
   green_echo "    Remember to enable GNOME Remote Desktop (Settings → System → Remote Desktop)."
 }
 

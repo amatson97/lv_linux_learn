@@ -26,9 +26,11 @@
 
 ---
 
-## 📖 Beginner Resources
+## 📖 Beginner Resources & Tools
+- [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
 - [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
-
+- [Linux Journey - Basic Concepts] (https://linuxjourney.com/)
+- [Command Lookup] (https://explainshell.com/)
 ---
 
 ## ⚙️ Installation Scripts
