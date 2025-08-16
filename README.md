@@ -53,6 +53,7 @@ I will continue to add to this as this grow in to a more comprehensive knowledge
 ./chrome_install.sh #Install chrome
 ./docker_install.sh #Install dcoker
 ./reconnect.sh #Reconnect to MeshNet
+./git_setup.sh #This will set ubuntu up for git/github usage
 ./git_push_changes.sh #Push changes to github
 ```
 
