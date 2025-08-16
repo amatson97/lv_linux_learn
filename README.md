@@ -2,6 +2,7 @@
 
 > **Target Environment:** Ubuntu Desktop 24.04.3 LTS  
 > **Scope:** This guide is intended for setting up a localhost environment. It does **not** cover installing or configuring publicly exposed services.
+> **Prepared for:** Individuls known to me and is not be shared beyond me and that individual.
 
 ---
 
@@ -54,7 +55,7 @@ sudo reboot
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
 
-> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` script as described below.
+> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` script as described below. Do not install this functionality on anyones machine but your own.
 
 ### Remote Assistance Uninstallation
 ```bash
