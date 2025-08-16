@@ -10,6 +10,7 @@
 2. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scripts)
    - [Remote Assistance Installation](#remote-assistance-installation)
+     - [Disclaimer](#️-disclaimer)
    - [Remote Assistance Uninstallation](#remote-assistance-uninstallation)
 3. [Linux Drive Management](#-linux-drive-management)
 4. [Docker](#-docker)
@@ -51,6 +52,8 @@ sudo reboot
 ./install_remote_assist.sh
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
+
+> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` script as described below.
 
 ### Remote Assistance Uninstallation
 ```bash
