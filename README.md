@@ -35,7 +35,7 @@
 
 
 ## 📖 Beginner Resources & Tools
-- [MWare Workstation Pro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
+- [VMWare WorkstationPro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
 - [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
 - [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
 - [Linux Journey - Basic Concepts](https://linuxjourney.com/)
