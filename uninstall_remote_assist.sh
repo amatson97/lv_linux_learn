@@ -33,4 +33,3 @@ green_echo "[✓] Application Directory removed!"
 sleep 1
 
 green_echo "[✓] Uninstall complete!"
-read -p "Press Enter to exit..." # Waits for Enter key press

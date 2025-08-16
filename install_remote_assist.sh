@@ -23,6 +23,13 @@ create_meshnet_info_desktop_icon() {
   mkdir $HOME/.lv_connect
   cat > "$HOME/.lv_connect/ShowMeshnetInfo.sh" <<'EOF'
 #!/bin/bash
+
+MESHNET_HOST=$(nordvpn meshnet peer list | awk '
+  BEGIN {found=0}
+  /^This device:/ {found=1; next}
+  found && /^Hostname:/ {print $2; exit}
+')
+
 enabled=$(gsettings get org.gnome.desktop.remote-desktop.rdp enable)
 if [ "$enabled" != "true" ]; then
   zenity --info --title="Enable Remote Desktop" --text="
@@ -36,8 +43,9 @@ To enable remote assistance:
 4. Enable 'Remote Control'.
 5. Set a password.
 
-After enabling, use the Meshnet hostname below to connect remotely.
+After enabling, use the hostname:$MESHNET_HOST to connect remotely.
 "
+  exit 1
 fi
 
 MESHNET_HOST=$(nordvpn meshnet peer list | awk '
@@ -51,7 +59,7 @@ if [[ -z "$MESHNET_HOST" ]]; then
   exit 1
 fi
 
-zenity --info --title="Remote Desktop Details" --text="Connect using: $MESHNET_HOST:'"$VNC_PORT"'"
+zenity --info --title="Remote Desktop Details" --text="Connect using: $MESHNET_HOST"
 EOF
 
   chmod +x "$HOME/.lv_connect/ShowMeshnetInfo.sh"
