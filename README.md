@@ -11,12 +11,27 @@ I have included some usefual automated install scripts.
 
 ## list of bash install scripts
 ```bash
-install_remote_assist.sh
-uninstall_remote_assist.sh
-sublime_install.sh
-sublime.merge_install.sh
-chrome_install.sh
-docker_install.sh
+./install_remote_assist.sh
+```
+
+```bash
+./uninstall_remote_assist.sh
+```
+
+```bash
+./sublime_install.sh
+```
+
+```bash
+./sublime.merge_install.sh
+```
+
+```bash
+./chrome_install.sh
+```
+
+```bash
+/docker_install.sh
 ```
 
 ## installation of remote assistance
@@ -36,7 +51,7 @@ Run Desktop Icon "Remote Desktop Info".
 
 ## Uninstall Remote assistance
 ```bash
-sudo chmod ./uninstall_remote_assist.sh
+sudo chmod +x ./uninstall_remote_assist.sh
 ```
 ```bash
 ./uninstall_remote_assist.sh
@@ -66,12 +81,17 @@ Some basic docker commands for managing containers, volumes and networks. I will
 ## Basic docker-compose commands
 ```bash
 docker compose up -d
+```
+
+```bash
 docker compose down
 ```
 
 ## Basic docker container commands
 ```bash
 sudo docker container 
+
+```
 
 attach   (Attach local standard input, output, and error streams to a running container)
 commit   (Create a new image from a container's changes)
@@ -98,11 +118,12 @@ top      (Display the running processes of a container)
 unpause  (Unpause all processes within one or more containers)
 update   (Update configuration of one or more containers)
 wait     (Block until one or more containers stop, then print their exit codes)
-```
+
 
 ## Basic docker volume commands
 ```bash
 sudo docker volume 
+```
 
 create   (Create a volume)
 inspect  (Display detailed information on one or more volumes)
@@ -110,11 +131,11 @@ ls       (List volumes)
 prune    (Remove unused local volumes)
 rm       (Remove one or more volumes)
 update   (Update a volume (cluster volumes only))
-```
 
 ## Basic docker network commands
 ```bash
 sudo docker network
+```
 
 connect     (Connect a container to a network)
 create      (Create a network)
@@ -123,7 +144,6 @@ inspect     (Display detailed information on one or more networks)
 ls          (List networks)
 prune       (Remove all unused networks)
 rm          (Remove one or more networks)
-```
 
 
 # Portainer
