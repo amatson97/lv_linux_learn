@@ -1,0 +1,176 @@
+# EXAMPLE FILE DO NOT USE
+
+networks:
+  traefik-network:
+    external: true
+  vpn-network:
+    driver: bridge
+
+services:
+
+  traefik:
+    image: traefik:${TRA_VER}
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - --configFile=/traefik.yml
+    ports:
+      - "80:80"          # HTTP
+      - "443:443"        # HTTPS
+      - "8080:8080"      # Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/path_to/traefik/traefik.yml:/traefik.yml:ro"
+      - "/path_to/traefik/dynamic/:/etc/traefik/dynamic/:ro"
+      - "/path_to/traefik/letsencrypt/:/letsencrypt"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - traefik-network
+      - vpn-network
+    environment:
+      - CF_API_EMAIL=${EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${TRA_DOMAIN}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_AUTH}"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+
+  vpn:
+    image: ghcr.io/bubuntux/nordlynx:latest
+    container_name: vpn
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - CONNECT=${CONNECT}
+      - TECHNOLOGY=${TECHNOLOGY}
+      - NETWORK=${NETWORK}
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    networks:
+      - traefik-network
+      - vpn-network
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    restart: unless-stopped
+    container_name: transmission
+    network_mode: "service:vpn"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - USER=${TR_USER}
+      - PASS=${TR_PASS}
+    volumes:
+      - /path_to/transmission/config:/config
+      - /path_to/transmission/downloads:/downloads
+      - /path_to/transmission/watch:/watch
+    restart: unless-stopped
+    depends_on:
+      - vpn
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transmission.rule=Host(`${TR_DOMAIN}`)"
+      - "traefik.http.routers.transmission.entryPoints=websecure"
+      - "traefik.http.routers.transmission.tls=true"
+      - "traefik.http.routers.transmission.tls.certResolver=cloudflare"
+      - "traefik.http.services.transmission.loadbalancer.server.port=9091"
+
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    container_name: nginx-container
+    ports:
+      - "81:80"  # Exposes port 80 on the host to port 80 on the container
+    volumes:
+      - /path_to/nginx/nginx.conf:/etc/nginx/nginx.conf  # Custom NGINX config if you have one
+      - /path_to/nginx/html:/usr/share/nginx/html  # Your static files directory
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nginx.entryPoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=cloudflare"
+
+
+  db:
+    image: mariadb:10.11
+    container_name: nextcloud-db
+    restart: unless-stopped
+    volumes:
+      - /path_to/nextcloud/db:/var/lib/mysql
+    networks:
+      - traefik-network
+    environment:
+      - MYSQL_ROOT_PASSWORD=${YSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+
+  nextcloud:
+    image: nextcloud:30
+    container_name: nextcloud-app
+    restart: unless-stopped
+    networks:
+      - traefik-network
+    ports:
+      - 8082:80
+    volumes:
+      - /path_to/nextcloud/html:/var/www/html
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    command: >
+      bash -c "echo 'ServerName nextcloud.${DOMAIN}' >> /etc/apache2/apache2.conf &&
+               apache2-foreground"
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)"
+      - "traefik.http.routers.nextcloud.entryPoints=websecure"
+      - "traefik.http.routers.nextcloud.tls.certresolver=cloudflare"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud-hsts"
+      - "traefik.http.middlewares.nextcloud-hsts.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.nextcloud-hsts.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.nextcloud-hsts.headers.stsPreload=true"
+
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+      - NVIDIA_VISIBLE_DEVICES=GPU-32618311-83ce-5a1d-4c7f-f08076926f22
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    volumes:
+      - ${CONFIG_PATH}:/config
+      - ${TV_PATH}:/tv
+      - ${MOVIES_PATH}:/movies
+      - ${ANIME_PATH}:/anime
+      - ${MUSIC_PATH}:/music
+      - ${HV_PATH}:/homevids
+      - ${TC_PATH}:/transcode
+    restart: unless-stopped
