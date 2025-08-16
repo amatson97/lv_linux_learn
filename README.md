@@ -1,7 +1,11 @@
 # Linux Learning Guide
-
-A guide to take your through installing remote assistance
 Support for Ubuntu Desktop 24.04.3 LTS
+
+## Useful command reference for beginners:
+[https://www.hostinger.com/tutorials/linux-commands]: https://www.hostinger.com/tutorials/linux-commands
+
+# Install scripts
+I have included some usefual automated install scripts.
 
 ## list of bash install scripts
 ```bash
@@ -35,7 +39,7 @@ sudo chmod ./uninstall_remote_assist.sh
 ```bash
 ./uninstall_remote_assist.sh
 ```
-## docker
+# docker commands
 Some basic docker commands for managing containers, volumes and networks. I will also look to putting in some docker-compose files for building services.
 
 ## basic docker-compose commands
@@ -44,7 +48,7 @@ docker compose up -d
 docker compose down
 ```
 
-## basic docker commands (containers)
+## basic docker container commands
 ```bash
 sudo docker container 
 
@@ -75,7 +79,7 @@ update   (Update configuration of one or more containers)
 wait     (Block until one or more containers stop, then print their exit codes)
 ```
 
-## basic docker commands (volumes)
+## basic docker volume commands
 ```bash
 sudo docker volume 
 
@@ -87,7 +91,7 @@ rm       (Remove one or more volumes)
 update   (Update a volume (cluster volumes only))
 ```
 
-## basic docker commands (network)
+## basic docker network commands
 ```bash
 sudo docker network
 
@@ -99,3 +103,7 @@ ls          (List networks)
 prune       (Remove all unused networks)
 rm          (Remove one or more networks)
 ```
+
+## Install Portainer within docker
+[https://docs.portainer.io/start/install/server/docker/linux]: https://docs.portainer.io/start/install/server/docker/linux
+This will walk your through creating and starting a portainer instance. Docker needs to be installed and working before this.
