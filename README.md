@@ -1,243 +1,135 @@
 # Linux Learning Guide
-Support for Ubuntu Desktop 24.04.3 LTS
-This guide is for the purposes of setting or a localhost enviroment. It will not cover installing and configuring public exopsed services.
 
-## Useful command reference for beginners:
+> **Target Environment:** Ubuntu Desktop 24.04.3 LTS  
+> **Scope:** This guide is intended for setting up a localhost environment. It does **not** cover installing or configuring publicly exposed services.
 
-[https://www.hostinger.com/tutorials/linux-commands](https://www.hostinger.com/tutorials/linux-commands)
+---
 
-# Install scripts
-I have included some usefual automated install scripts.
+## 📖 Beginner Resources
+- [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
 
-## list of bash install scripts
+---
+
+## ⚙️ Installation Scripts
+This repository includes several helpful automated installation scripts.
+
+### Available Bash Scripts
 ```bash
 ./install_remote_assist.sh
-```
-
-```bash
 ./uninstall_remote_assist.sh
-```
-
-```bash
 ./sublime_install.sh
-```
-
-```bash
 ./sublime.merge_install.sh
-```
-
-```bash
 ./chrome_install.sh
+./docker_install.sh
 ```
 
-```bash
-/docker_install.sh
-```
-
-## installation of remote assistance
+### Remote Assistance Installation
 ```bash
 sudo chmod +x install_remote_assist.sh
-```
-```bash
 ./install_remote_assist.sh
-```
-```bash
 sudo reboot
-```
-```bash
 ./install_remote_assist.sh
 ```
-Run Desktop Icon "Remote Desktop Info".
+After installation, run the desktop icon **Remote Desktop Info**.
 
-## Uninstall Remote assistance
+### Remote Assistance Uninstallation
 ```bash
 sudo chmod +x uninstall_remote_assist.sh
-```
-```bash
 ./uninstall_remote_assist.sh
 ```
 
-# Linux Drive Management
+---
 
-## Formatting Disks
+## 💾 Linux Drive Management
+- [Formatting Disks](https://phoenixnap.com/kb/linux-format-disk)
+- [Mounting Disks](https://www.wikihow.com/Linux-How-to-Mount-Drive)
+- [Linux Software RAID (mdadm)](https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm)
 
-[https://phoenixnap.com/kb/linux-format-disk](https://phoenixnap.com/kb/linux-format-disk)
+---
 
-## Mounting Disks
+## 🐳 Docker
+Basic Docker commands for managing containers, volumes, and networks. Future updates may include `docker-compose` files for building services.
 
-[https://www.wikihow.com/Linux-How-to-Mount-Drive](https://www.wikihow.com/Linux-How-to-Mount-Drive)
+### Official Documentation
+- [Docker Docs](https://docs.docker.com)
 
-## Linux software raid
-
-[https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm](https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm)
-
-# Docker
-Some basic docker commands for managing containers, volumes and networks. I will also look to putting in some docker-compose files for building services.
-
-## Useful Links
-
-[Official Docker documentation](https://docs.docker.com)
-
-## Basic docker-compose commands
+### Docker Compose Commands
 ```bash
-docker compose up -d
+docker compose up -d   # Start containers in detached mode
+docker compose down    # Stop and remove containers
 ```
 
+### Docker Container Commands
 ```bash
-docker compose down
+sudo docker container [command]
 ```
+Common commands include:
+- `attach` – Connect to a running container
+- `exec` – Execute a command in a container
+- `logs` – View container logs
+- `ls` – List running containers
+- `restart` – Restart containers
+- `run` – Create & run a new container
+- `stop` – Stop containers
+- `rm` – Remove containers
 
-## Basic docker container commands
+### Docker Volume Commands
 ```bash
-sudo docker container 
-
+sudo docker volume [command]
 ```
+- `create` – Create a volume
+- `inspect` – Show details
+- `ls` – List volumes
+- `prune` – Remove unused volumes
+- `rm` – Delete volumes
 
-attach   (Attach local standard input, output, and error streams to a running container)
-
-commit   (Create a new image from a container's changes)
-
-cp       (Copy files/folders between a container and the local filesystem)
-
-create   (Create a new container)
-
-diff     (Inspect changes to files or directories on a container's filesystem)
-
-exec     (Execute a command in a running container)
-
-export   (Export a container's filesystem as a tar archive)
-
-inspect  (Display detailed information on one or more containers)
-
-kill     (Kill one or more running containers)
-
-logs     (Fetch the logs of a container)
-
-ls       (List containers)
-
-pause    (Pause all processes within one or more containers)
-
-port     (List port mappings or a specific mapping for the container)
-
-prune    (Remove all stopped containers)
-
-rename   (Rename a container)
-
-restart  (Restart one or more containers)
-
-rm       (Remove one or more containers)
-
-run      (Create and run a new container from an image)
-
-start    (Start one or more stopped containers)
-
-stats    (Display a live stream of container(s) resource usage statistics)
-
-stop     (Stop one or more running containers)
-
-top      (Display the running processes of a container)
-
-unpause  (Unpause all processes within one or more containers)
-
-update   (Update configuration of one or more containers)
-
-wait     (Block until one or more containers stop, then print their exit codes)
-
-
-## Basic docker volume commands
+### Docker Network Commands
 ```bash
-sudo docker volume 
+sudo docker network [command]
 ```
+- `create` – Create a network
+- `connect` – Attach a container to a network
+- `disconnect` – Remove a container from a network
+- `inspect` – View details
+- `ls` – List networks
+- `prune` – Remove unused networks
+- `rm` – Delete networks
 
-create   (Create a volume)
+---
 
-inspect  (Display detailed information on one or more volumes)
+## 🔧 Portainer
+- [Portainer Website](https://www.portainer.io/)
+- [Install Guide (Docker/Linux)](https://docs.portainer.io/start/install/server/docker/linux)
 
-ls       (List volumes)
+⚠️ Docker must be installed and running before installing Portainer.
 
-prune    (Remove unused local volumes)
+---
 
-rm       (Remove one or more volumes)
+## 🎥 Plex Media Server
+You can run Plex Media Server inside Docker. Adjust the provided `docker-compose.yml` to fit your setup.
 
-update   (Update a volume (cluster volumes only))
+- [Plex Docker Hub (LinuxServer.io)](https://hub.docker.com/r/linuxserver/plex)
 
+---
 
-## Basic docker network commands
-```bash
-sudo docker network
-```
+## ☁️ Nextcloud (Basic Install)
+Instructions for running a basic Nextcloud instance (without Traefik or Cloudflare configuration):
 
-connect     (Connect a container to a network)
+- [Nextcloud All-in-One Install Guide](https://nextcloud.com/blog/how-to-install-the-nextcloud-all-in-one-on-linux/)
 
-create      (Create a network)
+---
 
-disconnect  (Disconnect a container from a network)
+## 🔀 Traefik (Reverse Proxy & Load Balancer)
+Recommended learning order:
 
-inspect     (Display detailed information on one or more networks)
+1. [Introduction](https://doc.traefik.io/traefik/)
+2. [Core Concepts](https://doc.traefik.io/traefik/getting-started/concepts/)
+3. [FAQ](https://doc.traefik.io/traefik/getting-started/faq/)
+4. [Configuration Overview](https://doc.traefik.io/traefik/getting-started/configuration-overview/)
+5. [Providers Overview](https://doc.traefik.io/traefik/providers/overview/)
+6. [Docker Provider](https://doc.traefik.io/traefik/providers/docker/)
+7. [Quick Start Guide](https://doc.traefik.io/traefik/getting-started/quick-start/)
 
-ls          (List networks)
+---
 
-prune       (Remove all unused networks)
-
-rm          (Remove one or more networks)
-
-
-# Portainer
-
-[https://www.portainer.io/](https://www.portainer.io/)
-
-## Install Portainer within docker
-
-[https://docs.portainer.io/start/install/server/docker/linux](https://docs.portainer.io/start/install/server/docker/linux)
-
-This will walk your through creating and starting a portainer instance. Docker needs to be installed and working before this.
-
-
-
-# Plex Media Server
-
-You can run a plex media server from within Docker, the link will provide a git hub. You can amend the docker-compose to suit your needs.
-
-## Plex Server Hub Link
-
-[https://hub.docker.com/r/linuxserver/plex](https://hub.docker.com/r/linuxserver/plex)
-
-
-# Next Cloud - Basic Install
-
-This will cover getting a basic instance of NextCloud running. It will not include any Traefik configuration or CloudFlare DNS/SSL.
-
-[https://nextcloud.com/blog/how-to-install-the-nextcloud-all-in-one-on-linux/](https://nextcloud.com/blog/how-to-install-the-nextcloud-all-in-one-on-linux/)
-
-
-# Traefik - Reverse Proxy and Load Balancing
-
-Recommended order for learning Traefik (but feel free to explore as you like!):
-
-## Introduction:
-
-[https://doc.traefik.io/traefik/](https://doc.traefik.io/traefik/)
-
-## Concepts:
-
-[https://doc.traefik.io/traefik/getting-started/concepts/](https://doc.traefik.io/traefik/getting-started/concepts/)
-
-## FAQ:
-
-[https://doc.traefik.io/traefik/getting-started/faq/](https://doc.traefik.io/traefik/getting-started/faq/)
-
-## Configuration Overview:
-
-[https://doc.traefik.io/traefik/getting-started/configuration-overview/](https://doc.traefik.io/traefik/getting-started/configuration-overview/)
-
-## Providers Overview:
-
-[https://doc.traefik.io/traefik/providers/overview/](https://doc.traefik.io/traefik/providers/overview/)
-
-## Docker Provider:
-
-[https://doc.traefik.io/traefik/providers/docker/](https://doc.traefik.io/traefik/providers/docker/)
-
-## Quick Start Guide:
-
-[https://doc.traefik.io/traefik/getting-started/quick-start/](https://doc.traefik.io/traefik/getting-started/quick-start/)
+✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
