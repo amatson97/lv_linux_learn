@@ -2,6 +2,7 @@
 Support for Ubuntu Desktop 24.04.3 LTS
 
 ## Useful command reference for beginners:
+
 [https://www.hostinger.com/tutorials/linux-commands](https://www.hostinger.com/tutorials/linux-commands)
 
 # Install scripts
@@ -39,8 +40,27 @@ sudo chmod ./uninstall_remote_assist.sh
 ```bash
 ./uninstall_remote_assist.sh
 ```
-# docker commands
+
+# Linux Drive Management
+
+## Formatting Disks
+
+[https://phoenixnap.com/kb/linux-format-disk](https://phoenixnap.com/kb/linux-format-disk)
+
+## Mounting Disks
+
+[https://www.wikihow.com/Linux-How-to-Mount-Drive](https://www.wikihow.com/Linux-How-to-Mount-Drive)
+
+## Linux software raid
+
+[https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm](https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm)
+
+# Docker
 Some basic docker commands for managing containers, volumes and networks. I will also look to putting in some docker-compose files for building services.
+
+## Useful Links
+
+[Official Docker documentation] (https://docs.docker.com)
 
 ## basic docker-compose commands
 ```bash
@@ -104,6 +124,20 @@ prune       (Remove all unused networks)
 rm          (Remove one or more networks)
 ```
 
+# Portainer
+
+[https://www.portainer.io/](https://www.portainer.io/)
+
 ## Install Portainer within docker
+
 [https://docs.portainer.io/start/install/server/docker/linux](https://docs.portainer.io/start/install/server/docker/linux)
+
 This will walk your through creating and starting a portainer instance. Docker needs to be installed and working before this.
+
+# Plex Media Server
+
+You can run a plex media server from within Docker, the link will provide a git hub. You can amend the docker-compose to suit your needs.
+
+## Userful Links
+
+[https://hub.docker.com/r/linuxserver/plex](https://hub.docker.com/r/linuxserver/plex)
