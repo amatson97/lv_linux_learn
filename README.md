@@ -3,6 +3,10 @@
 A guide to take your through installing remote assistance
 Support for Ubuntu Desktop 24.04.3 LTS
 
+Also provided install scripts 
+you can run review the bash script 
+become familiar with the commands.
+
 ## list of bash install scripts
 ```bash
 install_remote_assist.sh
@@ -13,7 +17,7 @@ chrome_install.sh
 docker_install.sh
 ```
 
-## installation of remote assistance
+## installation of remote assistance tools
 ```bash
 sudo chmod +x install_remote_assist.sh
 ```
@@ -28,9 +32,9 @@ sudo reboot
 ```
 Run Desktop Icon "Remote Desktop Info".
 
-## Uninstall Remote assistance
+## Uninstall Remote assistance tools
 ```bash
-sudo chmod ./uninstall_remote_assist.sh
+sudo chmod +x ./uninstall_remote_assist.sh
 ```
 ```bash
 ./uninstall_remote_assist.sh
