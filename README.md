@@ -6,6 +6,10 @@
 > **Prepared for:** Individuls known to me and is not be shared beyond me and that individual.
 ---
 
+## Discord Server
+[Text Channel](https://discord.gg/hZ4wrE4m)
+---
+
 ## 📑 Table of Contents
 1. [Beginner Resources](#-beginner-resources)
 2. [Installation Scripts](#️-installation-scripts)
@@ -28,6 +32,7 @@
 
 ---
 
+
 ## 📖 Beginner Resources & Tools
 - [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
 - [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
@@ -36,17 +41,18 @@
 ---
 
 ## ⚙️ Installation Scripts
-This repository includes several helpful automated installation scripts.
+This repository includes several helpful automated installation scripts amoung other things.
+I will continue to add to this as this grow in to a more comprehensive knowledge space.
 
 ### Available Bash Scripts
 ```bash
-./install_remote_assist.sh
-./uninstall_remote_assist.sh
-./sublime_install.sh
-./chrome_install.sh
-./docker_install.sh
-./reconnect.sh
-./git_push_changes.sh
+./install_remote_assist.sh #Allows me to offer remote assistance
+./uninstall_remote_assist.sh #Removes the remote assistance aspect
+./sublime_install.sh #Installs sublime-text and sublime-merge
+./chrome_install.sh #Install chrome
+./docker_install.sh #Install dcoker
+./reconnect.sh #Reconnect to MeshNet
+./git_push_changes.sh #Push changes to github
 ```
 
 ### ⚙️ Main functions
