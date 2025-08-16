@@ -193,12 +193,15 @@ Recommended learning order:
 ---
 
 ## 🔀 Getting started with GitHub
-1.[About GitHub](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git)
-2.[Start your Journey][https://docs.github.com/en/get-started/start-your-journey]
-3.[Setting up git](https://docs.github.com/en/get-started/git-basics/set-up-git)
-4.[Quick Start for Repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/quickstart-for-repositories)
-5.[Managing Files](https://docs.github.com/en/repositories/working-with-files/managing-files)
+Recommended learning order:
 
+1. [About GitHub](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git)
+2. [Start your Journey](https://docs.github.com/en/get-started/start-your-journey)
+3. [Setting up git](https://docs.github.com/en/get-started/git-basics/set-up-git)
+4. [Quick Start for Repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/quickstart-for-repositories)
+5. [Managing Files](https://docs.github.com/en/repositories/working-with-files/managing-files)
+
+---
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
 
