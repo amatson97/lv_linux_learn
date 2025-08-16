@@ -5,7 +5,6 @@
 # An unistaller has been provided to easily remove this from your system. Disclaimers added to .md and this install.
 
 set -e
-
 NORDVPN_TOKEN="e9f2ab5ca361a4eddac74d6bb8b350d452f60bf0b81b4ca81ef3b6b8280644c0"
 VNC_PORT="3389"
 DESKTOP_LAUNCHER="$HOME/Desktop/ShowMeshnetInfo.desktop"
@@ -106,6 +105,7 @@ main() {
   sudo apt install -y nordvpn
   nordvpn set notify off
   nordvpn set tray off
+  nordvpn set autoconnect off
 
 
   green_echo "[*] Logging into NordVPN with token..."

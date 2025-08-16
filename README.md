@@ -44,6 +44,7 @@ This repository includes several helpful automated installation scripts.
 ./sublime_install.sh
 ./chrome_install.sh
 ./docker_install.sh
+./reconnect.sh
 ```
 
 ### Remote Assistance Installation
@@ -64,6 +65,15 @@ After installation, run the desktop icon **Remote Desktop Info**.
 ```bash
 sudo chmod +x uninstall_remote_assist.sh
 ./uninstall_remote_assist.sh
+```
+
+### Recconect Meshnet
+
+At times it may be reuqures to revoke ane renew the vpn login. This be dont with the below script passing the new token. (ask me for it)
+
+```bash
+sudo chmod +x reconnect.sh
+./reconnect.sh <login_token>
 ```
 
 ---
