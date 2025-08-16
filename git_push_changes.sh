@@ -8,7 +8,9 @@ green_echo() {
 
 green_echo "[*] Stagging changes..."
 sudo git add .
-green_echo "[*] Commiting chnages..."
+sleep 1
+
+green_echo "[*] Commiting changes..."
 sudo git commit
 sleep 1
 
