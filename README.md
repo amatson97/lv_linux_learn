@@ -2,7 +2,7 @@
 Support for Ubuntu Desktop 24.04.3 LTS
 
 ## Useful command reference for beginners:
-[https://www.hostinger.com/tutorials/linux-commands]: https://www.hostinger.com/tutorials/linux-commands
+[https://www.hostinger.com/tutorials/linux-commands](https://www.hostinger.com/tutorials/linux-commands)
 
 # Install scripts
 I have included some usefual automated install scripts.
@@ -105,5 +105,5 @@ rm          (Remove one or more networks)
 ```
 
 ## Install Portainer within docker
-[https://docs.portainer.io/start/install/server/docker/linux]: https://docs.portainer.io/start/install/server/docker/linux
+[https://docs.portainer.io/start/install/server/docker/linux](https://docs.portainer.io/start/install/server/docker/linux)
 This will walk your through creating and starting a portainer instance. Docker needs to be installed and working before this.
