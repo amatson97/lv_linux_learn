@@ -1,9 +1,9 @@
 # Linux Learning Guide
-
 > **Target Environment:** Ubuntu Desktop 24.04.3 LTS  
-> **Scope:** This guide is intended for setting up a localhost environment. It does **not** cover installing or configuring publicly exposed services.
-> **Prepared for:** Individuls known to me and is not be shared beyond me and that individual.
 
+> **Scope:** This guide is intended for setting up a localhost environment. It does **not** cover installing or configuring publicly exposed services.
+
+> **Prepared for:** Individuls known to me and is not be shared beyond me and that individual.
 ---
 
 ## 📑 Table of Contents
