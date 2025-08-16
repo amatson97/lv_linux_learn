@@ -1,10 +1,8 @@
 #!/bin/bash
 # Uninstall script for remote assistance
 
-green_echo() {
-  # Use ANSI-C quoting to interpret \e, no recursion
-  echo -e $'\e[32m'"$1"$'\e[0m'
-}
+# Includes
+source includes/main.sh
 
 green_echo "[!] Starting uninstaller!"
 read -p "Press Enter to continue..." # Waits for Enter key press

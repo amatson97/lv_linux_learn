@@ -48,6 +48,18 @@ This repository includes several helpful automated installation scripts.
 ./git_push_changes.sh
 ```
 
+### ⚙️ Main functions
+All the main functions across all the scripts are inside the below. You can add addtional functions in to here to call them globally.
+```bash
+/includes/main.php
+```
+You can add this top your scripts by adding this line.
+
+```bash
+source includes/main.sh
+```
+
+
 ### Remote Assistance Installation
 
 This uses my NordVPN meshnet to allow remote assistance to be offered. It is the only aspect of these guide that allows outside connections to your dev box.

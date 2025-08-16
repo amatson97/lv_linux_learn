@@ -4,3 +4,68 @@ green_echo() {
   # Use ANSI-C quoting to interpret \e, no recursion
   echo -e $'\e[32m'"$1"$'\e[0m'
 }
+
+user_in_nordvpn_group() {
+  id -nG "$USER" | grep -qw "nordvpn"
+}
+
+create_meshnet_info_desktop_icon() {
+  mkdir $HOME/.lv_connect
+  cat > "$HOME/.lv_connect/ShowMeshnetInfo.sh" <<'EOF'
+#!/bin/bash
+
+MESHNET_HOST=$(nordvpn meshnet peer list | awk '
+  BEGIN {found=0}
+  /^This device:/ {found=1; next}
+  found && /^Hostname:/ {print $2; exit}
+')
+
+enabled=$(gsettings get org.gnome.desktop.remote-desktop.rdp enable)
+if [ "$enabled" != "true" ]; then
+  zenity --info --title="Enable Remote Desktop" --text="
+GNOME Remote Desktop (RDP) is currently disabled.
+
+To enable remote assistance:
+
+1. Open Settings.
+2. Go to System → Remote Desktop.
+3. Enable 'Desktop Sharing'.
+4. Enable 'Remote Control'.
+5. Set a password.
+
+After enabling, use the hostname:$MESHNET_HOST to connect remotely.
+"
+  exit 1
+fi
+
+MESHNET_HOST=$(nordvpn meshnet peer list | awk '
+  BEGIN {found=0}
+  /^This device:/ {found=1; next}
+  found && /^Hostname:/ {print $2; exit}
+')
+
+if [[ -z "$MESHNET_HOST" ]]; then
+  zenity --error --text="Meshnet hostname not found. Is NordVPN running and Meshnet enabled?"
+  exit 1
+fi
+
+zenity --info --title="Remote Desktop Details" --text="Connect using: $MESHNET_HOST"
+EOF
+
+  chmod +x "$HOME/.lv_connect/ShowMeshnetInfo.sh"
+
+  cat > "$DESKTOP_LAUNCHER" <<EOF
+[Desktop Entry]
+Name=Remote Desktop Info
+Comment=Show Meshnet hostname and Remote Desktop instructions
+Exec=$HOME/.lv_connect/ShowMeshnetInfo.sh
+Icon=network-workgroup
+Terminal=false
+Type=Application
+Categories=Network;Utility;
+EOF
+
+  chmod +x "$DESKTOP_LAUNCHER"
+  gio set "$DESKTOP_LAUNCHER" metadata::trusted true || green_echo "Note: You may need to right-click the launcher and allow launching."
+  green_echo "[+] Created desktop launcher at $DESKTOP_LAUNCHER"
+}
