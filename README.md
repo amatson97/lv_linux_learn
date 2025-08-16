@@ -1,5 +1,6 @@
 # Linux Learning Guide
 Support for Ubuntu Desktop 24.04.3 LTS
+This guide is for the purposes of setting or a localhost enviroment. It will not cover installing and configuring public exopsed services.
 
 ## Useful command reference for beginners:
 
@@ -60,15 +61,15 @@ Some basic docker commands for managing containers, volumes and networks. I will
 
 ## Useful Links
 
-[Official Docker documentation] (https://docs.docker.com)
+[Official Docker documentation](https://docs.docker.com)
 
-## basic docker-compose commands
+## Basic docker-compose commands
 ```bash
 docker compose up -d
 docker compose down
 ```
 
-## basic docker container commands
+## Basic docker container commands
 ```bash
 sudo docker container 
 
@@ -99,7 +100,7 @@ update   (Update configuration of one or more containers)
 wait     (Block until one or more containers stop, then print their exit codes)
 ```
 
-## basic docker volume commands
+## Basic docker volume commands
 ```bash
 sudo docker volume 
 
@@ -111,7 +112,7 @@ rm       (Remove one or more volumes)
 update   (Update a volume (cluster volumes only))
 ```
 
-## basic docker network commands
+## Basic docker network commands
 ```bash
 sudo docker network
 
@@ -124,6 +125,7 @@ prune       (Remove all unused networks)
 rm          (Remove one or more networks)
 ```
 
+
 # Portainer
 
 [https://www.portainer.io/](https://www.portainer.io/)
@@ -134,10 +136,52 @@ rm          (Remove one or more networks)
 
 This will walk your through creating and starting a portainer instance. Docker needs to be installed and working before this.
 
+
+
 # Plex Media Server
 
 You can run a plex media server from within Docker, the link will provide a git hub. You can amend the docker-compose to suit your needs.
 
-## Userful Links
+## Plex Server Hub Link
 
 [https://hub.docker.com/r/linuxserver/plex](https://hub.docker.com/r/linuxserver/plex)
+
+
+# Next Cloud - Basic Install
+
+This will cover getting a basic instance of NextCloud running. It will not include any Traefik configuration or CloudFlare DNS/SSL.
+
+[https://nextcloud.com/blog/how-to-install-the-nextcloud-all-in-one-on-linux/](https://nextcloud.com/blog/how-to-install-the-nextcloud-all-in-one-on-linux/)
+
+
+# Traefik - Reverse Proxy and Load Balancing
+
+Recommended order for learning Traefik (but feel free to explore as you like!):
+
+## Introduction:
+
+[https://doc.traefik.io/traefik/](https://doc.traefik.io/traefik/)
+
+## Concepts:
+
+[https://doc.traefik.io/traefik/getting-started/concepts/](https://doc.traefik.io/traefik/getting-started/concepts/)
+
+## FAQ:
+
+[https://doc.traefik.io/traefik/getting-started/faq/](https://doc.traefik.io/traefik/getting-started/faq/)
+
+## Configuration Overview:
+
+[https://doc.traefik.io/traefik/getting-started/configuration-overview/](https://doc.traefik.io/traefik/getting-started/configuration-overview/)
+
+## Providers Overview:
+
+[https://doc.traefik.io/traefik/providers/overview/](https://doc.traefik.io/traefik/providers/overview/)
+
+## Docker Provider:
+
+[https://doc.traefik.io/traefik/providers/docker/](https://doc.traefik.io/traefik/providers/docker/)
+
+## Quick Start Guide:
+
+[https://doc.traefik.io/traefik/getting-started/quick-start/](https://doc.traefik.io/traefik/getting-started/quick-start/)
