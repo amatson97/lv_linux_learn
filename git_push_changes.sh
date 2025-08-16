@@ -1,10 +1,8 @@
 #!/bin/bash
 # Script to commit changes to github
 
-green_echo() {
-  # Use ANSI-C quoting to interpret \e, no recursion
-  echo -e $'\e[32m'"$1"$'\e[0m'
-}
+# Includes
+source includes/main.sh
 
 green_echo "[*] Stagging changes..."
 sudo git add .
