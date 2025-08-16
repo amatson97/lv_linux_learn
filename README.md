@@ -47,6 +47,9 @@ This repository includes several helpful automated installation scripts.
 ```
 
 ### Remote Assistance Installation
+
+This uses my NordVPN meshnet to allow remote assistance to be offered. It is the only aspect of these guide that allows outside connections to your dev box.
+
 ```bash
 sudo chmod +x install_remote_assist.sh
 ./install_remote_assist.sh
