@@ -6,8 +6,9 @@
 > **Prepared for:** Individuls known to me and is not be shared beyond me and that individual.
 ---
 
-## Discord Server
-[Text Channel](https://discord.gg/hZ4wrE4m)
+# Wana chat?
+[Discord Server](https://discord.gg/hZ4wrE4m)
+
 ---
 
 ## 📑 Table of Contents
