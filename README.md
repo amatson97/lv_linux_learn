@@ -34,7 +34,7 @@ Run Desktop Icon "Remote Desktop Info".
 
 ## Uninstall Remote assistance tools
 ```bash
-sudo chmod ./uninstall_remote_assist.sh
+sudo chmod +x ./uninstall_remote_assist.sh
 ```
 ```bash
 ./uninstall_remote_assist.sh
