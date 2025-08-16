@@ -68,6 +68,7 @@ sudo chmod +x uninstall_remote_assist.sh
 - [Formatting Disks](https://phoenixnap.com/kb/linux-format-disk)
 - [Mounting Disks](https://www.wikihow.com/Linux-How-to-Mount-Drive)
 - [Linux Software RAID (mdadm)](https://www.ricmedia.com/tutorials/create-a-linux-raid-array-using-mdadm)
+- [Disable USB Storage Quirk](https://forums.unraid.net/topic/170412-unraid-61210-how-to-permanently-add-a-usb-storage-quirk-to-disable-uas/)
 
 ---
 
@@ -157,3 +158,4 @@ Recommended learning order:
 ---
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
+⚠️ Once we have been through all this, I will put some more together.
