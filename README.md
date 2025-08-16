@@ -41,7 +41,6 @@ This repository includes several helpful automated installation scripts.
 ./install_remote_assist.sh
 ./uninstall_remote_assist.sh
 ./sublime_install.sh
-./sublime.merge_install.sh
 ./chrome_install.sh
 ./docker_install.sh
 ```
