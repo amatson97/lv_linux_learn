@@ -45,6 +45,7 @@ This repository includes several helpful automated installation scripts.
 ./chrome_install.sh
 ./docker_install.sh
 ./reconnect.sh
+./git_push_changes.sh
 ```
 
 ### Remote Assistance Installation
@@ -172,4 +173,5 @@ Recommended learning order:
 ---
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
+
 ⚠️ Once we have been through all this, I will put some more together.
