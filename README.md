@@ -30,7 +30,7 @@
 7. [Nextcloud (Basic Install)](#-nextcloud-basic-install)
 8. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
 9. [Getting started with GitHub](#-getting-started-with-github)
-10. [Essential Linux Troubleshooting](#-essential-linux-troubleshooting)
+10. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
 
 ---
 
