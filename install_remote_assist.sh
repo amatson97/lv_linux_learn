@@ -29,6 +29,8 @@ main() {
     green_echo "You must REBOOT your system now to apply this change."
     green_echo "After reboot, re-run this script to continue setup."
     green_echo "====================================================="
+    read -p "Press Enter to REBOOT!..."
+    sudo reboot
     exit 0
   fi
 

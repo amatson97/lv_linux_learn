@@ -13,24 +13,96 @@
 
 ## 📑 Table of Contents
 1. [Beginner Resources](#-beginner-resources)
-2. [Installation Scripts](#️-installation-scripts)
+2. [Package Manager (apt)](#-package-manager-(apt))
+3. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scripts)
    - [Remote Assistance Installation](#remote-assistance-installation)
      - [Disclaimer](#️-disclaimer)
    - [Remote Assistance Uninstallation](#remote-assistance-uninstallation)
-3. [Linux Drive Management](#-linux-drive-management)
-4. [Docker](#-docker)
+4. [Linux Drive Management](#-linux-drive-management)
+5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
    - [Docker Compose Commands](#docker-compose-commands)
    - [Docker Container Commands](#docker-container-commands)
    - [Docker Volume Commands](#docker-volume-commands)
    - [Docker Network Commands](#docker-network-commands)
-5. [Portainer](#-portainer)
-6. [Plex Media Server](#-plex-media-server)
-7. [Nextcloud (Basic Install)](#-nextcloud-basic-install)
-8. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
-9. [Getting started with GitHub](#-getting-started-with-github)
-10. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
+6. [Portainer](#-portainer)
+7. [Plex Media Server](#-plex-media-server)
+8. [Nextcloud (Basic Install)](#-nextcloud-basic-install)
+9. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
+10. [Getting started with GitHub](#-getting-started-with-github)
+11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
+
+---
+
+## Package Manager (apt)
+
+The **apt** package manager is the primary tool for installing, updating, and managing software on Ubuntu and most Debian-based Linux systems. Understanding how to use apt will help you maintain your system, install new tools, and keep everything up-to-date.
+
+### Common apt Commands
+
+- **Update package lists**
+  ```bash
+  sudo apt update
+  ```
+  Refreshes your local index of available software packages.
+
+- **Upgrade installed packages**
+  ```bash
+  sudo apt upgrade
+  ```
+  Installs the latest versions of all packages currently installed.
+
+- **Install a package**
+  ```bash
+  sudo apt install <package-name>
+  ```
+  Installs a new package (example: `sudo apt install htop`).
+
+- **Remove a package**
+  ```bash
+  sudo apt remove <package-name>
+  ```
+  Removes a package but leaves its configuration files.
+
+- **Purge a package**
+  ```bash
+  sudo apt purge <package-name>
+  ```
+  Removes a package and its configuration files.
+
+- **Search for packages**
+  ```bash
+  apt search <keyword>
+  ```
+  Lists available packages matching your keyword.
+
+- **Show package details**
+  ```bash
+  apt show <package-name>
+  ```
+  Displays detailed information about a package.
+
+- **List upgradable packages**
+  ```bash
+  apt list --upgradable
+  ```
+
+- **Clean the apt cache**
+  ```bash
+  sudo apt clean
+  ```
+  Frees up space used to store packages after installation.
+
+### Useful Tips
+
+- Always run `sudo apt update` before installing new software to ensure you have the latest repositories.
+- Use `apt list --installed` to see all installed packages.
+- You can combine `update` and `upgrade`:
+  ```bash
+  sudo apt update && sudo apt upgrade
+  ```
+- For advanced management tasks, see the [Apt User Guide](https://help.ubuntu.com/community/AptGet/Howto).
 
 ---
 
@@ -89,7 +161,7 @@ sudo reboot
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
 
-> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` script as described below. Do not install this functionality on anyones machine but your own.
+> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` script as described below. Do not install this functionality on anyones machine but your own. We will need to work to migrate everyone as external devices.
 
 ### Remote Assistance Uninstallation
 ```bash
