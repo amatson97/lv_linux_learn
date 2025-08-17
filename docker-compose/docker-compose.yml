@@ -1,4 +1,8 @@
 # EXAMPLE FILE DO NOT USE
+# Docker compose file can be used to build docker services
+
+
+# network section, you can define the network requirements here
 
 networks:
   traefik-network:
@@ -6,6 +10,9 @@ networks:
   vpn-network:
     driver: bridge
 
+
+# services section, define your containers here
+# labels section within service definitions can be used to configure the service within traefik.
 services:
 
   traefik:
