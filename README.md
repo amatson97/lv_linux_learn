@@ -56,6 +56,7 @@ I will continue to add to this as this grow in to a more comprehensive knowledge
 ./reconnect.sh #Reconnect to MeshNet
 ./git_setup.sh #Installs git gh with guided authentication
 ./git_push_changes.sh #Push changes to github
+./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
 ```
 
 ### ⚙️ Main functions
