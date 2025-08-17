@@ -35,6 +35,16 @@
 
 ---
 
+## 📖 Beginner Resources & Tools
+- [VMWare WorkstationPro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
+- [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
+- [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
+- [Linux Journey - Basic Concepts](https://linuxjourney.com/)
+- [Command Lookup](https://explainshell.com/)
+- [Chmod Calvulator](https://chmod-calculator.com/)
+
+---
+
 ## Package Manager (apt)
 
 The **apt** package manager is the primary tool for installing, updating, and managing software on Ubuntu and most Debian-based Linux systems. Understanding how to use apt will help you maintain your system, install new tools, and keep everything up-to-date.
@@ -104,16 +114,6 @@ The **apt** package manager is the primary tool for installing, updating, and ma
   ```
 - For advanced management tasks, see the [Apt User Guide](https://help.ubuntu.com/community/AptGet/Howto).
 
----
-
-
-## 📖 Beginner Resources & Tools
-- [VMWare WorkstationPro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
-- [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
-- [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
-- [Linux Journey - Basic Concepts](https://linuxjourney.com/)
-- [Command Lookup](https://explainshell.com/)
-- [Chmod Calvulator](https://chmod-calculator.com/)
 ---
 
 ## ⚙️ Installation Scripts
