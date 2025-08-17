@@ -13,7 +13,7 @@
 
 ## 📑 Table of Contents
 1. [Beginner Resources](#-beginner-resources)
-2. [Package Manager (apt)](#-package-manager-(apt))
+2. [Package Manager (apt)](#package-manager-apt)
 3. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scripts)
    - [Remote Assistance Installation](#remote-assistance-installation)
