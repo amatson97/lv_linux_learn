@@ -41,13 +41,17 @@
 - [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
 - [Linux Journey - Basic Concepts](https://linuxjourney.com/)
 - [Command Lookup](https://explainshell.com/)
+- [Chmod Calvulator](https://chmod-calculator.com/)
 ---
 
 ## ⚙️ Installation Scripts
 This repository includes several helpful automated installation scripts amoung other things.
 I will continue to add to this as this grow in to a more comprehensive knowledge space.
 
-### Available Bash Scripts
+## ⚙️ Bash Exercise Scripts
+I have inlcuded in /bash_exercises/* some basic scripts that can show you some basic syntax. 
+
+### Available Bash Scripts/Exercises
 ```bash
 ./install_remote_assist.sh #Allows me to offer remote assistance
 ./uninstall_remote_assist.sh #Removes the remote assistance aspect
@@ -58,6 +62,7 @@ I will continue to add to this as this grow in to a more comprehensive knowledge
 ./git_setup.sh #Installs git gh with guided authentication
 ./git_push_changes.sh #Push changes to github
 ./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
+/bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
 ```
 
 ### ⚙️ Main functions
