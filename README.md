@@ -37,6 +37,7 @@
 
 ## 📖 Beginner Resources & Tools
 - [VMWare WorkstationPro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
+- [Balena Etcher USB Imager](https://etcher.balena.io)
 - [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
 - [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
 - [Linux Journey - Basic Concepts](https://linuxjourney.com/)
