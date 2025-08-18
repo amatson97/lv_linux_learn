@@ -201,7 +201,7 @@ docker compose up -d   # Start containers in detached mode
 docker compose down    # Stop and remove containers
 ```
 
-### Exmaple docker.compose.yml and .env
+### Example docker.compose.yml and .env
 Example files can be found in:
 ```bash
 docker-compose/docker-compose.yml
