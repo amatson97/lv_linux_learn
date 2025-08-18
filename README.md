@@ -172,11 +172,12 @@ sudo chmod +x uninstall_remote_assist.sh
 ./uninstall_remote_assist.sh
 ```
 
-### Recconect Meshnet
+### Recconect Meshnet DEPRECATED
 
 At times it may be reuqures to revoke ane renew the vpn login. This be dont with the below script passing the new token. (ask me for it)
 
 ```bash
+# To be replaced with please run ./uninstall_remote_assist.sh and then /hamachi_install.sh to migrate.
 sudo chmod +x reconnect.sh
 ./reconnect.sh <login_token>
 ```
