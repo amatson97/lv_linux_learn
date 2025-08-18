@@ -126,8 +126,10 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 
 ### Available Bash Scripts/Exercises
 ```bash
-./install_remote_assist.sh #Allows me to offer remote assistance
-./uninstall_remote_assist.sh #Removes the remote assistance aspect
+./hamachi_install.sh
+./uninstall_hamachi.sh
+./deprecated/install_remote_assist.sh #DO NOT USE, install hamachi.
+./deprecated/uninstall_remote_assist.sh #DO NOT USE, install hamachi
 ./sublime_install.sh #Installs sublime-text and sublime-merge
 ./chrome_install.sh #Install chrome
 ./docker_install.sh #Install dcoker
