@@ -15,7 +15,7 @@
 1. [Beginner Resources](#-beginner-resources--tools)
 2. [Package Manager (apt)](#package-manager-apt)
 3. [Installation Scripts](#️-installation-scripts)
-   - [Available Bash Scripts](#available-bash-scripts)
+   - [Available Bash Scripts](#available-bash-scriptsexercises)
    - [Remote Assistance Installation](#remote-assistance-installation-deprecated)
    - [Remote Assistance Uninstallation](#remote-assistance-uninstallation)
    - [Reconnect Meshnet DEPRECATED](#recconect-meshnet-deprecated)
