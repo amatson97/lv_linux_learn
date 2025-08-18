@@ -159,18 +159,21 @@ Meshnet is being removed Dec 2025, please now run the uninstall and install ./ha
 ```bash
 # Below has been deprecated to be removed Dec 2025 run ./uninstall_remote_assist.sh and then ./hamachi_install.sh to migrate.
 sudo chmod +x install_remote_assist.sh
-./install_remote_assist.sh
+./deprecated/install_remote_assist.sh
 sudo reboot
-./install_remote_assist.sh
+./deprecated/install_remote_assist.sh
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
 
-> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./uninstall_remote_assist.sh` or `./uninstall_hamachi.sh` script as described below. Do not install this functionality on anyones machine but your own. We will need to work to migrate everyone as external devices.
+> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./deprecated/uninstall_remote_assist.sh` or `./uninstall_hamachi.sh` script as described below. Do not install this functionality on anyones machine but your own. We will need to work to migrate everyone as external devices.
 
 ### Remote Assistance Uninstallation
 ```bash
 sudo chmod +x uninstall_remote_assist.sh
-./uninstall_remote_assist.sh
+./deprecated/uninstall_remote_assist.sh
+
+sudo chmod +x uninstall_hamachi.sh
+./uninstall_hamachi.sh
 ```
 
 ### Recconect Meshnet DEPRECATED
@@ -180,7 +183,7 @@ At times it may be reuqures to revoke ane renew the vpn login. This be dont with
 ```bash
 # To be replaced with please run ./uninstall_remote_assist.sh and then /hamachi_install.sh to migrate.
 sudo chmod +x reconnect.sh
-./reconnect.sh <login_token>
+./deprecated/reconnect.sh <login_token>
 ```
 
 ---
