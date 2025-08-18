@@ -18,6 +18,7 @@
    - [Available Bash Scripts](#available-bash-scripts)
    - [Remote Assistance Installation](#remote-assistance-installation-deprecated)
    - [Remote Assistance Uninstallation](#remote-assistance-uninstallation)
+   - [Reconnect Meshnet DEPRECATED](#recconect-meshnet-deprecated)
 4. [Linux Drive Management](#-linux-drive-management)
 5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
@@ -127,8 +128,8 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ```bash
 ./hamachi_install.sh
 ./uninstall_hamachi.sh
-./deprecated/install_remote_assist.sh #DO NOT USE, install hamachi.
-./deprecated/uninstall_remote_assist.sh #DO NOT USE, install hamachi
+./deprecated/install_remote_assist.sh #DO NOT USE, please use ./hamachi_install.sh
+./deprecated/uninstall_remote_assist.sh #Run this then ./hamachi_install.sh to migrate.
 ./sublime_install.sh #Installs sublime-text and sublime-merge
 ./chrome_install.sh #Install chrome
 ./docker_install.sh #Install dcoker
@@ -153,7 +154,7 @@ source includes/main.sh
 
 ### Remote Assistance Installation DEPRECATED
 
-This is being removed Dec 2025, please now run the uninstall and install ./hamachi_install.sh.
+Meshnet is being removed Dec 2025, please now run the uninstall and install ./hamachi_install.sh as we need to migrate to using hamachi.
 
 ```bash
 # Below has been deprecated to be removed Dec 2025 run ./uninstall_remote_assist.sh and then ./hamachi_install.sh to migrate.
