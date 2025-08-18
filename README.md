@@ -152,11 +152,12 @@ source includes/main.sh
 ```
 
 
-### Remote Assistance Installation
+### Remote Assistance Installation DEPRECATED
 
-This uses my NordVPN meshnet to allow remote assistance to be offered. It is the only aspect of these guide that allows outside connections to your dev box.
+This is being removed Dec 2025, please now run the uninstall and install ./hamachi_install.sh.
 
 ```bash
+# Below has been deprecated to be removed Dec 2025 run ./uninstall_remote_assist.sh and then ./hamachi_install.sh to migrate.
 sudo chmod +x install_remote_assist.sh
 ./install_remote_assist.sh
 sudo reboot
