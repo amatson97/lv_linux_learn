@@ -5,7 +5,7 @@
 source includes/main.sh
 
 green_echo "[*] Stagging changes..."
-sudo git add .
+git add .
 sleep 1
 
 green_echo "[*] Commiting changes..."
