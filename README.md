@@ -7,7 +7,7 @@
 ---
 
 # Wana chat?
-[Discord Server](https://discord.gg/hZ4wrE4m)
+[Discord Server](https://discord.gg/mGGZdfsera)
 
 ---
 
