@@ -12,7 +12,7 @@
 ---
 
 ## 📑 Table of Contents
-1. [Beginner Resources](#-beginner-resources)
+1. [Beginner Resources](#-beginner-resources--tools)
 2. [Package Manager (apt)](#package-manager-apt)
 3. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scripts)
