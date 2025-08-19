@@ -1,6 +1,5 @@
 #!/bin/bash
-# sudo rm -rf /var/lib/logmein-hamachi
-# sudo apt purge --autoremove logmein-hamachi
+# This will install hamachi vpn and log you in to the Linux Learn network.
 
 # Includes
 source includes/main.sh
