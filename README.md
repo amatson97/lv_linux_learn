@@ -137,6 +137,7 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ./git_setup.sh #Installs git gh with guided authentication
 ./git_push_changes.sh #Push changes to github
 ./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
+./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
 /bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
 ```
 
@@ -168,6 +169,10 @@ sudo reboot
 
 # To uninstll this run
 ./uninstall_hamachi.sh
+
+# After install hamachi, you can run ./install_flatpak.sh and install haguichi which is a web interface for hamachi.
+./install_flatpak.sh
+flatpak install flathub com.github.ztefn.haguichi
 
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
