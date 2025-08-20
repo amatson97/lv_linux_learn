@@ -170,7 +170,7 @@ sudo reboot
 # To uninstll this run
 ./uninstall_hamachi.sh
 
-# After install hamachi, you can run ./install_flatpak.sh and install haguichi which is a web interface for hamachi.
+# After install hamachi, you can run ./install_flatpak.sh and install haguichi which is gui for hamachi
 ./install_flatpak.sh
 flatpak install flathub com.github.ztefn.haguichi
 
