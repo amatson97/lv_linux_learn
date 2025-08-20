@@ -162,6 +162,13 @@ sudo chmod +x install_remote_assist.sh
 ./deprecated/install_remote_assist.sh
 sudo reboot
 ./deprecated/install_remote_assist.sh
+
+# Please now run, this will install hamachi and log you in to the Linux Learn network.
+./hamachi_install.sh
+
+# To uninstll this run
+./uninstall_hamachi.sh
+
 ```
 After installation, run the desktop icon **Remote Desktop Info**.
 
