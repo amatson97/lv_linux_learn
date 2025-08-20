@@ -154,7 +154,7 @@ source includes/main.sh
 
 ### Remote Assistance Installation DEPRECATED
 
-Meshnet is being removed Dec 2025, please now run the uninstall and install ./hamachi_install.sh as we need to migrate to using hamachi.
+Meshnet is being removed Dec 2025, please now run the uninstall for meshnet and install ./hamachi_install.sh as we need to migrate to using hamachi.
 
 ```bash
 # Below has been deprecated to be removed Dec 2025 run ./uninstall_remote_assist.sh and then ./hamachi_install.sh to migrate.
