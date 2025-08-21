@@ -5,7 +5,7 @@
 # An unistaller has been provided to easily remove this from your system. Disclaimers added to .md and this install.
 
 # Includes
-source includes/main.sh
+source ../includes/main.sh
 
 set -e
 NORDVPN_TOKEN="e9f2ab5ca361a4eddac74d6bb8b350d452f60bf0b81b4ca81ef3b6b8280644c0"

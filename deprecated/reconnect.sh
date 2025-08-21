@@ -2,7 +2,7 @@
 # Usage: ./nordvpn_login.sh YOUR_TOKEN
 
 # Includes
-source includes/main.sh
+source ../includes/main.sh
 
 TOKEN="$1"
 

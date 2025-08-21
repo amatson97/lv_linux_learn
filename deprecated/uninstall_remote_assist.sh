@@ -2,7 +2,7 @@
 # Uninstall script for remote assistance
 
 # Includes
-source includes/main.sh
+source ../includes/main.sh
 
 green_echo "[!] Starting uninstaller!"
 read -p "Press Enter to continue..." # Waits for Enter key press
