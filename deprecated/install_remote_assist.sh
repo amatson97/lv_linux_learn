@@ -13,7 +13,7 @@ VNC_PORT="3389"
 DESKTOP_LAUNCHER="$HOME/Desktop/ShowMeshnetInfo.desktop"
 
 main() {
-  source includes/main.sh
+  source ../includes/main.sh
   green_echo "[*] Checking nordvpn group..."
   if ! getent group nordvpn > /dev/null; then
     green_echo "[*] Creating nordvpn group..."
