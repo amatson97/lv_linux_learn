@@ -126,7 +126,6 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ./sublime_install.sh #Installs sublime-text and sublime-merge
 ./chrome_install.sh #Install chrome
 ./docker_install.sh #Install dcoker
-./reconnect.sh # #DO NOT USE
 ./git_setup.sh #Installs git gh with guided authentication
 ./git_push_changes.sh #Push changes to github
 ./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
@@ -138,6 +137,7 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ./uninstall_hamachi.sh #DO NOT USE
 ./deprecated/install_remote_assist.sh #DO NOT USE
 ./deprecated/uninstall_remote_assist.sh # #DO NOT USE
+./reconnect.sh # #DO NOT USE
 ```
 
 ### ⚙️ Main functions
