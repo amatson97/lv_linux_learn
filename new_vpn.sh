@@ -30,6 +30,8 @@ remove_if_installed() {
 remove_if_installed "nordvpn"
 remove_if_installed "logmein-hamachi"
 
+sleep 5
+
 # Install ZeroTier
 green_echo "[*] Installing ZeroTier..."
 curl -s https://install.zerotier.com | sudo bash
