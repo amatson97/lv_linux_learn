@@ -164,6 +164,14 @@ Dont worry about romoving any of the old methods, the script will handle this. Y
 
 ![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")s
 
+### Uninstall All VPN's
+
+You can remove all VPN technologies from your machine using:
+
+```bash
+./remove_all_vpn.sh
+```
+
 ---
 
 ## 💾 Linux Drive Management
