@@ -156,9 +156,9 @@ To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the b
 ```bash
 ./new_vpn.sh
 ```
-Dont worry about romoving any of the old methods, the script will handle this. You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop.
+Dont worry about romoving any of the old methods, the script will handle this. You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop. As below:
 
-With "Remote Desktop"
+![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")
 
 
 ---
