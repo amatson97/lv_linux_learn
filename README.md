@@ -157,7 +157,7 @@ source includes/main.sh
 
 ### Remote Assistance Installation
 
-To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the below script:
+To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the below script. Once you have enable remote desktop on your machine it will allow us to remote assist each others machines.
 
 ```bash
 ./new_vpn.sh
@@ -170,7 +170,7 @@ You will still need to leave remote desktop enabled in: Settings > System > Reno
 
 ### Uninstall All VPN's
 
-You can remove all VPN technologies from your machine using:
+You can remove all VPN technologies from your machine using the below script. It will remove nordvpn, logmein-hamachi and zerotier-one. You can then turn off the rmeote desktop features as above.
 
 ```bash
 ./remove_all_vpn.sh
