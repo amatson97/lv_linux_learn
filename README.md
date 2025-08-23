@@ -123,19 +123,21 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 
 ### Available Bash Scripts/Exercises
 ```bash
-./hamachi_install.sh
-./uninstall_hamachi.sh
-./deprecated/install_remote_assist.sh #DO NOT USE, please use ./hamachi_install.sh
-./deprecated/uninstall_remote_assist.sh #Run this then ./hamachi_install.sh to migrate.
 ./sublime_install.sh #Installs sublime-text and sublime-merge
 ./chrome_install.sh #Install chrome
 ./docker_install.sh #Install dcoker
-./reconnect.sh #Reconnect to MeshNet
+./reconnect.sh # #DO NOT USE
 ./git_setup.sh #Installs git gh with guided authentication
 ./git_push_changes.sh #Push changes to github
 ./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
 ./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
 /bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
+
+# Still required but now obsolete.
+./hamachi_install.sh #DO NOT USE
+./uninstall_hamachi.sh #DO NOT USE
+./deprecated/install_remote_assist.sh #DO NOT USE
+./deprecated/uninstall_remote_assist.sh # #DO NOT USE
 ```
 
 ### ⚙️ Main functions
@@ -158,8 +160,7 @@ To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the b
 ```
 Dont worry about romoving any of the old methods, the script will handle this. You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop. As below:
 
-![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")
-
+![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")s
 
 ---
 
