@@ -16,6 +16,8 @@
 2. [Package Manager (apt)](#package-manager-apt)
 3. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scriptsexercises)
+   - [Remote Assistance Installation](#remote-assistance-installation)
+   - [Uninstall All VPN's](#uninstall-all-vpns)
 4. [Linux Drive Management](#-linux-drive-management)
 5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
@@ -160,7 +162,9 @@ To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the b
 ```bash
 ./new_vpn.sh
 ```
-Dont worry about romoving any of the old methods, the script will handle this. You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop. As below:
+Dont worry about romoving any of the old methods, the script will handle this. 
+
+You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop. As below:
 
 ![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")s
 
