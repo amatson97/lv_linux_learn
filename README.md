@@ -16,9 +16,6 @@
 2. [Package Manager (apt)](#package-manager-apt)
 3. [Installation Scripts](#️-installation-scripts)
    - [Available Bash Scripts](#available-bash-scriptsexercises)
-   - [Remote Assistance Installation](#remote-assistance-installation-deprecated)
-   - [Remote Assistance Uninstallation](#remote-assistance-uninstallation)
-   - [Reconnect Meshnet DEPRECATED](#recconect-meshnet-deprecated)
 4. [Linux Drive Management](#-linux-drive-management)
 5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
@@ -152,51 +149,17 @@ You can add this top your scripts by adding this line.
 source includes/main.sh
 ```
 
+### Remote Assistance Installation
 
-### Remote Assistance Installation DEPRECATED
-
-Meshnet is being removed Dec 2025, please now run the uninstall for meshnet and install ./hamachi_install.sh as we need to migrate to using hamachi.
-
-```bash
-# Below has been deprecated to be removed Dec 2025 run ./uninstall_remote_assist.sh and then ./hamachi_install.sh to migrate.
-sudo chmod +x install_remote_assist.sh
-./deprecated/install_remote_assist.sh
-sudo reboot
-./deprecated/install_remote_assist.sh
-
-# Please now run, this will install hamachi and log you in to the Linux Learn network.
-./hamachi_install.sh
-
-# To uninstll this run
-./uninstall_hamachi.sh
-
-# After install hamachi, you can run ./install_flatpak.sh and install haguichi which is gui for hamachi
-./install_flatpak.sh
-flatpak install flathub com.github.ztefn.haguichi
-
-```
-After installation, run the desktop icon **Remote Desktop Info**.
-
-> ⚠️ **Disclaimer:** The Remote Assistance tool is provided for convenience in localhost environments. Should you wish to remove this from your machine, run the `./deprecated/uninstall_remote_assist.sh` or `./uninstall_hamachi.sh` script as described below. Do not install this functionality on anyones machine but your own. We will need to work to migrate everyone as external devices.
-
-### Remote Assistance Uninstallation
-```bash
-sudo chmod +x uninstall_remote_assist.sh
-./deprecated/uninstall_remote_assist.sh
-
-sudo chmod +x uninstall_hamachi.sh
-./uninstall_hamachi.sh
-```
-
-### Recconect Meshnet DEPRECATED
-
-At times it may be reuqures to revoke ane renew the vpn login. This be dont with the below script passing the new token. (ask me for it)
+To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the below script:
 
 ```bash
-# To be replaced with please run ./uninstall_remote_assist.sh and then /hamachi_install.sh to migrate.
-sudo chmod +x reconnect.sh
-./deprecated/reconnect.sh <login_token>
+./new_vpn.sh
 ```
+Dont worry about romoving any of the old methods, the script will handle this. You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop.
+
+With "Remote Desktop"
+
 
 ---
 
