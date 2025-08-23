@@ -37,9 +37,6 @@ green_echo "[*] Joining Hamach hetwork..."
 sudo hamachi join 496-925-380
 sleep 1
 
-# Cleaning up install
-sudo rm logmein-hamachi.deb
-
 green_echo "[!] Hamachi should now be installed, logged in, and joined to network 496-925-380!"
 green_echo "[*] Adding $USER to /var/lib/logmein-hamachi/h2-engine-override.cfg..."
 
@@ -53,3 +50,6 @@ green_echo "[*] Restarting logmein-hamachi..."
 sudo /etc/init.d/logmein-hamachi restart
 
 create_hamachi_info_desktop_icon
+
+# Cleaning up install
+sudo rm logmein-hamachi.deb

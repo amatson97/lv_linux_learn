@@ -122,3 +122,27 @@ EOF
   gio set "$DESKTOP_LAUNCHER" metadata::trusted true || green_echo "Note: You may need to right-click the launcher and allow launching."
   green_echo "[+] Created desktop launcher at $DESKTOP_LAUNCHER"
 }
+
+# Function to check and remove a package if installed, used in new_vpn.sh
+remove_if_installed_nord() {
+    local pkg="$1"
+    if dpkg -l | grep -q "^ii\s*$pkg"; then
+        green_echo "[*] $pkg detected, removing..."
+        cd $HOME/lv_linux_learn/deprecated
+        ./uninstall_remote_assist.sh
+    else
+        green_echo "[*] $pkg not installed, skipping."
+    fi
+}
+
+# Function to check and remove a package if installed, used in new_vpn.sh
+remove_if_installed_hamachi() {
+    local pkg="$1"
+    if dpkg -l | grep -q "^ii\s*$pkg"; then
+        green_echo "[*] $pkg detected, removing..."
+        cd $HOME/lv_linux_learn
+        ./uninstall_hamachi.sh
+    else
+        green_echo "[*] $pkg not installed, skipping."
+    fi
+}
