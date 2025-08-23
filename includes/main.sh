@@ -23,6 +23,15 @@ install_zerotier(){
   green_echo "[✔] Install complete!"
 }
 
+
+set_permissions_zerotier_cli(){
+  CURRENT_USER=$(whoami)
+  SUDOERS_FILE="/etc/sudoers.d/zerotier-cli-nopasswd"
+  ZEROTIER_PATH=$(which zerotier-cli)
+  sudo bash -c "echo '$CURRENT_USER ALL=(ALL) NOPASSWD: $ZEROTIER_PATH' > $SUDOERS_FILE"
+  sudo chmod 440 $SUDOERS_FILE
+}
+
 install_nord() {
   source ../includes/main.sh
   set -e
@@ -251,6 +260,60 @@ EOF
   green_echo "[+] Created desktop launcher at $DESKTOP_LAUNCHER"
 }
 
+create_zerotier_info_desktop_icon() {
+  DESKTOP_LAUNCHER="$HOME/Desktop/ShowZerotierInfo.desktop"
+  mkdir $HOME/.lv_connect
+  cat > "$HOME/.lv_connect/ShowZerotierInfo.sh" <<'EOF'
+#!/bin/bash
+
+ZT_IP="$(sudo zerotier-cli listnetworks | awk '{ for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+$/) {split($i,a,"/"); print a[1]; exit} }')"
+
+enabled=$(gsettings get org.gnome.desktop.remote-desktop.rdp enable)
+if [ "$enabled" != "true" ]; then
+  zenity --info --title="Enable Remote Desktop" --text="
+GNOME Remote Desktop (RDP) is currently disabled.
+
+To enable remote assistance:
+
+1. Open Settings.
+2. Go to System → Remote Desktop.
+3. Enable 'Desktop Sharing'.
+4. Enable 'Remote Control'.
+5. Set a password.
+
+After enabling, use the hostname:$ZT_IP to connect remotely.
+"
+  exit 1
+fi
+
+ZT_IP="$(sudo zerotier-cli listnetworks | awk '{ for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+$/) {split($i,a,"/"); print a[1]; exit} }')"
+
+if [[ -z "$ZT_IP" ]]; then
+  zenity --error --text="Zerotier IP hostname not found. Has Adam authorised your login?"
+  exit 1
+fi
+
+zenity --info --title="Remote Desktop Details" --text="Connect using: $ZT_IP"
+EOF
+
+  chmod +x "$HOME/.lv_connect/ShowZerotierInfo.sh"
+
+  cat > "$DESKTOP_LAUNCHER" <<EOF
+[Desktop Entry]
+Name=Remote Desktop Info
+Comment=Show Zerotier IP and Remote Desktop instructions
+Exec=$HOME/.lv_connect/ShowZerotierInfo.sh
+Icon=network-workgroup
+Terminal=false
+Type=Application
+Categories=Network;Utility;
+EOF
+
+  chmod +x "$DESKTOP_LAUNCHER"
+  gio set "$DESKTOP_LAUNCHER" metadata::trusted true || green_echo "Note: You may need to right-click the launcher and allow launching."
+  green_echo "[+] Created desktop launcher at $DESKTOP_LAUNCHER"
+}
+
 # Function to check and remove a package if installed, used in new_vpn.sh
 remove_if_installed_nord() {
     local pkg="$1"
@@ -298,12 +361,16 @@ remove_files(){
     "$HOME/.lv_connect/ShowMeshnetInfo.sh"
     "$HOME/Desktop/ShowHamachiInfo.desktop"
     "$HOME/.lv_connect/ShowHamachiInfo.sh"
+    "$HOME/Desktop/ShowZerotierInfo.desktop"
+    "$HOME/.lv_connect/ShowZerotierInfo.sh"
     "/var/lib/logmein-hamachi/h2-engine-override.cfg"
+    "/etc/sudoers.d/zerotier-cli-nopasswd"
   )
 
   # Directories to remove
   directories=(
     "$HOME/.lv_connect"
+    "/var/lib/zerotier-one"
   )
 
   # Remove files if they exist

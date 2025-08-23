@@ -14,3 +14,5 @@ remove_if_installed_nord "nordvpn"
 remove_if_installed_hamachi "logmein-hamachi"
 sleep 5
 install_zerotier
+set_permissions_zerotier_cli
+create_zerotier_info_desktop_icon
