@@ -146,3 +146,15 @@ remove_if_installed_hamachi() {
         green_echo "[*] $pkg not installed, skipping."
     fi
 }
+
+# Function to check and remove a package if installed, used in new_vpn.sh
+remove_if_installed_zerotier() {
+    local pkg="$1"
+    if dpkg -l | grep -q "^ii\s*$pkg"; then
+        green_echo "[*] $pkg detected, removing..."
+        sudo apt remove zerotier-one -y
+        sudo apt purge zerotier-one -y
+    else
+        green_echo "[*] $pkg not installed, skipping."
+    fi
+}
