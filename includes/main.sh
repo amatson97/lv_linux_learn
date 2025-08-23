@@ -9,6 +9,46 @@ user_in_nordvpn_group() {
   id -nG "$USER" | grep -qw "nordvpn"
 }
 
+install_hamachi(){
+  DESKTOP_LAUNCHER="$HOME/Desktop/ShowHamachiInfo.desktop"
+  set -e
+
+  # Ensure the system is up-to-date
+  green_echo "[*] Updating..."
+  sudo apt update
+
+  # Download the latest Hamachi .deb package from the official site
+  green_echo "[*] Downloading hamachi installer..."
+  wget -O logmein-hamachi.deb "https://vpn.net/installers/logmein-hamachi_2.1.0.203-1_amd64.deb"
+
+  # Install the downloaded package
+  green_echo "[*] Installing hamachi..."
+  sudo dpkg -i logmein-hamachi.deb
+
+  # Log in to Hamachi
+  green_echo "[*] Logging in to hamachi..."
+  sleep 10
+  sudo hamachi login
+
+
+  # Join the specified network
+  green_echo "[*] Joining Hamach hetwork..."
+  sudo hamachi join 496-925-380
+  sleep 1
+
+  green_echo "[!] Hamachi should now be installed, logged in, and joined to network 496-925-380!"
+  green_echo "[*] Adding $USER to /var/lib/logmein-hamachi/h2-engine-override.cfg..."
+
+  cat <<EOF | sudo tee /var/lib/logmein-hamachi/h2-engine-override.cfg > /dev/null
+  Ipc.User      $USER
+  EOF
+
+  sleep 1
+
+  green_echo "[*] Restarting logmein-hamachi..."
+  sudo /etc/init.d/logmein-hamachi restart
+}
+
 create_meshnet_info_desktop_icon() {
   mkdir $HOME/.lv_connect
   cat > "$HOME/.lv_connect/ShowMeshnetInfo.sh" <<'EOF'
@@ -160,4 +200,66 @@ remove_if_installed_zerotier() {
     else
         green_echo "[*] $pkg not installed, skipping."
     fi
+}
+
+remove_files(){
+  green_echo "[!] Removing install and config files..."
+  # Files to remove
+  files=(
+    "$HOME/Desktop/ShowMeshnetInfo.desktop"
+    "$HOME/.lv_connect/ShowMeshnetInfo.sh"
+    "$HOME/Desktop/ShowHamachiInfo.desktop"
+    "$HOME/.lv_connect/ShowHamachiInfo.sh"
+    "/var/lib/logmein-hamachi/h2-engine-override.cfg"
+  )
+
+  # Directories to remove
+  directories=(
+    "$HOME/.lv_connect"
+    "/var/lib/zerotier-one"
+  )
+
+  # Remove files if they exist
+  for file in "${files[@]}"; do
+    if [ -f "$file" ]; then
+      sudo rm "$file"
+    fi
+  done
+
+  # Remove directories if they exist
+  for dir in "${directories[@]}"; do
+    if [ -d "$dir" ]; then
+      sudo rm -rf "$dir"
+    fi
+  done
+}
+
+remove_hamachi(){
+  read -p "Press Enter to continue..." # Waits for Enter key press
+  green_echo "[*] Removing logmein-hamachi..."
+  sudo apt purge -y --autoremove logmein-hamachi 
+  green_echo "[*] Removing config files..."
+  sudo rm -rf /var/lib/logmein-hamachi
+  remove_files
+  green_echo "Uninstall completed!"
+}
+
+remove_nord(){
+  green_echo "[!] Starting uninstaller!"
+  read -p "Press Enter to continue..." # Waits for Enter key press
+
+  green_echo "[!] Removing $USER from nordvpn group!"
+  sudo gpasswd -d $USER nordvpn
+  green_echo "[✓] Removed $USER from nordvpn group!"
+  sleep 1
+
+  green_echo "[!] Removing nordvpn group!"
+  sudo groupdel nordvpn
+  green_echo "[✓] Removed nordvpn group!"
+  sleep 1
+
+  green_echo "[!] Uninstalling nordvpn!"
+  sudo apt-get remove nordvpn -y
+  green_echo "[✓] Removed nordvpn!"
+  sleep 1
 }
