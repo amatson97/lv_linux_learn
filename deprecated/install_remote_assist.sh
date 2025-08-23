@@ -6,4 +6,6 @@
 
 # Includes
 source ../includes/main.sh
+
+#call function
 install_nord
