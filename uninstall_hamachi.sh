@@ -15,7 +15,10 @@ sudo rm -rf /var/lib/logmein-hamachi
 
 green_echo "[*] Removing desktop icon..."
 rm -rf $HOME/.lv_connect
+rm $HOME/Desktop/ShowMeshnetInfo.desktop
+rm $HOME/.lv_connect/ShowMeshnetInfo.sh
 rm $HOME/Desktop/ShowHamachiInfo.desktop
+green_echo "[*] Removing logmein-hamachi config file..."
 rm /var/lib/logmein-hamachi/h2-engine-override.cfg
 
 green_echo "Uninstall completed!"
