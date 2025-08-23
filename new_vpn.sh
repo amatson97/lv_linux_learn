@@ -13,3 +13,5 @@ curl -s https://install.zerotier.com | sudo bash
 green_echo "[*] Joing Linux Learn Network..."
 sleep 2
 sudo zerotier-cli join 8BD5124FD60A971F
+
+green_echo "[!} Install complete..."
