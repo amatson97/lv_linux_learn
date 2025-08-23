@@ -8,5 +8,3 @@ source includes/main.sh
 remove_if_installed_zerotier "zerotier-one"
 remove_if_installed_nord "nordvpn"
 remove_if_installed_hamachi "logmein-hamachi"
-
-

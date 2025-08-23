@@ -131,8 +131,8 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
 ./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
 /bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
-./new_vpn.sh #Installs ZeroTier VPN and adds you to the Linux Learn Network.
-./unsinatll_new_vpn.sh #IN DEVELOPEMENT
+./new_vpn.sh #Installs ZeroTier VPN and adds you to the Linux Learn Network. Will automatically remove Nord/Hamachi
+./remove_all_vpn.sh #This will remove any installed vpn technologies on your machine. Nord/Hamachi/ZeroTier
 
 # Still required but now obsolete.
 ./hamachi_install.sh #DO NOT USE

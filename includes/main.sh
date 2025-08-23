@@ -154,6 +154,9 @@ remove_if_installed_zerotier() {
         green_echo "[*] $pkg detected, removing..."
         sudo apt remove zerotier-one -y
         sudo apt purge zerotier-one -y
+        green_echo "[*] Renoving zerotier-one config..."
+        sudo rm -rf /var/lib/zerotier-one
+        green_echo "[!] Zerotier has been removed..."
     else
         green_echo "[*] $pkg not installed, skipping."
     fi
