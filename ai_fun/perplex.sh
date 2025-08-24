@@ -68,9 +68,9 @@ if [[ "$save_md" =~ ^[Yy]$ ]]; then
     echo '```'
     echo
     echo "## Response"
-    echo '```'
+    #echo '```'
     printf '%s\n' "$CONTENT"
-    echo '```'
+    #echo '```'
     if [[ -n "$CITATIONS" ]]; then
       echo
       echo "## Citations"
