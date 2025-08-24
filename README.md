@@ -31,6 +31,7 @@
 9. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
 10. [Getting started with GitHub](#-getting-started-with-github)
 11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
+12. [AI Fun](#ai-fun)
 
 ---
 
@@ -375,6 +376,16 @@ Diagnose connectivity and networking issues with these commands:
 - When in doubt, Google error messages or check Linux community forums.
 
 ---
+## AI Fun
+I have written a bash script that alows you to send JSON prompts to perplexity.ai you will need an API key.
+```bash
+/ai_fun/./perplex.sh
+```
+When you run this you will be prompted to enter your query or copy in your query. 
+Once finished return to a new line and type EOF and hit return again.
+Wait for the response, which will be rendered in the terminal in markdown.
+You will then be asked if you want to to export to an .md file.
+
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
 
