@@ -379,6 +379,7 @@ Diagnose connectivity and networking issues with these commands:
 ## AI Fun
 I have written a bash script that alows you to send JSON prompts to perplexity.ai you will need an API key.
 ```bash
+# Usage: ./perplex.sh <Perplexity API Key>
 /ai_fun/./perplex.sh
 ```
 When you run this you will be prompted to enter your query or copy in your query. 

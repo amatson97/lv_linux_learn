@@ -1,4 +1,5 @@
 #!/bin/bash
+# Usage: ./perplex.sh <Perplexity API Key>
 
 API_KEY="$1"
 
