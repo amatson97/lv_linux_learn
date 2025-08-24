@@ -1,0 +1,169 @@
+adam@adam-VMware-Virtual-Platform:~/lv_linux_learn/ai_fun$ ./perplex.sh 
+Paste your code or question. Type EOF on a new line when done.
+Can you write mea bash script to set up a traefik instance in docker. I will be using cloudflare DNS proxied. The below services will be sat behind traefik. 
+All will use SSL certificates issued via cloud flare.                      
+- transmission.ichigo1990.uk
+- cockpiit.ichigo1990.uk
+- nextcloud.ichigo1990.uk 
+Please also provide the docker-compose for the above refernced services. Adding the required traefik labels.                  
+
+The below directories will be used: 
+- transmission (/transmision)
+- nextcloud (/nextcloud)
+- traefik (/traefik)
+Please leave the traefik api dashboard enabled for troubleshooting. But can you add basic web authentication to it via traefik its self. 
+EOF
+
+JSON Payload to be sent:
+{
+  "model": "sonar-pro",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Can you write mea bash script to set up a traefik instance in docker. I will be using cloudflare DNS proxied. The below services will be sat behind traefik.\nAll will use SSL certificates issued via cloud flare.\n- transmission.ichigo1990.uk\n- cockpiit.ichigo1990.uk\n- nextcloud.ichigo1990.uk\nPlease also provide the docker-compose for the above refernced services. Adding the required traefik labels.\n\nThe below directories will be used:\n- transmission (/transmision)\n- nextcloud (/nextcloud)\n- traefik (/traefik)\nPlease leave the traefik api dashboard enabled for troubleshooting. But can you add basic web authentication to it via traefik its self.\n"
+    }
+  ],
+  "max_tokens": 1000,
+  "temperature": 0.3
+}
+
+===== Perplexity API Response =====
+
+Below is a bash script to set up a Traefik instance in Docker using Cloudflare 
+DNS for SSL certificates (DNS-01 challenge), with the services transmission, 
+cockpit, and nextcloud behind Traefik. The script creates the necessary 
+directories, environment files, and a docker-compose.yml with all required 
+Traefik labels, including a basic-authenticated dashboard. The configuration 
+assumes you have Cloudflare API credentials and Docker installed.
+
+**Bash Setup Script (setup_traefik_stack.sh):**
+```bash
+#!/bin/bash
+
+# Create directories
+mkdir -p /traefik /transmission /nextcloud
+
+# Create .env file for sensitive variables (edit these values!)
+cat <<EOF > /traefik/.env
+CF_API_EMAIL=your-cloudflare-email@example.com
+CF_DNS_API_TOKEN=your-cloudflare-dns-token
+TRAEFIK_DASHBOARD_USER=admin
+TRAEFIK_DASHBOARD_PASS=\$(openssl passwd -apr1 'your_dashboard_password')
+EOF
+
+# Create traefik.yml (static config)
+cat <<EOF > /traefik/traefik.yml
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+api:
+  dashboard: true
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: "/traefik/dynamic"
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: "\${CF_API_EMAIL}"
+      storage: acme.json
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 0
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+EOF
+
+# Create dynamic config for dashboard auth
+mkdir -p /traefik/dynamic
+cat <<EOF > /traefik/dynamic/dashboard.yml
+http:
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        users:
+          - "\${TRAEFIK_DASHBOARD_USER}:\${TRAEFIK_DASHBOARD_PASS}"
+EOF
+
+# Create acme.json with correct permissions
+touch /traefik/acme.json
+chmod 600 /traefik/acme.json
+
+# Create docker-compose.yml
+cat <<'EOF' > /traefik/docker-compose.yml
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    restart: unless-stopped
+    env_file:
+      - ./traefik/.env
+    command:
+      - --configFile=/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /traefik/traefik.yml:/traefik/traefik.yml:ro
+      - /traefik/dynamic:/traefik/dynamic:ro
+      - /traefik/acme.json:/traefik/acme.json
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.ichigo1990.uk`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=dashboard-auth@file"
+
+  transmission:
+    image: linuxserver/transmission
+    container_name: transmission
+    restart: unless-stopped
+    volumes:
+      - /transmission:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    labels:
+      - "traefik.enable=true"
+      - 
+"traefik.http.routers.transmission.rule=Host(`transmission.ichigo1990.uk`)"
+      - "traefik.http.routers.transmission.entrypoints=websecure"
+      - "traefik.http.routers.transmission.tls.certresolver=cloudflare"
+      - "traefik.http.services.transmission.loadbalancer.server.port=9091"
+
+  cockpit:
+    image: cockpit/cockpit
+    container_name: cockpit
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers
+
+Citations:
+- https://greenfrognest.com/LMDSTraefikProxy.php
+- https://imagineer.in/blog/traefik-ssl-with-letsencrypt-and-cloudflare/
+- https://mattdyson.org/blog/2024/02/using-traefik-with-cloudflare-tunnels/
+- https://www.youtube.com/watch?v=E3g-rZChzyw
+- https://community.traefik.io/t/help-with-traefik-and-cloudflare-full-strict-ssl-tls-setup/26941
+
+==================================
+
+Save response as Markdown file? (y/n): y
+./perplex.sh: line 71: $'\n    echo\n    echo "## Response"\n    echo ': command not found
+Response saved to perplexity_response_20250824_223314.md
