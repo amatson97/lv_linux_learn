@@ -137,11 +137,11 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 ./remove_all_vpn.sh #This will remove any installed vpn technologies on your machine. Nord/Hamachi/ZeroTier
 
 # Still required but now obsolete.
-./hamachi_install.sh #DO NOT USE
-./uninstall_hamachi.sh #DO NOT USE
+./deprecated/hamachi_install.sh #DO NOT USE
+./deprecated/uninstall_hamachi.sh #DO NOT USE
 ./deprecated/install_remote_assist.sh #DO NOT USE
 ./deprecated/uninstall_remote_assist.sh # #DO NOT USE
-./reconnect.sh # #DO NOT USE
+.deprecated/reconnect.sh # #DO NOT USE
 ```
 
 ### ⚙️ Main functions
