@@ -7,7 +7,7 @@ echo "Paste your code or question. Type EOF on a new line when done."
 INPUT=""
 while IFS= read -r line; do
   [[ $line == "EOF" ]] && break
-  INPUT+="$line\n"
+  INPUT+="$line"$'\n'  # Append actual newline character
 done
 
 # Compose JSON payload correctly using jq
@@ -53,24 +53,27 @@ echo -e "\n\e[1;34m==================================\e[0m\n"
 # Ask user if they want to save the response as Markdown
 read -p "Save response as Markdown file? (y/n): " save_md
 if [[ "$save_md" =~ ^[Yy]$ ]]; then
-  # Sanitize filename from user prompt, default if empty
   filename="perplexity_response_$(date +%Y%m%d_%H%M%S).md"
 
-  # Prepare Markdown content
-  md_content="# Perplexity API Response\n\n"
-  md_content+="## Prompt\n"
-  md_content+="``````\n\n"
-  md_content+="## Response\n"
-  md_content+="``````\n\n"
+  # Prepare Markdown content with proper newlines
+  {
+    echo "# Perplexity API Response"
+    echo
+    echo "## Prompt"
+    echo '```
+    printf '%s\n' "$INPUT"
+    echo '```'
+    echo
+    echo "## Response"
+    echo '```
+    printf '%s\n' "$CONTENT"
+    echo '```'
+    if [[ -n "$CITATIONS" ]]; then
+      echo
+      echo "## Citations"
+      echo "$CITATIONS"
+    fi
+  } > "$filename"
 
-  if [[ -n "$CITATIONS" ]]; then
-    md_content+="## Citations\n"
-    # Convert bullets to markdown list
-    md_content+=$(echo "$CITATIONS" | sed 's/^/- /')
-    md_content+="\n"
-  fi
-
-  # Write to file
-  echo -e "$md_content" > "$filename"
   echo "Response saved to $filename"
 fi
