@@ -125,16 +125,27 @@ I have inlcuded in /bash_exercises/* some basic scripts that can show you some b
 
 ### Available Bash Scripts/Exercises
 ```bash
-./sublime_install.sh #Installs sublime-text and sublime-merge
-./chrome_install.sh #Install chrome
-./docker_install.sh #Install dcoker
-./git_setup.sh #Installs git gh with guided authentication
-./git_push_changes.sh #Push changes to github
-./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker
-./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
+# Bash excercises.
 /bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
-./new_vpn.sh #Installs ZeroTier VPN and adds you to the Linux Learn Network. Will automatically remove Nord/Hamachi
-./remove_all_vpn.sh #This will remove any installed vpn technologies on your machine. Nord/Hamachi/ZeroTier
+
+# Software Installs.
+./sublime_install.sh #Installs sublime-text and sublime-merge
+./chrome_install.sh #Install chrome.
+./docker_install.sh #Install dcoker.
+./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
+
+# Combined installer docker, word press within docker.
+./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker.
+
+# Github related.
+./git_setup.sh #Installs git gh with guided authentication.
+./git_push_changes.sh #Push changes to github.
+
+# VPN related scripts
+./new_vpn.sh #Installs ZeroTier VPN and adds you to the Linux Learn Network. Will automatically remove Nord/Hamachi.
+./remove_all_vpn.sh #This will remove any installed vpn technologies on your machine. Nord/Hamachi/ZeroTier.
+/zerotier_tools/get_ip.sh # Will output to terminal Usage: ./get_ip.sh <api_token> <network_id>
+/zerotier_tools/html_ip.sh # Will output to html file, Usage: ./html_ip.sh <api_token> <network_id>
 
 # Still required but now obsolete.
 ./deprecated/hamachi_install.sh #DO NOT USE
