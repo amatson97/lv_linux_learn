@@ -3,7 +3,7 @@
 # This script is now deprecated.
 
 #functions
-source includes/main.sh
+source ../includes/main.sh
 
 #call functions
 install_hamachi
