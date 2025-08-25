@@ -198,7 +198,7 @@ class PerplexityApp(Gtk.Window):
         # Save plain markdown text (no markup)
         md = (
             f"# Perplexity API Response\n\n"
-            f"## Prompt\n```bash\n{self.prompt_text.strip()}\n```"
+            f"## Prompt\n```\n{self.prompt_text.strip()}\n```\n"
             f"## Response\n```\n{self.response_text.strip()}\n```"
         )
         if self.citations:
