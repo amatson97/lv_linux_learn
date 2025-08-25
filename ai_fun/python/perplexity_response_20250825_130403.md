@@ -1,7 +1,7 @@
 # Perplexity API Response
 
 ## Prompt
-```Can you write me a bash script to back up the below directories to a remote rsync server on 192.168.1.43:
+Can you write me a bash script to back up the below directories to a remote rsync server on 192.168.1.43:
 - Local: /raid10/  remote: /server_backup
 - Local: /oldhome/ remote: /oldhome_backup
 Can you also apply compression on the backup side and the data transmisison to increase back up performance.

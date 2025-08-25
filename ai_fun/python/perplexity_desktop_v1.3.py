@@ -1,64 +1,25 @@
 #!/usr/bin/env python3
+#Tested and working.
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 import requests
 import datetime
 import os
+import threading
 
 API_URL = 'https://api.perplexity.ai/chat/completions'
 
 DARK_CSS = b"""
 .textview {
-    background: #232629;
-    color: #ebebeb;
-    font-family: 'Ubuntu Mono', 'monospace';
-    font-size: 13px;
-    padding: 10px;
+  background: #232629;
+  color: #ebebeb;
+  font-family: 'Ubuntu Mono', 'monospace';
+  font-size: 13px;
+  padding: 10px;
 }
 """
-
-def escape(text):
-    return (text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
-
-def markdown_to_pango(markdown):
-    lines = markdown.splitlines()
-    markup = []
-    in_code = False
-    for line in lines:
-        strip_line = line.strip()
-        if strip_line.startswith('```'):
-            if not in_code:
-                markup.append('<span foreground="orange"><tt>')
-                in_code = True
-            else:
-                markup.append('</tt></span>')
-                in_code = False
-            continue
-        if in_code:
-            markup.append(escape(line))
-        else:
-            if strip_line.startswith('### '):
-                markup.append(f'<span weight="bold" size="large">{escape(strip_line[4:])}</span>')
-            elif strip_line.startswith('## '):
-                markup.append(f'<span weight="bold" size="x-large">{escape(strip_line[3:])}</span>')
-            elif strip_line.startswith('# '):
-                markup.append(f'<span weight="bold" size="xx-large">{escape(strip_line[2:])}</span>')
-            elif strip_line.startswith('- '):
-                markup.append(f'-  {escape(strip_line[2:])}')
-            elif '**' in strip_line:
-                parts = line.split('**')
-                boldified = ''
-                for i, p in enumerate(parts):
-                    if i % 2 == 1:
-                        boldified += f'<b>{escape(p)}</b>'
-                    else:
-                        boldified += escape(p)
-                markup.append(boldified)
-            else:
-                markup.append(escape(line))
-    return '\n'.join(markup)
 
 class PerplexityApp(Gtk.Window):
     def __init__(self):
@@ -66,7 +27,6 @@ class PerplexityApp(Gtk.Window):
         self.set_default_size(780, 600)
         self.set_border_width(10)
 
-        # Dark theme CSS
         style_provider = Gtk.CssProvider()
         style_provider.load_from_data(DARK_CSS)
         Gtk.StyleContext.add_provider_for_screen(
@@ -78,41 +38,51 @@ class PerplexityApp(Gtk.Window):
         vbox = Gtk.VBox(spacing=8)
         self.add(vbox)
 
-        # API key input
         self.api_key = os.environ.get("PERPLEXITY_API_KEY", "")
+
         hbox_key = Gtk.HBox(spacing=5)
         vbox.pack_start(hbox_key, False, False, 0)
+
         self.key_entry = Gtk.Entry()
         self.key_entry.set_placeholder_text("API Key")
         self.key_entry.set_text(self.api_key)
         hbox_key.pack_start(Gtk.Label(label="API Key:"), False, False, 0)
         hbox_key.pack_start(self.key_entry, True, True, 0)
 
-        # Prompt input text box
         self.prompt_buffer = Gtk.TextBuffer()
         prompt_view = Gtk.TextView(buffer=self.prompt_buffer)
         prompt_view.set_wrap_mode(Gtk.WrapMode.WORD)
-        prompt_view.set_size_request(-1, 120)
         prompt_view.set_name("textview")
-        vbox.pack_start(Gtk.Label(label="Enter your prompt or code (multi-line allowed):"), False, False, 0)
-        vbox.pack_start(prompt_view, False, False, 0)
 
-        # Buttons: Send and Save
-        send_btn = Gtk.Button(label="Send to Perplexity")
-        send_btn.connect("clicked", self.on_send_clicked)
+        # Create scrolled window for prompt text
+        scrolled_prompt = Gtk.ScrolledWindow()
+        scrolled_prompt.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled_prompt.set_size_request(-1, 120)  # fixed height, full width
+        scrolled_prompt.add(prompt_view)
+        vbox.pack_start(Gtk.Label(label="Enter your prompt or code (multi-line allowed):"), False, False, 0)
+        vbox.pack_start(scrolled_prompt, False, False, 0)
+
+
+        hbox_btns = Gtk.HBox(spacing=5)
+        vbox.pack_start(hbox_btns, False, False, 0)
+
+        self.send_btn = Gtk.Button(label="Send to Perplexity")
+        self.send_btn.connect("clicked", self.on_send_clicked)
+        hbox_btns.pack_start(self.send_btn, False, False, 0)
+
         self.save_btn = Gtk.Button(label="Save as Markdown (.md)")
         self.save_btn.set_sensitive(False)
         self.save_btn.connect("clicked", self.on_save_clicked)
-        hbox_btns = Gtk.HBox(spacing=5)
-        hbox_btns.pack_start(send_btn, False, False, 0)
         hbox_btns.pack_start(self.save_btn, False, False, 0)
-        vbox.pack_start(hbox_btns, False, False, 0)
 
-        # Response output text view, will show rich Pango markup
+        self.spinner = Gtk.Spinner()
+        hbox_btns.pack_start(self.spinner, False, False, 0)
+
         sw = Gtk.ScrolledWindow()
         sw.set_shadow_type(Gtk.ShadowType.IN)
         sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.set_size_request(-1, 300)
+
         self.response_view = Gtk.TextView()
         self.response_view.set_editable(False)
         self.response_view.set_wrap_mode(Gtk.WrapMode.WORD)
@@ -137,9 +107,18 @@ class PerplexityApp(Gtk.Window):
             self.dialog_message("Please enter a prompt.", Gtk.MessageType.WARNING)
             return
 
+        self.send_btn.set_sensitive(False)
+        self.spinner.start()
+        self.save_btn.set_sensitive(False)
+
+        thread = threading.Thread(target=self.api_call_thread, args=(api_key, prompt))
+        thread.daemon = True
+        thread.start()
+
+    def api_call_thread(self, api_key, prompt):
         payload = {
             "model": "sonar-pro",
-            "messages": [ { "role": "user", "content": prompt } ],
+            "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 1000,
             "temperature": 0.3
         }
@@ -150,42 +129,47 @@ class PerplexityApp(Gtk.Window):
         try:
             res = requests.post(API_URL, headers=headers, json=payload, timeout=60)
             if not res.ok:
-                self.dialog_message(f"API Error: {res.status_code}\n{res.text}", Gtk.MessageType.ERROR)
+                GLib.idle_add(self.dialog_message, f"API Error: {res.status_code}\n{res.text}", Gtk.MessageType.ERROR)
+                GLib.idle_add(self.finish_request)
                 return
             data = res.json()
         except Exception as e:
-            self.dialog_message(f"Network or request failed: {e}", Gtk.MessageType.ERROR)
+            GLib.idle_add(self.dialog_message, f"Network or request failed: {e}", Gtk.MessageType.ERROR)
+            GLib.idle_add(self.finish_request)
             return
 
         self.citations = data.get("citations", [])
-        #self.response_text = data["choices"]["message"]["content"] if data.get("choices") else "(No content)"
         self.response_text = data["choices"][0]["message"]["content"] if data.get("choices") else "(No content)"
         self.prompt_text = prompt
 
-        # Build the Markdown string for rendering & saving
-        md = f"# Perplexity API Response\n\n"
-        md += f"## Prompt\n```bash\n{prompt.strip()}\n```"
-        md += f"## Response\n```\n{self.response_text.strip()}\n```"
-        if self.citations:
-            md += "## Citations\n"
-            for c in self.citations:
-                md += f"- {c}\n"
-            md += "\n"
+        GLib.idle_add(self.update_response_view)
+        GLib.idle_add(self.finish_request)
 
-        # Convert markdown to pango markup and display
-        markup_txt = markdown_to_pango(md)
-        buffer = self.response_view.get_buffer()
-        buffer.set_text("")  # clear previous content
-        buffer.insert_markup(buffer.get_start_iter(), markup_txt, -1)
-
+    def finish_request(self):
+        self.send_btn.set_sensitive(True)
+        self.spinner.stop()
         self.save_btn.set_sensitive(True)
+
+    def update_response_view(self):
+        text = "# Perplexity API Response\n\n"
+        text += "## Prompt\n" + self.prompt_text.strip() + "\n\n"
+        text += "## Response\n" + self.response_text.strip() + "\n\n"
+        if self.citations:
+            text += "## Citations\n"
+            for c in self.citations:
+                text += f"- {c}\n"
+            text += "\n"
+
+        buffer = self.response_view.get_buffer()
+        buffer.set_text(text)  # plain text display, no markup parsing
 
     def on_save_clicked(self, button):
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         dialog = Gtk.FileChooserDialog(
             "Save as Markdown", self,
             Gtk.FileChooserAction.SAVE,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
         )
         dialog.set_current_name(f"perplexity_response_{ts}.md")
         dialog.set_do_overwrite_confirmation(True)
@@ -195,7 +179,6 @@ class PerplexityApp(Gtk.Window):
         if not filename:
             return
 
-        # Save plain markdown text (no markup)
         md = (
             f"# Perplexity API Response\n\n"
             f"## Prompt\n```\n{self.prompt_text.strip()}\n```\n"

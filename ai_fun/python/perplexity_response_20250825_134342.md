@@ -9,7 +9,8 @@ Can you provide me a docker compose for a apache service running behind traefik:
 - .env file to control all  paramaters centrally.
 - please provide all the nessary labels for traefik.
 - I already have a traefik service, so do not need a compose for traefik.
-```## Response
+```
+## Response
 ```
 Here is a **Docker Compose configuration** for an Apache service running behind Traefik, using an external `.env` file to control all parameters, with all necessary Traefik labels for routing, TLS, and Cloudflare DNS challenge certificate resolver. This assumes you already have Traefik running on a Docker network (e.g., traefik or web) and configured with a certresolver named **cloudflare**.
 
