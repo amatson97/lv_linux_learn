@@ -2,7 +2,6 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-
 from gi.repository import Gtk, Gdk, GLib
 import requests
 import datetime
@@ -11,20 +10,28 @@ import threading
 import stat
 import hashlib
 
+# API URL and KEY_FILE locations.
+
 API_URL = 'https://api.perplexity.ai/chat/completions'
+
 API_KEY_FILE = os.path.expanduser("~/.perplexity_api_key")
+
+# Styling
 
 DARK_CSS = b"""
 .textview {
-  background: #232629;
-  color: #ebebeb;
-  font-family: 'Ubuntu Mono', 'monospace';
-  font-size: 13px;
-  padding: 10px;
+background: #232629;
+color: #ebebeb;
+font-family: 'Ubuntu Mono', 'monospace';
+font-size: 13px;
+padding: 10px;
 }
 """
 
+# Rendering GUI
+
 class PerplexityApp(Gtk.Window):
+
     def __init__(self):
         Gtk.Window.__init__(self, title="Perplexity AI Desktop Chat")
         self.set_default_size(780, 600)
@@ -42,6 +49,7 @@ class PerplexityApp(Gtk.Window):
         self.add(vbox)
 
         self.api_key = self.load_api_key() or ""
+
         # Optional: print hash on startup for verification
         if self.api_key:
             hash_val = self.get_api_key_hash()
@@ -61,6 +69,12 @@ class PerplexityApp(Gtk.Window):
         self.save_key_checkbox = Gtk.CheckButton(label="Save API Key")
         self.save_key_checkbox.set_active(bool(self.api_key))
         vbox.pack_start(self.save_key_checkbox, False, False, 0)
+        self.save_key_checkbox.connect("toggled", self.on_save_key_toggled)
+
+        # Delete API Key button
+        self.delete_api_key_button = Gtk.Button(label="Delete API Key")
+        self.delete_api_key_button.connect("clicked", self.on_delete_api_key_clicked)
+        vbox.pack_start(self.delete_api_key_button, False, False, 0)
 
         self.prompt_buffer = Gtk.TextBuffer()
         prompt_view = Gtk.TextView(buffer=self.prompt_buffer)
@@ -130,6 +144,12 @@ class PerplexityApp(Gtk.Window):
         except Exception:
             pass
 
+    # Here is the updated method for the Delete API Key button
+    def on_delete_api_key_clicked(self, widget):
+        self.delete_api_key()
+        self.key_entry.set_text("")                # Clear API Key entry
+        self.save_key_checkbox.set_active(False)  # Uncheck "Save API Key" checkbox
+
     def get_api_key_hash(self):
         try:
             with open(API_KEY_FILE, 'rb') as f:
@@ -138,6 +158,17 @@ class PerplexityApp(Gtk.Window):
             return sha256_hash
         except Exception:
             return None
+
+    def on_save_key_toggled(self, checkbox):
+        api_key = self.key_entry.get_text().strip()
+        if checkbox.get_active():
+            if api_key:
+                self.save_api_key(api_key)
+            else:
+                self.dialog_message("Cannot save empty API key.", Gtk.MessageType.WARNING)
+                checkbox.set_active(False)
+        else:
+            self.delete_api_key()
 
     def on_send_clicked(self, button):
         api_key = self.key_entry.get_text().strip()
@@ -171,16 +202,19 @@ class PerplexityApp(Gtk.Window):
             "max_tokens": 1000,
             "temperature": 0.3
         }
+
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+
         try:
             res = requests.post(API_URL, headers=headers, json=payload, timeout=60)
             if not res.ok:
                 GLib.idle_add(self.dialog_message, f"API Error: {res.status_code}\n{res.text}", Gtk.MessageType.ERROR)
                 GLib.idle_add(self.finish_request)
                 return
+
             data = res.json()
         except Exception as e:
             GLib.idle_add(self.dialog_message, f"Network or request failed: {e}", Gtk.MessageType.ERROR)
@@ -190,7 +224,6 @@ class PerplexityApp(Gtk.Window):
         self.citations = data.get("citations", [])
         self.response_text = data["choices"][0]["message"]["content"] if data.get("choices") else "(No content)"
         self.prompt_text = prompt
-
         GLib.idle_add(self.update_response_view)
         GLib.idle_add(self.finish_request)
 
@@ -214,20 +247,22 @@ class PerplexityApp(Gtk.Window):
 
     def on_save_clicked(self, button):
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
         dialog = Gtk.FileChooserDialog(
             "Save as Markdown", self,
             Gtk.FileChooserAction.SAVE,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
              Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
         )
+
         dialog.set_current_name(f"perplexity_response_{ts}.md")
         dialog.set_do_overwrite_confirmation(True)
+
         resp = dialog.run()
         filename = dialog.get_filename() if resp == Gtk.ResponseType.OK else None
         dialog.destroy()
         if not filename:
             return
-
         md = (
             f"# Perplexity API Response\n\n"
             f"## Prompt\n{self.prompt_text.strip()}\n"
@@ -238,8 +273,10 @@ class PerplexityApp(Gtk.Window):
             for c in self.citations:
                 md += f"- {c}\n"
             md += "\n"
+
         with open(filename, "w", encoding="utf-8") as f:
             f.write(md)
+
         self.dialog_message(f"Response saved to:\n{filename}", Gtk.MessageType.INFO)
 
     def dialog_message(self, msg, mtype=Gtk.MessageType.INFO):
@@ -252,7 +289,6 @@ class PerplexityApp(Gtk.Window):
         )
         dialog.run()
         dialog.destroy()
-
 
 if __name__ == "__main__":
     app = PerplexityApp()
