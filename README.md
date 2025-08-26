@@ -178,7 +178,7 @@ Dont worry about romoving any of the old methods, the script will handle this.
 
 You will still need to leave remote desktop enabled in: Settings > System > Renote Desktop. As below:
 
-![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")s
+![Remote Settings Sreenshot](images/remote_settings.png "Remote Settings Sreenshot")
 
 ### Uninstall All VPN's
 
