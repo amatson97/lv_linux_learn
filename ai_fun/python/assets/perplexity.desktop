@@ -7,4 +7,4 @@ Path=/home/adam/lv_linux_learn/ai_fun/python/
 Terminal=false
 Icon=/home/adam/lv_linux_learn/ai_fun/python/assets/perplexity_desktop.png
 Version=1.0
-StartupWMClass=Perplexity AI Desktop Chat
+StartupWMClass=perplexity_desktop_v1.4.py
