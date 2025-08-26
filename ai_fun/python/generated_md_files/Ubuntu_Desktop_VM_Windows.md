@@ -1,7 +1,7 @@
 # Perplexity API Response
 
 ## Prompt
-Can yo write me a guide to setting up ubuntu desktop in a VM using VMware Player on Windows.
+Can you write me a guide to setting up ubuntu desktop in a VM using VMware Player on Windows.
 ## Response
 To set up **Ubuntu Desktop in a VM using VMware Workstation Player on Windows**, follow these steps:
 
