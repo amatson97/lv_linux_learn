@@ -342,8 +342,9 @@ remove_if_installed_hamachi() {
 remove_if_installed_zerotier() {
     local pkg="$1"
     if dpkg -l | grep -q "^ii\s*$pkg"; then
-        green_echo "[*] $pkg detected, removing..."
+        green_echo "Leaving ZeroTier netowrk 8bd5124fd60a971f..."
         sudo zerotier-cli leave 8bd5124fd60a971f
+        green_echo "[*] $pkg detected, removing..."
         sudo apt remove zerotier-one -y
         sudo apt purge zerotier-one -y
         green_echo "[*] Renoving zerotier-one config..."
