@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# * * * * * DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus /home/adam/lv_linux_learn/zerotier_tools/zt_notifications.sh ApT2ayFbk2uxhPBpG2bZSWewfcbjqFSe 8bd5124fd60a971f
 # Usage: ./zt_notifications.sh API_TOKEN NETWORK_ID
 
 API_TOKEN="$1"
