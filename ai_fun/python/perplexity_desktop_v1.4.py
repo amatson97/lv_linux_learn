@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests
 
 import gi
 gi.require_version('Gtk', '3.0')
