@@ -4,12 +4,12 @@
 source includes/main.sh
 
 SCRIPTS=(
+  "scripts/new_vpn.sh"
+  "scripts/remove_all_vpn.sh"
   "scripts/chrome_install.sh"
   "scripts/docker_install.sh"
   "scripts/git_setup.sh"
   "scripts/install_flatpak.sh"
-  "scripts/new_vpn.sh"
-  "scripts/remove_all_vpn.sh"
   "scripts/sublime_install.sh"
   "scripts/git_setup.sh"
   "scripts/git_pull.sh"
@@ -17,12 +17,12 @@ SCRIPTS=(
 )
 
 DESCRIPTIONS=(
+  "Installs ZeroTier VPN, joins Linux Learn Network, and removes conflicting VPNs."
+  "Removes all installed VPN clients including Zerotier, NordVPN, and LogMeIn Hamachi."
   "Installs Google Chrome web browser for fast, secure internet browsing."
   "Installs Docker including engine, CLI, containerd, and plugins for container management."
   "Sets up Git and GitHub CLI with configuration and authentication for source control."
   "Installs Flatpak and Flathub repository for easy access to universal Linux apps."
-  "Installs ZeroTier VPN, joins Linux Learn Network, and removes conflicting VPNs."
-  "Removes all installed VPN clients including Zerotier, NordVPN, and LogMeIn Hamachi."
   "Installs Sublime Text and Sublime Merge editors for code editing and version control."
   "Guides you through setting up git in terminal."
   "Allows you to pull all chnages down from the GitHub repository"
