@@ -14,10 +14,7 @@
 ## 📑 Table of Contents
 1. [Beginner Resources](#-beginner-resources--tools)
 2. [Package Manager (apt)](#package-manager-apt)
-3. [Installation Scripts](#️-installation-scripts)
-   - [Available Bash Scripts](#available-bash-scriptsexercises)
-   - [Remote Assistance Installation](#remote-assistance-installation)
-   - [Uninstall All VPN's](#uninstall-all-vpns)
+3. [Installation Menu](#️-scripts-menu)
 4. [Linux Drive Management](#-linux-drive-management)
 5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
@@ -124,36 +121,9 @@ I will continue to add to this as this grow in to a more comprehensive knowledge
 ## ⚙️ Bash Exercise Scripts
 I have inlcuded in /bash_exercises/* some basic scripts that can show you some basic syntax. 
 
-### Available Bash Scripts/Exercises
+### Scripts Menu
 ```bash
-# Bash excercises.
-/bash_exercises/* #All the scripts in this location are basic excersises, see comments for what they do.
-
-# Software Installs.
-./sublime_install.sh #Installs sublime-text and sublime-merge
-./chrome_install.sh #Install chrome.
-./docker_install.sh #Install dcoker.
-./install_flatpak.sh #An addtional software store, more apps on top of the standard ubuntu store.
-
-# Combined installer docker, word press within docker.
-./docker-compose/wordpress_install.sh #Self contained install script for running wordpress within docker.
-
-# Github related.
-./git_setup.sh #Installs git gh with guided authentication.
-./git_push_changes.sh #Push changes to github.
-
-# VPN related scripts
-./new_vpn.sh #Installs ZeroTier VPN and adds you to the Linux Learn Network. Will automatically remove Nord/Hamachi.
-./remove_all_vpn.sh #This will remove any installed vpn technologies on your machine. Nord/Hamachi/ZeroTier.
-/zerotier_tools/get_ip.sh # Will output to terminal Usage: ./get_ip.sh <api_token> <network_id>
-/zerotier_tools/html_ip.sh # Will output to html file, Usage: ./html_ip.sh <api_token> <network_id>
-
-# Still required but now obsolete.
-./deprecated/hamachi_install.sh #DO NOT USE
-./deprecated/uninstall_hamachi.sh #DO NOT USE
-./deprecated/install_remote_assist.sh #DO NOT USE
-./deprecated/uninstall_remote_assist.sh # #DO NOT USE
-.deprecated/reconnect.sh # #DO NOT USE
+./menu.sh
 ```
 
 ### ⚙️ Main functions
