@@ -11,6 +11,9 @@ SCRIPTS=(
   "scripts/new_vpn.sh"
   "scripts/remove_all_vpn.sh"
   "scripts/sublime_install.sh"
+  "scripts/git_setup.sh"
+  "scripts/git_pull.sh"
+  "scripts/git_push_changes.sh"
 )
 
 DESCRIPTIONS=(
@@ -21,6 +24,9 @@ DESCRIPTIONS=(
   "Installs ZeroTier VPN, joins Linux Learn Network, and removes conflicting VPNs."
   "Removes all installed VPN clients including Zerotier, NordVPN, and LogMeIn Hamachi."
   "Installs Sublime Text and Sublime Merge editors for code editing and version control."
+  "Guides you through setting up git in terminal."
+  "Allows you to pull all chnages down from the GitHub repository"
+  "Allows you to add, commit and push all your chnages to GitHub repository"
 )
 
 show_menu() {
