@@ -122,6 +122,7 @@ I will continue to add to this as this grow in to a more comprehensive knowledge
 I have inlcuded in /bash_exercises/* some basic scripts that can show you some basic syntax. 
 
 ### Scripts Menu
+This menu will allow you to select what you want to install.
 ```bash
 ./menu.sh
 ```
