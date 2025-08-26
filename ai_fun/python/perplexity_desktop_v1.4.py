@@ -285,7 +285,7 @@ class PerplexityApp(Gtk.Window):
             f"## Response\n{self.response_text.strip()}\n"
         )
         if self.citations:
-            md += "## Citations\n"
+            md += "## References\n"
             for c in self.citations:
                 md += f"- {c}\n"
             md += "\n"
