@@ -2,6 +2,8 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
+gi.require_version('GdkPixbuf', '2.0')
+from gi.repository import GdkPixbuf
 from gi.repository import Gtk, Gdk, GLib
 import requests
 import datetime
@@ -36,6 +38,19 @@ class PerplexityApp(Gtk.Window):
         Gtk.Window.__init__(self, title="Perplexity AI Desktop Chat")
         self.set_default_size(780, 600)
         self.set_border_width(10)
+
+        # Properly resolve and check icon path
+        icon_path = os.path.expanduser('~/lv_linux_learn/ai_fun/python/assets/perplexity_desktop.png')
+        icon_path = os.path.abspath(icon_path)
+        if os.path.isfile(icon_path):
+            try:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
+                self.set_icon(pixbuf)
+                print(f"Custom icon loaded from {icon_path}")
+            except Exception as e:
+                print(f"Failed to load icon: {e}")
+        else:
+            print(f"Icon file not found: {icon_path}")
 
         style_provider = Gtk.CssProvider()
         style_provider.load_from_data(DARK_CSS)
