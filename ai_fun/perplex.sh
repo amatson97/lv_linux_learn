@@ -1,4 +1,6 @@
 #!/bin/bash
+# Terminal based API calls to perplexity.ai
+# Funtionality to save to .md file for pushing to GitHub.
 # Usage: ./perplex.sh <Perplexity API Key>
 
 API_KEY="$1"
