@@ -5,6 +5,7 @@ Can yo write me a docker compose to run apache behind trafik on mysite.mydomain.
 certresolver=cloudflare
 directory /home/adam/apache
 Please write all the required labels.
+
 ## Response
 To run **Apache behind Traefik** on **mysite.mydomain.com** using the **Cloudflare certresolver** and mounting your Apache directory at **/home/adam/apache**, your docker-compose.yml should look like the example below. All required Traefik labels are included for automatic HTTPS with Cloudflare DNS challenge.
 
@@ -64,6 +65,7 @@ networks:
 - Both services share the same Docker network for internal communication[3][5].
 
 You may need to adjust the **Cloudflare API token** and **email** to match your credentials. This setup provides automatic HTTPS with Let's Encrypt via Cloudflare DNS challenge and reverse proxies all traffic for your domain to Apache[3][2][1].
+
 ## References
 - https://docs.vultr.com/set-up-traefik-proxy-as-a-reverse-proxy-for-docker-containers-on-ubuntu-24-04
 - https://www.youtube.com/watch?v=XH9XgiVM_z4
