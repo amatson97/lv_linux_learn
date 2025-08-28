@@ -10,6 +10,10 @@ user_in_nordvpn_group() {
 }
 
 install_zerotier(){
+
+  # Install dependecnies
+  sudo apt install curl -y
+
   # Install ZeroTier
   green_echo "[*] Installing ZeroTier..."
   curl -s https://install.zerotier.com | sudo bash
