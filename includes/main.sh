@@ -423,3 +423,15 @@ remove_nord(){
   green_echo "[✓] Removed nordvpn!"
   sleep 1
 }
+
+show_menu() {
+  echo
+  printf "%-4s %-20s  %s\n" "No." "Script Name" "Description"
+  printf "%-4s %-20s  %s\n" "---" "-----------" "-----------"
+  for i in "${!SCRIPTS[@]}"; do
+    script_name=$(basename "${SCRIPTS[$i]}")
+    printf "[%-4s %-20s  %s\n" "$((i+1))]" "$script_name" "${DESCRIPTIONS[$i]}"
+  done
+  echo "[0]   Exit"
+  echo
+}
