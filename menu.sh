@@ -14,6 +14,7 @@ SCRIPTS=(
   "scripts/git_setup.sh"
   "scripts/git_pull.sh"
   "scripts/git_push_changes.sh"
+  "scripts/install_wine.sh"
 )
 
 DESCRIPTIONS=(
@@ -27,6 +28,7 @@ DESCRIPTIONS=(
   "Guides you through setting up git in terminal."
   "Allows you to pull all chnages down from the GitHub repository"
   "Allows you to add, commit and push all your chnages to GitHub repository"
+  "Installs Wine/Winetricks and Microsoft Visual C++ 4.2 MFC runtime library (mfc42.dll)"
 )
 
 while true; do
