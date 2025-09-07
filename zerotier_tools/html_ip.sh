@@ -54,7 +54,6 @@ output_html() {
     --table-header-bg-light: #0078D7;
     --table-hover-light: #d1e7fd;
     --title-color-light: black;
-
     --bg-dark: #121212;
     --text-dark: #ddd;
     --table-bg-dark: #1e1e1e;
@@ -141,95 +140,87 @@ output_html() {
   #toggleTheme:hover {
     background-color: #005ea1;
   }
+  button.copy-btn {
+    margin-left: 8px;
+    padding: 3px 8px;
+    font-size: 0.85em;
+    cursor: pointer;
+    background-color: #0078D7;
+    border: none;
+    border-radius: 3px;
+    color: white;
+    transition: background-color 0.3s;
+  }
+  button.copy-btn:hover {
+    background-color: #005ea1;
+  }
 </style>
+<script>
+function copyToClipboard(ip) {
+  navigator.clipboard.writeText(ip).then(() => {
+    alert('Copied IP: ' + ip);
+  }).catch(() => {
+    alert('Copy failed. Please copy manually.');
+  });
+}
+
+// Optional: Dark mode toggle if you want to include
+function toggleTheme() {
+  document.body.classList.toggle('dark-mode');
+}
+</script>
 </head>
 <body>
-
+<body class="dark-mode">
 <h1>ZeroTier Network Members</h1>
+<button id="toggleTheme" onclick="toggleTheme()">Switch to Light/Dark Mode</button>
 <p id="lastGenerated">Last Generated: $gen_time</p>
-<button id="toggleTheme">Switch to Light Mode</button>
-
 <table>
-  <thead>
-    <tr>
-      <th>Node ID</th>
-      <th>Name / Description</th>
-      <th>Managed IP(s)</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody>
+<thead>
+<tr>
+<th>Node ID</th>
+<th>Name / Description</th>
+<th>Managed IP(s)</th>
+<th>CopyIP</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
 EOF
 
-  # Append table rows (escaping HTML in name)
   echo "$response" | jq -c '.[]' | while read -r member; do
     nodeId=$(echo "$member" | jq -r '.nodeId // .id // empty')
     name=$(echo "$member" | jq -r '.name // .description // ""' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
-    ips=$(echo "$member" | jq -r '.config.ipAssignments // .config.assignedAddresses // [] | join(", ")')
+
+    ips=$(echo "$member" | jq -r '.config.ipAssignments // .config.assignedAddresses // [] | @sh')
+    eval "ip_array=($ips)"
+
     online=$(echo "$member" | jq -r '.online // false')
     status="Offline"
     [[ "$online" == "true" ]] && status="Online"
-    cat >> "$file" <<ROW
-    <tr>
-      <td>$nodeId</td>
-      <td>$name</td>
-      <td>$ips</td>
-      <td>$status</td>
-    </tr>
-ROW
+
+    ip_html=""
+    for ip in "${ip_array[@]}"; do
+      ip_html+="$ip <td><button class=\"copy-btn\" onclick=\"copyToClipboard('$ip')\">Copy</button></td>"
+    done
+
+    cat >> "$file" <<EOF
+<tr>
+  <td>$nodeId</td>
+  <td>$name</td>
+  <td>$ip_html</td>
+  <td>$status</td>
+</tr>
+EOF
   done
 
-  cat >> "$file" <<'EOF'
-  </tbody>
+  cat >> "$file" <<EOF
+</tbody>
 </table>
-
-<script>
-  // Helper functions for cookies
-  function setCookie(name, value, days) {
-    const expires = new Date(Date.now() + days*864e5).toUTCString();
-    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
-  }
-  function getCookie(name) {
-    return document.cookie.split('; ').reduce((r, v) => {
-      const parts = v.split('=');
-      return parts[0] === name ? decodeURIComponent(parts[1]) : r
-    }, '');
-  }
-
-  const toggleBtn = document.getElementById('toggleTheme');
-  const body = document.body;
-
-  // Initialize theme from cookie or default dark mode
-  const savedTheme = getCookie('theme');
-  if (savedTheme === 'light') {
-    body.classList.remove('dark-mode');
-    toggleBtn.textContent = 'Switch to Dark Mode';
-  } else {
-    body.classList.add('dark-mode');
-    toggleBtn.textContent = 'Switch to Light Mode';
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    if (body.classList.contains('dark-mode')) {
-      body.classList.remove('dark-mode');
-      toggleBtn.textContent = 'Switch to Dark Mode';
-      setCookie('theme', 'light', 30);
-    } else {
-      body.classList.add('dark-mode');
-      toggleBtn.textContent = 'Switch to Light Mode';
-      setCookie('theme', 'dark', 30);
-    }
-  });
-</script>
-
 </body>
 </html>
 EOF
-
-  echo "HTML report saved to '$file' with Last Generated timestamp: $gen_time"
 }
 
-
-# Run both outputs
 print_table
 output_html "$HTML_FILE"
