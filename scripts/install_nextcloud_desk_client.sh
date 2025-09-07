@@ -11,15 +11,13 @@ set -e
 
 # Install Flatpak if not already installed
 if ! command -v flatpak &> /dev/null; then
-  green_echo
- "[*] Installing Flatpak..."
+  green_echo "[*] Installing Flatpak..."
   sudo apt install flatpak -y
 fi
 
 # Add Flathub repository if not already added
 if ! flatpak remote-list | grep -q flathub; then
-  green_echo
- "[*] Adding Flathub repository..."
+  green_echo "[*] Adding Flathub repository..."
   sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 fi
 
