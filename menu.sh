@@ -15,6 +15,7 @@ SCRIPTS=(
   "scripts/git_pull.sh"
   "scripts/git_push_changes.sh"
   "scripts/install_wine.sh"
+  "scripts/install_nextcloud_desk_client.sh"
 )
 
 DESCRIPTIONS=(
@@ -29,6 +30,7 @@ DESCRIPTIONS=(
   "Allows you to pull all chnages down from the GitHub repository"
   "Allows you to add, commit and push all your chnages to GitHub repository"
   "Installs Wine/Winetricks and Microsoft Visual C++ 4.2 MFC runtime library (mfc42.dll)"
+  "Install Nextcloud Desktop client, via flatpack."
 )
 
 while true; do

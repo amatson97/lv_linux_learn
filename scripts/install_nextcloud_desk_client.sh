@@ -6,8 +6,8 @@ source includes/main.sh
 set -e
 
 # Update system
-green_echo "[*] Updating system..."
-sudo apt update && sudo apt upgrade -y
+#green_echo "[*] Updating system..."
+#sudo apt update && sudo apt upgrade -y
 
 # Install Flatpak if not already installed
 if ! command -v flatpak &> /dev/null; then
@@ -25,7 +25,7 @@ fi
 
 # Install Nextcloud desktop client via Flatpak
 green_echo "[*] Installing Nextcloud Desktop Client via Flatpak..."
-sudo flatpak install -y flathub/org.nextcloud.Nextcloud
+sudo flatpak install flathub com.nextcloud.desktopclient.nextcloud
 
 green_echo "[*] Nextcloud Desktop Client installation complete."
 green_echo "You may need to log out and back in or restart your system to update Flatpak environment."
