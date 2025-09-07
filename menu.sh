@@ -15,7 +15,7 @@ SCRIPTS=(
   "scripts/git_pull.sh"
   "scripts/git_push_changes.sh"
   "scripts/install_wine.sh"
-  "scripts/install_nextcloud_desk_client.sh"
+  "scripts/nextcloud_client.sh"
 )
 
 DESCRIPTIONS=(
