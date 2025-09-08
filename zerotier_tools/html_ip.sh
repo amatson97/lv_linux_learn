@@ -20,25 +20,28 @@ if [[ -z "$response" ]]; then
   exit 2
 fi
 
-# Print table in terminal
+
 print_table() {
-  printf "%-22s  %-20s  %-20s  %-8s\n" "NODE ID" "NAME/DESCRIPTION" "MANAGED IP(S)" "STATUS"
+  printf "%-22s\t%-20s\t%-20s\t%-8s\n" "NODE ID" "NAME/DESCRIPTION" "MANAGED IP(S)" "STATUS"
   printf '%*s\n' 75 '' | tr ' ' '-'
-  echo "$response" | jq -c '.[]' | while read -r member; do
-    nodeId=$(echo "$member" | jq -r '.nodeId // .id // empty')
-    name=$(echo "$member" | jq -r '.name // .description // ""')
-    ips=$(echo "$member" | jq -r '.config.ipAssignments // .config.assignedAddresses // [] | join(", ")')
-    online=$(echo "$member" | jq -r '.online // false')
-    status="Offline"
-    [[ "$online" == "true" ]] && status="Online"
-    printf "%-22s  %-20s  %-20s  %-8s\n" "$nodeId" "$name" "$ips" "$status"
-  done
+  threshold_ms=$(( $(date +%s) * 1000 - 300000 ))
+  
+  echo "$response" | jq -r --argjson threshold "$threshold_ms" '
+    .[] |
+    {
+      nodeId: (.nodeId // .id // ""),
+      name: (.name // .description // ""),
+      ips: (.config.ipAssignments // .config.assignedAddresses // [] | join(", ")),
+      status: (if (.lastSeen != null and .lastSeen > $threshold) then "Online" else "Offline" end)
+    } |
+    [ .nodeId, .name, .ips, .status ] | @tsv' | column -t -s $'\t'
 }
 
 output_html() {
   local file="$1"
   local gen_time
   gen_time=$(date +"%Y-%m-%d %H:%M:%S %Z")
+  local threshold_ms=$(( $(date +%s) * 1000 - 300000 ))  # 5 minutes ago in ms
 
   cat > "$file" <<EOF
 <!DOCTYPE html>
@@ -89,6 +92,7 @@ output_html() {
     border: 1px solid #ddd;
     padding: 12px 15px;
     text-align: left;
+    vertical-align: middle;
     transition: background-color 0.3s, color 0.3s;
   }
   th {
@@ -141,7 +145,6 @@ output_html() {
     background-color: #005ea1;
   }
   button.copy-btn {
-    margin-left: 8px;
     padding: 3px 8px;
     font-size: 0.85em;
     cursor: pointer;
@@ -163,14 +166,11 @@ function copyToClipboard(ip) {
     alert('Copy failed. Please copy manually.');
   });
 }
-
-// Optional: Dark mode toggle if you want to include
 function toggleTheme() {
   document.body.classList.toggle('dark-mode');
 }
 </script>
 </head>
-<body>
 <body class="dark-mode">
 <h1>ZeroTier Network Members</h1>
 <button id="toggleTheme" onclick="toggleTheme()">Switch to Light/Dark Mode</button>
@@ -178,40 +178,53 @@ function toggleTheme() {
 <table>
 <thead>
 <tr>
-<th>Node ID</th>
-<th>Name / Description</th>
-<th>Managed IP(s)</th>
-<th>CopyIP</th>
-<th>Status</th>
+  <th>Node ID</th>
+  <th>Name / Description</th>
+  <th>Managed IP(s)</th>
+  <th>Copy IP</th>
+  <th>Status</th>
 </tr>
 </thead>
 <tbody>
 EOF
 
-  echo "$response" | jq -c '.[]' | while read -r member; do
-    nodeId=$(echo "$member" | jq -r '.nodeId // .id // empty')
-    name=$(echo "$member" | jq -r '.name // .description // ""' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+  echo "$response" | jq -c --argjson threshold "$threshold_ms" '.[] | {
+    nodeId: (.nodeId // .id // ""),
+    name: (.name // .description // ""),
+    ips: (.config.ipAssignments // .config.assignedAddresses // []),
+    lastSeen: .lastSeen
+  } | {
+    nodeId, name, ips, status: (if (.lastSeen != null and .lastSeen > $threshold) then "Online" else "Offline" end)
+  }' | while read -r member; do
+    nodeId=$(echo "$member" | jq -r '.nodeId')
+    name=$(echo "$member" | jq -r '.name' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+    ips=$(echo "$member" | jq -r '.ips[]?')
+    status=$(echo "$member" | jq -r '.status')
 
-    ips=$(echo "$member" | jq -r '.config.ipAssignments // .config.assignedAddresses // [] | @sh')
-    eval "ip_array=($ips)"
-
-    online=$(echo "$member" | jq -r '.online // false')
-    status="Offline"
-    [[ "$online" == "true" ]] && status="Online"
-
-    ip_html=""
-    for ip in "${ip_array[@]}"; do
-      ip_html+="$ip <td><button class=\"copy-btn\" onclick=\"copyToClipboard('$ip')\">Copy</button></td>"
-    done
-
-    cat >> "$file" <<EOF
+    if [[ -z "$ips" ]]; then
+      cat >> "$file" <<EOF
 <tr>
   <td>$nodeId</td>
   <td>$name</td>
-  <td>$ip_html</td>
+  <td></td>
+  <td></td>
   <td>$status</td>
 </tr>
 EOF
+    else
+      for ip in $ips; do
+        escaped_ip=$(echo "$ip" | sed 's/"/\\"/g')
+        cat >> "$file" <<EOF
+<tr>
+  <td>$nodeId</td>
+  <td>$name</td>
+  <td>$ip</td>
+  <td><button class="copy-btn" onclick="copyToClipboard('$escaped_ip')">Copy</button></td>
+  <td>$status</td>
+</tr>
+EOF
+      done
+    fi
   done
 
   cat >> "$file" <<EOF

@@ -5,13 +5,14 @@
 
 API_TOKEN="$1"
 NETWORK_ID="$2"
+HTML_FILE="${3:-zerotier_members.html}"
 
 if [[ -z "$API_TOKEN" || -z "$NETWORK_ID" ]]; then
-  echo "Usage: $0 <API_TOKEN> <NETWORK_ID>"
+  echo "Usage: $0 <API_TOKEN> <NETWORK_ID> [output_html_file]"
   exit 1
 fi
 
-# Fetch the JSON data from the API
+# Fetch JSON from ZeroTier API
 response=$(curl -s -H "Authorization: token $API_TOKEN" \
   "https://my.zerotier.com/api/v1/network/$NETWORK_ID/member")
 
@@ -20,18 +21,21 @@ if [[ -z "$response" ]]; then
   exit 2
 fi
 
-# Print table header
-printf "%-22s  %-20s  %-20s  %-8s\n" "NODE ID" "NAME/DESCRIPTION" "MANAGED IP(S)" "STATUS"
-printf '%*s\n' 75 '' | tr ' ' '-'
 
-# Iterate over each member, decode base64 JSON for safety with jq
-echo "$response" | jq -c '.[]' | while read -r member; do
-  nodeId=$(echo "$member" | jq -r '.nodeId // .id // empty')
-  name=$(echo "$member" | jq -r '.name // .description // ""')
-  ips=$(echo "$member" | jq -r '.config.ipAssignments // .config.assignedAddresses // [] | join(", ")')
-  online=$(echo "$member" | jq -r '.online // false')
-  status="Offline"
-  [[ "$online" == "true" ]] && status="Online"
+print_table() {
+  printf "%-22s\t%-20s\t%-20s\t%-8s\n" "NODE ID" "NAME/DESCRIPTION" "MANAGED IP(S)" "STATUS"
+  printf '%*s\n' 75 '' | tr ' ' '-'
+  threshold_ms=$(( $(date +%s) * 1000 - 300000 ))
+  
+  echo "$response" | jq -r --argjson threshold "$threshold_ms" '
+    .[] |
+    {
+      nodeId: (.nodeId // .id // ""),
+      name: (.name // .description // ""),
+      ips: (.config.ipAssignments // .config.assignedAddresses // [] | join(", ")),
+      status: (if (.lastSeen != null and .lastSeen > $threshold) then "Online" else "Offline" end)
+    } |
+    [ .nodeId, .name, .ips, .status ] | @tsv' | column -t -s $'\t'
+}
 
-  printf "%-22s  %-20s  %-20s  %-8s\n" "$nodeId" "$name" "$ips" "$status"
-done
+print_table
