@@ -14,7 +14,7 @@
 ## 📑 Table of Contents
 1. [Beginner Resources](#-beginner-resources--tools)
 2. [Package Manager (apt)](#package-manager-apt)
-3. [Installation Menu](#️-scripts-menu)
+3. [Installation Menu](#scripts-menu)
 4. [Linux Drive Management](#-linux-drive-management)
 5. [Docker](#-docker)
    - [Official Documentation](#official-documentation)
