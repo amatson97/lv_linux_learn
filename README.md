@@ -29,7 +29,7 @@
 10. [Getting started with GitHub](#-getting-started-with-github)
 11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
 12. [AI Fun](#ai-fun)
-13. [ZeroTier Tools](#zerotier-tools)
+13. [ZeroTier Tools](#zeroteir-tools)
 
 ---
 
