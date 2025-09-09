@@ -29,6 +29,7 @@
 10. [Getting started with GitHub](#-getting-started-with-github)
 11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
 12. [AI Fun](#ai-fun)
+13. [ZeroTier Tools](#zerotier-tools)
 
 ---
 
@@ -358,6 +359,22 @@ Once finished return to a new line and type EOF and hit return again.
 Wait for the response, which will be rendered in the terminal in markdown.
 You will then be asked if you want to to export to an .md file.
 
+## ZeroTeir Tools
+Within the zerotier_tools directory are some tools for working with the zerotier vpn service.
+
+```bash
+./get_ip.sh <API_TOKEN> <NETWORK_ID>
+./html_ip.sh <API_TOKEN> <NETWORK_ID>
+./zt_notifications.sh <VPN_TOKEN> <NETWORK_ID>
+```
+You can add the zt_notifications.sh to your systems crontrab every 5 mins it will check if any nodes have come online or offline and issue a notification to the ubuntu desktop as shown below. Replace <API_TOKEN>, <NETWORK_ID> and <USER> to suite yours.
+
+```bash
+crontab -e
+
+*/5 * * * * DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus /home/<USERN>/lv_linux_learn/zerotier_tools/zt_notifications.sh <API_TOKEN> <NETWORK_ID>
+```
+![ZeroTier Desktop Notifications](images/zt_notifications.png "ZeroTier Desktop Notifications")
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
 
