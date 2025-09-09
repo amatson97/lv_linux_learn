@@ -141,7 +141,7 @@ source includes/main.sh
 
 ### Remote Assistance Installation
 
-To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the below script. Once you have enable remote desktop on your machine it will allow us to remote assist each others machines.
+To add your VM to the linux learn network (faciliated by ZeroTier VPN) run the below script. Once you have enable remote desktop on your machine it will allow us to remote assist each others machines. This can be installed from the installation menu.
 
 ```bash
 ./new_vpn.sh
