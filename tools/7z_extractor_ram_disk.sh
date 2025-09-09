@@ -1,4 +1,6 @@
 #!/bin/bash
+# This script will extract all 7z files in a directory utalising the /dev/shm ram disk.
+# Better performance for larger operations, just watch your RAM usage.
 
 # Exit on error
 set -e

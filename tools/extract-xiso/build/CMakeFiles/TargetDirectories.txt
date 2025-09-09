@@ -1,0 +1,7 @@
+/xboxdrive/extract-xiso/build/CMakeFiles/install/strip.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/install/local.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/install.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/list_install_components.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/rebuild_cache.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/edit_cache.dir
+/xboxdrive/extract-xiso/build/CMakeFiles/extract-xiso.dir

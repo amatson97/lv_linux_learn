@@ -1,4 +1,5 @@
 #!/bin/bash
+# This script will extract all 7z files in a directory and remove the original archive.
 
 # Exit on error
 set -e

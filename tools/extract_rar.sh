@@ -1,4 +1,6 @@
 #!/bin/bash
+# This script will extract all rar files in a directory to their respective folders.
+# Original archives will not be deleted.
 
 # Check if the required command 'unrar' is installed
 if ! command -v unrar &> /dev/null; then

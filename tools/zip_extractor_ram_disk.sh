@@ -1,4 +1,7 @@
 #!/bin/bash
+# This script will extract all zip files in a directory utalising /dev/shm RAM disk.
+# orginal archive will be deleted upon completion.
+# Keep an eye on RAM usage when using this.
 
 # Exit on error
 set -e
