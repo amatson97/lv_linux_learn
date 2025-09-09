@@ -30,6 +30,7 @@
 11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
 12. [AI Fun](#ai-fun)
 13. [ZeroTier Tools](#zeroteir-tools)
+14. [Tools](#tools)
 
 ---
 
@@ -377,6 +378,10 @@ crontab -e
 */5 * * * * DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus /home/<USERN>/lv_linux_learn/zerotier_tools/zt_notifications.sh <API_TOKEN> <NETWORK_ID>
 ```
 ![ZeroTier Desktop Notifications](images/zt_notifications.png "ZeroTier Desktop Notifications")
+
+## Tools
+The tools directory contains some randoms tools I have made. Details for these are written in the comments of the scripts.
+Most of them are for extract z7 and zip files. Removing the source archives and utalisng RAM disk for increased performance.
 
 ✅ This guide is a **work-in-progress**. Contributions and improvements are welcome!
 
