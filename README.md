@@ -369,6 +369,8 @@ Within the zerotier_tools directory are some tools for working with the zerotier
 ```
 You can add the zt_notifications.sh to your systems crontrab every 5 mins it will check if any nodes have come online or offline and issue a notification to the ubuntu desktop as shown below. Replace <API_TOKEN>, <NETWORK_ID> and <USER> to suite yours.
 
+You will need to ask Adam for the <API_TOKEN> and <NETWORK_ID>.
+
 ```bash
 crontab -e
 
