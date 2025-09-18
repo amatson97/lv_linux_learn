@@ -31,15 +31,11 @@ DESCRIPTIONS = [
     "• Removes conflicting VPN clients automatically.\n"
     "• Provides secure peer-to-peer virtual networking.\n"
     "More info:\n"
-    "  • <a href='https://www.zerotier.com/'>ZeroTier Official Site</a>\n"
-    "  • <a href='https://www.wired.com/story/what-is-zerotier/'>Wired Intro</a>",
+    "  • <a href='https://www.zerotier.com/'>ZeroTier Official Site</a>\n",
 
     "<b>Remove all VPN clients</b>\n"
     "• Uninstalls ZeroTier, NordVPN, LogMeIn Hamachi, and others to reset VPN state.\n"
-    "• Helps resolve VPN conflicts and networking issues.\n"
-    "Useful guides:\n"
-    "  • <a href='https://nordvpn.com/help/how-to-uninstall-nordvpn/'>NordVPN Uninstall</a>\n"
-    "  • <a href='https://vpn.net/knowledge-base/uninstall-logmein-hamachi/'>Hamachi Uninstall</a>",
+    "• Helps resolve VPN conflicts and networking issues.\n",
 
     "<b>Install Google Chrome</b>\n"
     "• Adds official Google repository and keys to install stable Chrome.\n"
