@@ -42,34 +42,59 @@ window {
     background-color: #232629;
     color: #ebebeb;
     font-family: 'Ubuntu', 'Cantarell', 'Arial', sans-serif;
-    font-size: 13px;
+    font-size: 16px;
     border-radius: 8px;
     padding: 12px;
 }
+
+headerbar {
+    min-height: 36px;
+    padding: 0 6px;
+}
+
+headerbar button.titlebutton {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 2px;
+    margin: 0 2px;
+    border-radius: 4px;
+}
+
+headerbar button.titlebutton:hover {
+    background: #57606a;
+}
+
 button, GtkButton {
     border-radius: 6px;
     background: #444C56;
     color: #ebebeb;
-    padding: 6px 14px;
+    padding: 10px 20px;
+    min-height: 36px;
+    min-width: 100px;
+    font-size: 16px;
 }
+
 button:hover, GtkButton:hover {
     background: #57606a;
 }
+
 #desc_label {
     margin-top: 8px;
     margin-bottom: 12px;
     font-style: italic;
     color: #ADB5BD;
 }
+
 .treeview {
     background: #1E1E1E;
     color: #ebebeb;
     border-radius: 6px;
+    font-size: 16px;
 }
+
 .scroll {
     border-radius: 6px;
     background: #1E1E1E;
-    /* shadow */
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
 }
 """
@@ -77,32 +102,30 @@ button:hover, GtkButton:hover {
 class ScriptMenuGTK(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Script Menu - External Terminal")
-        self.set_default_size(900, 520)
+        self.set_default_size(840, 470)
         self.set_border_width(12)
         self.set_resizable(True)
 
-        # Headerbar
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
         hb.props.title = "VPN & Tools Script Menu"
         self.set_titlebar(hb)
 
-        # CSS Provider
-        self.style_provider = Gtk.CssProvider()
-        self.style_provider.load_from_data(DARK_CSS)
+        style_provider = Gtk.CssProvider()
+        style_provider.load_from_data(DARK_CSS)
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
-            self.style_provider,
+            style_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         self.add(main_box)
 
-        # Left: script list with scroll window
         self.liststore = Gtk.ListStore(str)
         for script_path in SCRIPTS:
             self.liststore.append([os.path.basename(script_path)])
+
         self.treeview = Gtk.TreeView(model=self.liststore)
         self.treeview.set_name("treeview")
         renderer = Gtk.CellRendererText()
@@ -118,7 +141,6 @@ class ScriptMenuGTK(Gtk.Window):
         scroll.add(self.treeview)
         main_box.pack_start(scroll, False, False, 0)
 
-        # Right VBox
         right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         main_box.pack_start(right_box, True, True, 0)
 
