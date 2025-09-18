@@ -15,26 +15,25 @@ SCRIPTS = [
     "scripts/git_setup.sh",
     "scripts/install_flatpak.sh",
     "scripts/sublime_install.sh",
-    "scripts/git_setup.sh",
     "scripts/git_pull.sh",
     "scripts/git_push_changes.sh",
     "scripts/install_wine.sh",
     "scripts/nextcloud_client.sh",
 ]
 
+# Fixed Pango markup descriptions with \n for line breaks (not <br/>)
 DESCRIPTIONS = [
-    "Installs ZeroTier VPN, joins Linux Learn Network, and removes conflicting VPNs.",
-    "Removes all installed VPN clients including Zerotier, NordVPN, and LogMeIn Hamachi.",
-    "Installs Google Chrome web browser for fast, secure internet browsing.",
-    "Installs Docker including engine, CLI, containerd, and plugins for container management.",
-    "Sets up Git and GitHub CLI with configuration and authentication for source control.",
-    "Installs Flatpak and Flathub repository for easy access to universal Linux apps.",
-    "Installs Sublime Text and Sublime Merge editors for code editing and version control.",
-    "Guides you through setting up git in terminal.",
-    "Allows you to pull all changes down from the GitHub repository.",
-    "Allows you to add, commit and push all your changes to GitHub repository.",
-    "Installs Wine/Winetricks and Microsoft Visual C++ 4.2 MFC runtime library (mfc42.dll).",
-    "Install Nextcloud Desktop client, via flatpak.",
+    "<b>Install ZeroTier VPN</b>\nJoins the Linux Learn Network and removes conflicting VPNs. Automates setup and simplifies VPN connectivity for container orchestration and remote access.",
+    "<b>Remove all VPNs</b>\nRemoves installed VPN clients like Zerotier, NordVPN, LogMeIn Hamachi. Useful for cleanup and resetting VPN configurations.",
+    "<b>Install Google Chrome</b>\nAdds Google's official repository and keys to install stable, up-to-date Chrome browser.",
+    "<b>Install Docker</b>\nInstalls Docker engine, CLI, and plugins to set up a full container environment.",
+    "<b>Setup Git &amp; GitHub CLI</b>\nConfigures Git with user credentials and authenticates GitHub CLI for source control.",
+    "<b>Install Flatpak &amp; Flathub</b>\nAdds Flatpak support and Flathub repository for universal Linux apps.",
+    "<b>Install Sublime Text &amp; Merge</b>\nInstalls popular code editors from official repositories.",
+    "<b>Git Pull Changes</b>\nPulls remote changes from GitHub repositories, keeping local repos up-to-date.",
+    "<b>Git Push Changes</b>\nAdds, commits, and pushes code changes with default or prompted messages.",
+    "<b>Install Wine &amp; Winetricks</b>\nSets up Wine with Microsoft Visual C++ 4.2 runtime to run Windows apps on Linux.",
+    "<b>Install Nextcloud Client</b>\nInstalls Nextcloud Desktop client via Flatpak for personal and enterprise cloud sync.",
 ]
 
 DARK_CSS = b"""
@@ -108,7 +107,7 @@ class ScriptMenuGTK(Gtk.Window):
 
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "LV Learn - Main Menu"
+        hb.props.title = "Script Menu - lv_linux_learn"
         self.set_titlebar(hb)
 
         style_provider = Gtk.CssProvider()
@@ -144,10 +143,12 @@ class ScriptMenuGTK(Gtk.Window):
         right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         main_box.pack_start(right_box, True, True, 0)
 
-        self.description_label = Gtk.Label(label="Select a script to see description.")
+        self.description_label = Gtk.Label()
         self.description_label.set_line_wrap(True)
         self.description_label.set_name("desc_label")
         self.description_label.set_xalign(0)
+        self.description_label.set_use_markup(True)
+        self.description_label.set_text("Select a script to see description.")
         right_box.pack_start(self.description_label, False, False, 0)
 
         self.run_button = Gtk.Button(label="Run Script in Terminal")
@@ -160,7 +161,7 @@ class ScriptMenuGTK(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
             index = model.get_path(treeiter)[0]
-            self.description_label.set_text(DESCRIPTIONS[index])
+            self.description_label.set_markup(DESCRIPTIONS[index])
             self.run_button.set_sensitive(True)
         else:
             self.description_label.set_text("Select a script to see description.")
