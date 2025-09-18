@@ -23,10 +23,9 @@ fi
 
 
 print_table() {
-  printf "%-22s\t%-20s\t%-20s\t%-8s\n" "NODE ID" "NAME/DESCRIPTION" "MANAGED IP(S)" "STATUS"
-  printf '%*s\n' 75 '' | tr ' ' '-'
+  printf "NODE ID\t    DESCRIPTION\t    MANAGED IP(S)    STATUS\n"
+  printf "=======\t    ===========\t    =============    ======\n"
   threshold_ms=$(( $(date +%s) * 1000 - 300000 ))
-  
   echo "$response" | jq -r --argjson threshold "$threshold_ms" '
     .[] |
     {
