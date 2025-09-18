@@ -108,7 +108,7 @@ class ScriptMenuGTK(Gtk.Window):
 
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "VPN & Tools Script Menu"
+        hb.props.title = "LV Learn - Main Menu"
         self.set_titlebar(hb)
 
         style_provider = Gtk.CssProvider()
