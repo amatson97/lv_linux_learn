@@ -3,9 +3,13 @@
 import gi
 import os
 import subprocess
+import webbrowser
+import sys
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
+
+REQUIRED_PACKAGES = ["gnome-terminal", "bash", "cat"]
 
 SCRIPTS = [
     "scripts/new_vpn.sh",
@@ -21,19 +25,77 @@ SCRIPTS = [
     "scripts/nextcloud_client.sh",
 ]
 
-# Fixed Pango markup descriptions with \n for line breaks (not <br/>)
 DESCRIPTIONS = [
-    "<b>Install ZeroTier VPN</b>\nJoins the Linux Learn Network and removes conflicting VPNs. Automates setup and simplifies VPN connectivity for container orchestration and remote access.",
-    "<b>Remove all VPNs</b>\nRemoves installed VPN clients like Zerotier, NordVPN, LogMeIn Hamachi. Useful for cleanup and resetting VPN configurations.",
-    "<b>Install Google Chrome</b>\nAdds Google's official repository and keys to install stable, up-to-date Chrome browser.",
-    "<b>Install Docker</b>\nInstalls Docker engine, CLI, and plugins to set up a full container environment.",
-    "<b>Setup Git &amp; GitHub CLI</b>\nConfigures Git with user credentials and authenticates GitHub CLI for source control.",
-    "<b>Install Flatpak &amp; Flathub</b>\nAdds Flatpak support and Flathub repository for universal Linux apps.",
-    "<b>Install Sublime Text &amp; Merge</b>\nInstalls popular code editors from official repositories.",
-    "<b>Git Pull Changes</b>\nPulls remote changes from GitHub repositories, keeping local repos up-to-date.",
-    "<b>Git Push Changes</b>\nAdds, commits, and pushes code changes with default or prompted messages.",
-    "<b>Install Wine &amp; Winetricks</b>\nSets up Wine with Microsoft Visual C++ 4.2 runtime to run Windows apps on Linux.",
-    "<b>Install Nextcloud Client</b>\nInstalls Nextcloud Desktop client via Flatpak for personal and enterprise cloud sync.",
+    "<b>Install ZeroTier VPN</b>\n"
+    "• Joins the Linux Learn Network using ZeroTier, a flexible virtual network.\n"
+    "• Removes conflicting VPN clients automatically.\n"
+    "• Provides secure peer-to-peer virtual networking.\n"
+    "More info:\n"
+    "  • <a href='https://www.zerotier.com/'>ZeroTier Official Site</a>\n"
+    "  • <a href='https://www.wired.com/story/what-is-zerotier/'>Wired Intro</a>",
+
+    "<b>Remove all VPN clients</b>\n"
+    "• Uninstalls ZeroTier, NordVPN, LogMeIn Hamachi, and others to reset VPN state.\n"
+    "• Helps resolve VPN conflicts and networking issues.\n"
+    "Useful guides:\n"
+    "  • <a href='https://nordvpn.com/help/how-to-uninstall-nordvpn/'>NordVPN Uninstall</a>\n"
+    "  • <a href='https://vpn.net/knowledge-base/uninstall-logmein-hamachi/'>Hamachi Uninstall</a>",
+
+    "<b>Install Google Chrome</b>\n"
+    "• Adds official Google repository and keys to install stable Chrome.\n"
+    "• Ensures latest browser improvements and security.\n"
+    "Visit:\n"
+    "  • <a href='https://www.google.com/chrome/'>Google Chrome Official</a>",
+
+    "<b>Install Docker</b>\n"
+    "• Installs Docker Engine, CLI, containerd, and plugins on Ubuntu.\n"
+    "• Supports container management and orchestration.\n"
+    "Docs:\n"
+    "  • <a href='https://docs.docker.com/engine/install/ubuntu/'>Official Docker Install Guide</a>",
+
+    "<b>Setup Git &amp; GitHub CLI</b>\n"
+    "• Configures Git with user details.\n"
+    "• Authenticates GitHub CLI for repository management.\n"
+    "Learn more:\n"
+    "  • <a href='https://cli.github.com/manual/'>GitHub CLI Manual</a>\n"
+    "  • <a href='https://git-scm.com/doc'>Git Official Docs</a>",
+
+    "<b>Install Flatpak &amp; Flathub</b>\n"
+    "• Sets up Flatpak package manager.\n"
+    "• Adds Flathub repository for universal Linux apps.\n"
+    "Find out:\n"
+    "  • <a href='https://flatpak.org/'>Flatpak Official Site</a>",
+
+    "<b>Install Sublime Text &amp; Merge</b>\n"
+    "• Installs Sublime Text editor and Sublime Merge Git client.\n"
+    "• Features GPU rendering, context-aware autocomplete, refreshed UI.\n"
+    "Explore:\n"
+    "  • <a href='https://www.sublimetext.com/'>Sublime Text</a>\n"
+    "  • <a href='https://www.sublimemerge.com/'>Sublime Merge</a>",
+
+    "<b>Git Pull Changes</b>\n"
+    "• Pulls latest changes from remote repositories.\n"
+    "Details:\n"
+    "  • <a href='https://git-scm.com/docs/git-pull'>Git Pull Documentation</a>",
+
+    "<b>Git Push Changes</b>\n"
+    "• Stages, commits, and pushes local changes to remote repo.\n"
+    "Learn:\n"
+    "  • <a href='https://git-scm.com/docs/git-push'>Git Push Documentation</a>",
+
+    "<b>Install Wine &amp; Winetricks</b>\n"
+    "• Installs Wine compatibility layer and Winetricks scripts.\n"
+    "• Includes Microsoft Visual C++ 4.2 runtime setup.\n"
+    "More info:\n"
+    "  • <a href='https://wiki.winehq.org/Winetricks'>Winetricks Wiki</a>\n"
+    "  • <a href='https://www.winehq.org/'>WineHQ</a>",
+
+    "<b>Install Nextcloud Desktop Client</b>\n"
+    "• Installs Nextcloud sync client via Flatpak.\n"
+    "• Supports personal and enterprise Nextcloud servers.\n"
+    "More reading:\n"
+    "  • <a href='https://nextcloud.com/install/#install-clients'>Nextcloud Install Clients</a>\n"
+    "  • <a href='https://docs.nextcloud.com/'>Nextcloud Documentation</a>",
 ]
 
 DARK_CSS = b"""
@@ -107,7 +169,7 @@ class ScriptMenuGTK(Gtk.Window):
 
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "Script Menu - lv_linux_learn"
+        hb.props.title = "VPN & Tools Script Menu"
         self.set_titlebar(hb)
 
         style_provider = Gtk.CssProvider()
@@ -148,14 +210,84 @@ class ScriptMenuGTK(Gtk.Window):
         self.description_label.set_name("desc_label")
         self.description_label.set_xalign(0)
         self.description_label.set_use_markup(True)
+        self.description_label.connect("activate-link", self.on_link_clicked)
         self.description_label.set_text("Select a script to see description.")
         right_box.pack_start(self.description_label, False, False, 0)
+
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        right_box.pack_end(button_box, False, False, 0)
+
+        self.view_button = Gtk.Button(label="View Script")
+        self.view_button.set_sensitive(False)
+        self.view_button.connect("clicked", self.on_view_clicked)
+        button_box.pack_start(self.view_button, False, False, 0)
 
         self.run_button = Gtk.Button(label="Run Script in Terminal")
         self.run_button.set_sensitive(False)
         self.run_button.get_style_context().add_class("suggested-action")
         self.run_button.connect("clicked", self.on_run_clicked)
-        right_box.pack_end(self.run_button, False, False, 0)
+        button_box.pack_start(self.run_button, False, False, 0)
+
+        # Check required packages on launch
+        GLib.idle_add(self.check_required_packages)
+
+    def check_required_packages(self):
+        missing = []
+        for pkg in REQUIRED_PACKAGES:
+            if not self.command_exists(pkg):
+                missing.append(pkg)
+        if missing:
+            self.show_install_prompt(missing)
+        return False  # remove idle handler after run once
+
+    def command_exists(self, cmd):
+        from shutil import which
+        return which(cmd) is not None
+
+    def show_install_prompt(self, missing_pkgs):
+        pkg_list = ", ".join(missing_pkgs)
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=f"The following required packages are missing:\n{pkg_list}\n\nInstall them now?",
+        )
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.YES:
+            self.install_packages(missing_pkgs)
+        else:
+            # User declined install, warn and exit
+            warn = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Cannot continue without required packages. Exiting.",
+            )
+            warn.run()
+            warn.destroy()
+            Gtk.main_quit()
+            sys.exit(1)
+
+    def install_packages(self, pkgs):
+        # Use sudo apt-get install to install missing packages
+        try:
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y"] + pkgs, check=True)
+        except subprocess.CalledProcessError:
+            err = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Failed to install required packages. Please install them manually.",
+            )
+            err.run()
+            err.destroy()
+            Gtk.main_quit()
+            sys.exit(1)
 
     def on_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
@@ -163,9 +295,11 @@ class ScriptMenuGTK(Gtk.Window):
             index = model.get_path(treeiter)[0]
             self.description_label.set_markup(DESCRIPTIONS[index])
             self.run_button.set_sensitive(True)
+            self.view_button.set_sensitive(True)
         else:
             self.description_label.set_text("Select a script to see description.")
             self.run_button.set_sensitive(False)
+            self.view_button.set_sensitive(False)
 
     def on_run_clicked(self, button):
         selection = self.treeview.get_selection()
@@ -175,15 +309,7 @@ class ScriptMenuGTK(Gtk.Window):
         index = model.get_path(treeiter)[0]
         script_path = SCRIPTS[index]
         if not os.path.isfile(script_path):
-            dialog = Gtk.MessageDialog(
-                transient_for=self,
-                flags=0,
-                message_type=Gtk.MessageType.ERROR,
-                buttons=Gtk.ButtonsType.OK,
-                text=f"Script not found:\n{script_path}",
-            )
-            dialog.run()
-            dialog.destroy()
+            self.show_error_dialog(f"Script not found:\n{script_path}")
             return
         try:
             subprocess.Popen(
@@ -196,15 +322,45 @@ class ScriptMenuGTK(Gtk.Window):
                 ]
             )
         except FileNotFoundError:
-            dialog = Gtk.MessageDialog(
-                transient_for=self,
-                flags=0,
-                message_type=Gtk.MessageType.ERROR,
-                buttons=Gtk.ButtonsType.OK,
-                text="gnome-terminal not found. Please install or change terminal emulator.",
+            self.show_error_dialog("gnome-terminal not found. Please install or change terminal emulator.")
+
+    def on_view_clicked(self, button):
+        selection = self.treeview.get_selection()
+        model, treeiter = selection.get_selected()
+        if treeiter is None:
+            return
+        index = model.get_path(treeiter)[0]
+        script_path = SCRIPTS[index]
+        if not os.path.isfile(script_path):
+            self.show_error_dialog(f"Script not found:\n{script_path}")
+            return
+        try:
+            subprocess.Popen(
+                [
+                    "gnome-terminal",
+                    "--",
+                    "bash",
+                    "-c",
+                    f"cat '{script_path}'; echo ''; echo 'Press enter to close...'; read",
+                ]
             )
-            dialog.run()
-            dialog.destroy()
+        except FileNotFoundError:
+            self.show_error_dialog("gnome-terminal not found. Please install or change terminal emulator.")
+
+    def on_link_clicked(self, label, uri):
+        webbrowser.open(uri)
+        return True
+
+    def show_error_dialog(self, message):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=message,
+        )
+        dialog.run()
+        dialog.destroy()
 
 
 def main():
