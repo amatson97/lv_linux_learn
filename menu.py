@@ -1,9 +1,12 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import subprocess
-import os
+#!/usr/bin/env python3
 
-# Script filenames and descriptions arrays
+import gi
+import os
+import subprocess
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk, GLib
+
 SCRIPTS = [
     "scripts/new_vpn.sh",
     "scripts/remove_all_vpn.sh",
@@ -34,76 +37,159 @@ DESCRIPTIONS = [
     "Install Nextcloud Desktop client, via flatpak.",
 ]
 
-class ScriptMenuApp(tk.Tk):
+DARK_CSS = b"""
+window {
+    background-color: #232629;
+    color: #ebebeb;
+    font-family: 'Ubuntu', 'Cantarell', 'Arial', sans-serif;
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 12px;
+}
+button, GtkButton {
+    border-radius: 6px;
+    background: #444C56;
+    color: #ebebeb;
+    padding: 6px 14px;
+}
+button:hover, GtkButton:hover {
+    background: #57606a;
+}
+#desc_label {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    font-style: italic;
+    color: #ADB5BD;
+}
+.treeview {
+    background: #1E1E1E;
+    color: #ebebeb;
+    border-radius: 6px;
+}
+.scroll {
+    border-radius: 6px;
+    background: #1E1E1E;
+    /* shadow */
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+"""
+
+class ScriptMenuGTK(Gtk.Window):
     def __init__(self):
-        super().__init__()
-        self.title("Script Menu - External Terminal")
-        self.geometry("700x400")
+        Gtk.Window.__init__(self, title="Script Menu - External Terminal")
+        self.set_default_size(900, 520)
+        self.set_border_width(12)
+        self.set_resizable(True)
 
-        # Apply system theme
-        style = ttk.Style(self)
-        style.theme_use(style.theme_use())  # Use current native/system theme
+        # Headerbar
+        hb = Gtk.HeaderBar()
+        hb.set_show_close_button(True)
+        hb.props.title = "VPN & Tools Script Menu"
+        self.set_titlebar(hb)
 
-        self.create_widgets()
+        # CSS Provider
+        self.style_provider = Gtk.CssProvider()
+        self.style_provider.load_from_data(DARK_CSS)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            self.style_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
 
-    def create_widgets(self):
-        frame = ttk.Frame(self)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        self.add(main_box)
 
-        ttk.Label(frame, text="Available Scripts:").pack(anchor="w")
-
-        self.listbox = tk.Listbox(frame, height=15)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
-        self.listbox.bind("<<ListboxSelect>>", self.on_select)
-
-        # Show script file names in listbox
+        # Left: script list with scroll window
+        self.liststore = Gtk.ListStore(str)
         for script_path in SCRIPTS:
-            self.listbox.insert(tk.END, os.path.basename(script_path))
+            self.liststore.append([os.path.basename(script_path)])
+        self.treeview = Gtk.TreeView(model=self.liststore)
+        self.treeview.set_name("treeview")
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Scripts", renderer, text=0)
+        self.treeview.append_column(column)
+        self.treeview.get_selection().connect("changed", self.on_selection_changed)
 
-        # Label to display description
-        self.desc_label = ttk.Label(frame, text="Select a script to see description.",
-                                    wraplength=600, justify="left")
-        self.desc_label.pack(pady=10)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_hexpand(False)
+        scroll.set_vexpand(True)
+        scroll.set_min_content_width(260)
+        scroll.set_name("scroll")
+        scroll.add(self.treeview)
+        main_box.pack_start(scroll, False, False, 0)
 
-        self.run_button = ttk.Button(frame, text="Run Script in Terminal", command=self.run_script)
-        self.run_button.pack()
-        self.run_button.state(["disabled"])
+        # Right VBox
+        right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        main_box.pack_start(right_box, True, True, 0)
 
-        exit_btn = ttk.Button(self, text="Exit", command=self.destroy)
-        exit_btn.pack(pady=5)
+        self.description_label = Gtk.Label(label="Select a script to see description.")
+        self.description_label.set_line_wrap(True)
+        self.description_label.set_name("desc_label")
+        self.description_label.set_xalign(0)
+        right_box.pack_start(self.description_label, False, False, 0)
 
-    def on_select(self, event):
-        selection = self.listbox.curselection()
-        if selection:
-            index = selection[0]
-            self.desc_label.config(text=DESCRIPTIONS[index])
-            self.run_button.state(["!disabled"])
+        self.run_button = Gtk.Button(label="Run Script in Terminal")
+        self.run_button.set_sensitive(False)
+        self.run_button.get_style_context().add_class("suggested-action")
+        self.run_button.connect("clicked", self.on_run_clicked)
+        right_box.pack_end(self.run_button, False, False, 0)
+
+    def on_selection_changed(self, selection):
+        model, treeiter = selection.get_selected()
+        if treeiter is not None:
+            index = model.get_path(treeiter)[0]
+            self.description_label.set_text(DESCRIPTIONS[index])
+            self.run_button.set_sensitive(True)
         else:
-            self.desc_label.config(text="Select a script to see description.")
-            self.run_button.state(["disabled"])
+            self.description_label.set_text("Select a script to see description.")
+            self.run_button.set_sensitive(False)
 
-    def run_script(self):
-        selection = self.listbox.curselection()
-        if not selection:
+    def on_run_clicked(self, button):
+        selection = self.treeview.get_selection()
+        model, treeiter = selection.get_selected()
+        if treeiter is None:
             return
-
-        index = selection[0]
+        index = model.get_path(treeiter)[0]
         script_path = SCRIPTS[index]
-
         if not os.path.isfile(script_path):
-            messagebox.showerror("Error", f"Script not found:\n{script_path}")
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text=f"Script not found:\n{script_path}",
+            )
+            dialog.run()
+            dialog.destroy()
             return
-
         try:
-            subprocess.Popen([
-                "gnome-terminal",
-                "--",
-                "bash", "-c",
-                f"bash '{script_path}'; echo 'Press enter to close...'; read"
-            ])
+            subprocess.Popen(
+                [
+                    "gnome-terminal",
+                    "--",
+                    "bash",
+                    "-c",
+                    f"bash '{script_path}'; echo 'Press enter to close...'; read",
+                ]
+            )
         except FileNotFoundError:
-            messagebox.showerror("Error", "gnome-terminal not found. Please install it or modify the script to use your terminal.")
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="gnome-terminal not found. Please install or change terminal emulator.",
+            )
+            dialog.run()
+            dialog.destroy()
+
+
+def main():
+    app = ScriptMenuGTK()
+    app.connect("destroy", Gtk.main_quit)
+    app.show_all()
+    Gtk.main()
+
 
 if __name__ == "__main__":
-    app = ScriptMenuApp()
-    app.mainloop()
+    main()
