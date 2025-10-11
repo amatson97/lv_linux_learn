@@ -18,6 +18,41 @@
 - 💬 [Community Support](#-community-support)
 
 ---
+---
+
+## 📑 Table of Contents
+1. [Beginner Resources & Tools](#-beginner-resources--tools)
+2. [Package Manager (apt)](#-package-manager-apt)
+3. [Installation Scripts](#%EF%B8%8F-installation-scripts)
+4. [Linux Drive Management](#-linux-drive-management)
+5. [Docker](#-docker)
+   - [Official Documentation](#official-documentation)
+   - [Docker Compose Commands](#docker-compose-commands)
+   - [Docker Container Commands](#docker-container-commands)
+   - [Docker Volume Commands](#docker-volume-commands)
+   - [Docker Network Commands](#docker-network-commands)
+6. [Portainer](#-portainer)
+7. [Plex Media Server](#-plex-media-server)
+8. [Nextcloud (Basic Install)](#%EF%B8%8F-nextcloud-basic-install)
+9. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
+10. [Getting Started with GitHub](#-getting-started-with-github)
+11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
+12. [AI Integration Tools](#-ai-integration-tools)
+13. [ZeroTier Network Tools](#-zerotier-network-tools)
+14. [Utility Tools](#-utility-tools)
+
+---
+
+## 📖 Beginner Resources & Tools
+- [VMware Workstation Pro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
+- [Balena Etcher USB Imager](https://etcher.balena.io)
+- [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
+- [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
+- [Linux Journey - Basic Concepts](https://linuxjourney.com/)
+- [Command Lookup](https://explainshell.com/)
+- [Chmod Calculator](https://chmod-calculator.com/)
+
+---
 
 ## 🏁 Quick Start
 
@@ -110,41 +145,6 @@ lv_linux_learn/
 └── README.md                          # This documentation file
 ```
 
----
-
-## 📑 Table of Contents
-1. [Beginner Resources & Tools](#-beginner-resources--tools)
-2. [Package Manager (apt)](#-package-manager-apt)
-3. [Installation Scripts](#%EF%B8%8F-installation-scripts)
-4. [Linux Drive Management](#-linux-drive-management)
-5. [Docker](#-docker)
-   - [Official Documentation](#official-documentation)
-   - [Docker Compose Commands](#docker-compose-commands)
-   - [Docker Container Commands](#docker-container-commands)
-   - [Docker Volume Commands](#docker-volume-commands)
-   - [Docker Network Commands](#docker-network-commands)
-6. [Portainer](#-portainer)
-7. [Plex Media Server](#-plex-media-server)
-8. [Nextcloud (Basic Install)](#%EF%B8%8F-nextcloud-basic-install)
-9. [Traefik (Reverse Proxy & Load Balancer)](#-traefik-reverse-proxy--load-balancer)
-10. [Getting Started with GitHub](#-getting-started-with-github)
-11. [Essential Linux Troubleshooting](#%EF%B8%8F-essential-linux-troubleshooting)
-12. [AI Integration Tools](#-ai-integration-tools)
-13. [ZeroTier Network Tools](#-zerotier-network-tools)
-14. [Utility Tools](#-utility-tools)
-
----
-
-## 📖 Beginner Resources & Tools
-- [VMware Workstation Pro FREE (Sign up required)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
-- [Balena Etcher USB Imager](https://etcher.balena.io)
-- [Ubuntu Desktop Install Guide](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
-- [Useful Linux Command Reference (Hostinger)](https://www.hostinger.com/tutorials/linux-commands)
-- [Linux Journey - Basic Concepts](https://linuxjourney.com/)
-- [Command Lookup](https://explainshell.com/)
-- [Chmod Calculator](https://chmod-calculator.com/)
-
----
 
 ## 📦 Package Manager (apt)
 
@@ -251,7 +251,7 @@ This interactive menu allows you to select what you want to install:
 
 # Navigate to the repository directory first
 
-cd /path/to/linux-learning-guide
+cd /home/username/lv_linux_learn
 ./menu.sh
 
 ```
@@ -328,25 +328,19 @@ Basic Docker commands for managing containers, volumes, and networks. Future upd
 ### Docker Compose Commands
 ```
 
-
 # Navigate to directory with docker-compose.yml first
-
 cd docker-compose/
 
 # Start containers in detached mode
-
 docker compose up -d
 
 # Stop and remove containers
-
 docker compose down
 
 # View running services
-
 docker compose ps
 
 # View logs
-
 docker compose logs -f
 
 ```
@@ -413,7 +407,7 @@ sudo docker network [command]
 ---
 
 ## 🎥 Plex Media Server
-You can run Plex Media Server inside Docker. Adjust the provided `docker-compose.yml` to fit your setup.
+You can run Plex Media Server inside Docker. Adjust the provided `docker-compose/docker-compose.yml` to fit your setup.
 
 - [Plex Docker Hub (LinuxServer.io)](https://hub.docker.com/r/linuxserver/plex)
 
@@ -592,15 +586,12 @@ Within the `zerotier_tools` directory are tools for working with the ZeroTier VP
 
 
 # Get IP addresses of network members
-
 ./get_ip.sh <API_TOKEN> <NETWORK_ID>
 
 # Generate HTML report of network status
-
 ./html_ip.sh <API_TOKEN> <NETWORK_ID>
 
 # Desktop notifications for network changes
-
 ./zt_notifications.sh <API_TOKEN> <NETWORK_ID>
 
 ```
@@ -613,11 +604,9 @@ You can add the `zt_notifications.sh` script to your system's crontab. Every 5 m
 
 
 # Edit crontab
-
 crontab -e
 
 # Add this line (replace placeholders with actual values)
-
 */5 * * * * DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus /home/<USER>/linux-learning-guide/zerotier_tools/zt_notifications.sh <API_TOKEN> <NETWORK_ID>
 
 ```
@@ -643,15 +632,12 @@ The `tools` directory contains various utility scripts for file management and s
 
 
 # Navigate to tools directory
-
 cd tools/
 
 # Make scripts executable
-
 chmod +x *.sh
 
 # Run specific utility (check script comments for usage)
-
 ./script_name.sh
 
 ```
