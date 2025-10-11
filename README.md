@@ -677,6 +677,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Created by:** Adam Matson  
 **Purpose:** Linux learning and system administration education  
 **Special thanks:** To all contributors and the Linux community
+This product includes software developed by in <in@fishtank.com>
 
 ---
 
