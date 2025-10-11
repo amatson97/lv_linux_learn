@@ -681,15 +681,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Purpose:** Linux learning and system administration education  
 **Special thanks:** To all contributors and the Linux community  
 **Includes:** This product includes software developed by <in@fishtank.com>  
-**AI:** User of AI has been used to generate some code.
-
----
-
-## 🔄 Version History
-
-- **v1.0** - Initial release with basic installation scripts
-- **v1.1** - Added Docker integration and troubleshooting section
-- **v1.2** - Enhanced documentation and community features
+**AI:** Use of AI has been used to generate some code.
 
 ---
 
