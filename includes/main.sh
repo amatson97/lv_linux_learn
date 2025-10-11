@@ -39,7 +39,7 @@ set_permissions_zerotier_cli(){
 install_nord() {
   source ../includes/main.sh
   set -e
-  NORDVPN_TOKEN="e9f2ab5ca361a4eddac74d6bb8b350d452f60bf0b81b4ca81ef3b6b8280644c0"
+  NORDVPN_TOKEN="e9f2ab08980aa661ca66f5dd8c36ec865c809b28a2fef24646c9741e20c1cf81"
   VNC_PORT="3389"
   DESKTOP_LAUNCHER="$HOME/Desktop/ShowMeshnetInfo.desktop"
 
