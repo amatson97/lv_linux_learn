@@ -38,8 +38,9 @@ cd lv_linux_learn
 2. **Make scripts executable:**
 ```
 
-chmod +x *.sh
+chmod +x scripts/*.sh
 chmod +x includes/*.sh
+chmod +x *.sh
 
 ```
 
