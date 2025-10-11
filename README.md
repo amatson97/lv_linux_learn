@@ -84,6 +84,9 @@ chmod +x *.sh
 
 ./menu.sh
 
+# Beta desktop GUI version of this menu can be run via
+./menu.py
+
 ```
 
 4. **Follow the [Beginner Resources](#-beginner-resources--tools)** section for foundational learning.
