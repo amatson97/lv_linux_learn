@@ -250,7 +250,6 @@ This interactive menu allows you to select what you want to install:
 
 
 # Navigate to the repository directory first
-
 cd /home/username/lv_linux_learn
 ./menu.sh
 
@@ -281,7 +280,6 @@ To add your VM to the Linux learning network (facilitated by ZeroTier VPN), run 
 
 
 # Run the VPN setup script
-
 ./new_vpn.sh
 
 ```
@@ -559,11 +557,9 @@ I have written a bash script that allows you to send JSON prompts to Perplexity 
 
 
 # Navigate to the ai_fun directory
-
 cd ai_fun/
 
 # Run the Perplexity script with your API key
-
 ./perplex.sh <Perplexity_API_Key>
 
 ```
