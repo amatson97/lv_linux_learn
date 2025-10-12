@@ -52,6 +52,12 @@
 - [Command Lookup](https://explainshell.com/)
 - [Chmod Calculator](https://chmod-calculator.com/)
 
+### VMWare Workstation Pro FREE
+
+Once logged in go to https://support.broadcom.com/group/ecx/free-downloads then search for "VMware Workstation Pro".
+
+![VMware Workstation Pro FREE](images/broadcomm.png "VMWare Workstation Pro FREE")
+
 ---
 
 ## 🏁 Quick Start
