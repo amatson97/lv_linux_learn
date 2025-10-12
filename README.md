@@ -18,7 +18,6 @@
 - 💬 [Community Support](#-community-support)
 
 ---
----
 
 ## 📑 Table of Contents
 1. [Beginner Resources & Tools](#-beginner-resources--tools)
