@@ -143,7 +143,8 @@ lv_linux_learn/
 │   ├── 7z_extractor*.sh               # Archive extraction with RAM disk support
 │   ├── extract-xiso/                  # Xbox ISO extraction tool (compiled)
 │   ├── flac_to_mp3.sh                 # Audio format conversion
-│   └── convert_*.sh                   # Various file format converters
+│   ├── convert_*.sh                   # Various file format converters
+│   └── check_power_on*.sh             # Check power on hours of disks in your system.
 ├── zerotier_tools/                    # VPN network management and monitoring
 │   ├── get_ip.sh                      # Network member IP discovery
 │   ├── html_ip.sh                     # Generate network status reports
