@@ -5,9 +5,16 @@ import os
 import subprocess
 import webbrowser
 import sys
+import shlex
+from pathlib import Path
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
+try:
+    # optional nicer icons / pixbuf usage if available
+    from gi.repository import GdkPixbuf
+except Exception:
+    GdkPixbuf = None
 
 REQUIRED_PACKAGES = ["gnome-terminal", "bash", "cat"]
 
@@ -99,40 +106,28 @@ window {
     background-color: #232629;
     color: #ebebeb;
     font-family: 'Ubuntu', 'Cantarell', 'Arial', sans-serif;
-    font-size: 16px;
+    font-size: 15px;
     border-radius: 8px;
     padding: 12px;
 }
 
 headerbar {
-    min-height: 36px;
+    min-height: 40px;
     padding: 0 6px;
 }
 
-headerbar button.titlebutton {
-    min-width: 24px;
-    min-height: 24px;
-    padding: 2px;
-    margin: 0 2px;
-    border-radius: 4px;
-}
-
-headerbar button.titlebutton:hover {
-    background: #57606a;
-}
-
-button, GtkButton {
+button, .suggested-action {
     border-radius: 6px;
-    background: #444C56;
+    background: #2f3640;
     color: #ebebeb;
-    padding: 10px 20px;
-    min-height: 36px;
-    min-width: 100px;
-    font-size: 16px;
+    padding: 8px 14px;
+    min-height: 34px;
+    min-width: 96px;
+    font-size: 14px;
 }
 
-button:hover, GtkButton:hover {
-    background: #57606a;
+button:hover, .suggested-action:hover {
+    background: #3b4752;
 }
 
 #desc_label {
@@ -140,55 +135,78 @@ button:hover, GtkButton:hover {
     margin-bottom: 12px;
     font-style: italic;
     color: #ADB5BD;
+    font-size: 13px;
 }
 
 .treeview {
     background: #1E1E1E;
     color: #ebebeb;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 14px;
+}
+
+/* selection highlight */
+treeview treeview:selected, treeview:selected {
+    background-color: #2a9d8f;
+    color: #ffffff;
 }
 
 .scroll {
     border-radius: 6px;
     background: #1E1E1E;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.6);
 }
 """
 
-class ScriptMenuGTK(Gtk.Window):
-    def __init__(self):
-        Gtk.Window.__init__(self, title="Script Menu - External Terminal")
-        self.set_default_size(840, 470)
+class ScriptMenuGTK(Gtk.ApplicationWindow):
+    def __init__(self, app):
+        # Use ApplicationWindow so GNOME/WM can associate the window with the Gtk.Application.
+        Gtk.ApplicationWindow.__init__(self, application=app, title="Main Menu")
+        self.set_default_size(900, 520)
         self.set_border_width(12)
         self.set_resizable(True)
 
+        # HeaderBar + integrated search (keeps GNOME decoration/behavior consistent)
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "VPN & Tools Script Menu"
+        hb.props.title = "Main Menu"
         self.set_titlebar(hb)
+        # add a small search entry to the headerbar for quick filtering
+        self.header_search = Gtk.SearchEntry()
+        self.header_search.set_placeholder_text("Search scripts...")
+        self.header_search.set_size_request(240, -1)
+        hb.pack_end(self.header_search)
 
-        style_provider = Gtk.CssProvider()
-        style_provider.load_from_data(DARK_CSS)
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
+        # Do not register a CSS provider — inherit system theme for native look & feel.
+        # Removing custom styling avoids altering headerbar/titlebutton sizing and other
+        # desktop-managed decorations that make the window look "native".
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         self.add(main_box)
 
-        self.liststore = Gtk.ListStore(str)
+        # store: display name, full path
+        self.liststore = Gtk.ListStore(str, str)
         for script_path in SCRIPTS:
-            self.liststore.append([os.path.basename(script_path)])
+            self.liststore.append([os.path.basename(script_path), script_path])
 
-        self.treeview = Gtk.TreeView(model=self.liststore)
+        # filtered model driven by search entry
+        self.filter_text = ""
+        self.filter = self.liststore.filter_new()
+        self.filter.set_visible_func(self._filter_func)
+
+        self.treeview = Gtk.TreeView(model=self.filter)
         self.treeview.set_name("treeview")
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Scripts", renderer, text=0)
         self.treeview.append_column(column)
+        self.treeview.set_activate_on_single_click(False)
+        self.treeview.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+        # double-click/enter to run
+        self.treeview.connect("row-activated", self.on_row_activated)
+        # selection changed handler
         self.treeview.get_selection().connect("changed", self.on_selection_changed)
+        # wire search -> filter
+        self.header_search.connect("search-changed", self.on_search_changed)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_hexpand(False)
@@ -201,14 +219,29 @@ class ScriptMenuGTK(Gtk.Window):
         right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         main_box.pack_start(right_box, True, True, 0)
 
+        # Description area: use a scrollable, selectable label so long help text
+        # uses the available right-side space and remains copyable.
         self.description_label = Gtk.Label()
         self.description_label.set_line_wrap(True)
         self.description_label.set_name("desc_label")
         self.description_label.set_xalign(0)
         self.description_label.set_use_markup(True)
+        self.description_label.set_selectable(True)
         self.description_label.connect("activate-link", self.on_link_clicked)
         self.description_label.set_text("Select a script to see description.")
-        right_box.pack_start(self.description_label, False, False, 0)
+        # margins to give breathing room
+        self.description_label.set_margin_top(6)
+        self.description_label.set_margin_bottom(6)
+        self.description_label.set_margin_start(6)
+        self.description_label.set_margin_end(6)
+
+        desc_scroll = Gtk.ScrolledWindow()
+        desc_scroll.set_vexpand(True)
+        desc_scroll.set_hexpand(True)
+        desc_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        desc_scroll.add(self.description_label)
+        # pack the scrollable description to expand and use available space
+        right_box.pack_start(desc_scroll, True, True, 0)
 
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         right_box.pack_end(button_box, False, False, 0)
@@ -224,6 +257,14 @@ class ScriptMenuGTK(Gtk.Window):
         self.run_button.connect("clicked", self.on_run_clicked)
         button_box.pack_start(self.run_button, False, False, 0)
 
+        # keyboard accelerators (Ctrl+R run, Ctrl+V view)
+        accel = Gtk.AccelGroup()
+        self.add_accel_group(accel)
+        key_r = Gdk.keyval_from_name("r")
+        key_v = Gdk.keyval_from_name("v")
+        self.run_button.add_accelerator("clicked", accel, key_r, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
+        self.view_button.add_accelerator("clicked", accel, key_v, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
+
         # Check required packages on launch
         GLib.idle_add(self.check_required_packages)
 
@@ -235,6 +276,17 @@ class ScriptMenuGTK(Gtk.Window):
         if missing:
             self.show_install_prompt(missing)
         return False  # remove idle handler after run once
+
+    def _filter_func(self, model, iter, data):
+        if not self.filter_text:
+            return True
+        name = model[iter][0].lower()
+        path = model[iter][1].lower()
+        return self.filter_text in name or self.filter_text in path
+
+    def on_search_changed(self, entry):
+        self.filter_text = entry.get_text().strip().lower()
+        self.filter.refilter()
 
     def command_exists(self, cmd):
         from shutil import which
@@ -288,8 +340,22 @@ class ScriptMenuGTK(Gtk.Window):
     def on_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
-            index = model.get_path(treeiter)[0]
-            self.description_label.set_markup(DESCRIPTIONS[index])
+            # model is filtered -> get full path from model column 1
+            fullpath = model[treeiter][1]
+            try:
+                idx = SCRIPTS.index(fullpath)
+            except ValueError:
+                idx = 0
+            # Build a compact header: bold filename + monospaced path, then description.
+            basename = os.path.basename(fullpath)
+            safe_name = GLib.markup_escape_text(basename)
+            safe_path = GLib.markup_escape_text(fullpath)
+            desc_markup = (
+                f"<big><b>{safe_name}</b></big>\n"
+                f"<tt>{safe_path}</tt>\n\n"
+                f"{DESCRIPTIONS[idx]}"
+            )
+            self.description_label.set_markup(desc_markup)
             self.run_button.set_sensitive(True)
             self.view_button.set_sensitive(True)
         else:
@@ -302,8 +368,8 @@ class ScriptMenuGTK(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is None:
             return
-        index = model.get_path(treeiter)[0]
-        script_path = SCRIPTS[index]
+        # model is filtered -> get full path from model column 1
+        script_path = model[treeiter][1]
         if not os.path.isfile(script_path):
             self.show_error_dialog(f"Script not found:\n{script_path}")
             return
@@ -325,20 +391,24 @@ class ScriptMenuGTK(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is None:
             return
-        index = model.get_path(treeiter)[0]
-        script_path = SCRIPTS[index]
+        script_path = model[treeiter][1]
         if not os.path.isfile(script_path):
             self.show_error_dialog(f"Script not found:\n{script_path}")
             return
+        # prefer colorizing viewers if available: bat -> pygmentize -> highlight -> cat
+        safe_path = shlex.quote(script_path)
+        viewer_cmd = (
+            f"if command -v bat >/dev/null 2>&1; then "
+            f"bat --paging=always --style=plain --color=always {safe_path}; "
+            f"elif command -v pygmentize >/dev/null 2>&1; then "
+            f"pygmentize -g -f terminal256 {safe_path}; "
+            f"elif command -v highlight >/dev/null 2>&1; then "
+            f"highlight -O ansi {safe_path}; "
+            f"else cat {safe_path}; fi; echo ''; echo 'Press enter to close...'; read"
+        )
         try:
             subprocess.Popen(
-                [
-                    "gnome-terminal",
-                    "--",
-                    "bash",
-                    "-c",
-                    f"cat '{script_path}'; echo ''; echo 'Press enter to close...'; read",
-                ]
+                ["gnome-terminal", "--", "bash", "-c", viewer_cmd]
             )
         except FileNotFoundError:
             self.show_error_dialog("gnome-terminal not found. Please install or change terminal emulator.")
@@ -346,6 +416,12 @@ class ScriptMenuGTK(Gtk.Window):
     def on_link_clicked(self, label, uri):
         webbrowser.open(uri)
         return True
+
+    def on_row_activated(self, tree_view, path, column):
+        # emulate run on double-click or Enter
+        sel = tree_view.get_selection()
+        sel.select_path(path)
+        self.on_run_clicked(None)
 
     def show_error_dialog(self, message):
         dialog = Gtk.MessageDialog(
@@ -359,12 +435,27 @@ class ScriptMenuGTK(Gtk.Window):
         dialog.destroy()
 
 
+def on_activate(app):
+    # set a default application icon for better GNOME integration (if available)
+    assets_dir = Path(__file__).parent / "assets"
+    icon_file = assets_dir / "menu_icon.png"
+    if icon_file.exists():
+        try:
+            app.set_default_icon_from_file(str(icon_file))
+        except Exception:
+            pass
+
+    win = ScriptMenuGTK(app)
+    win.show_all()
+
+
 def main():
-    app = ScriptMenuGTK()
-    app.connect("destroy", Gtk.main_quit)
-    app.show_all()
-    Gtk.main()
+    application_id = "com.lv.lv_linux_learn.menu"
+    app = Gtk.Application(application_id=application_id)
+    app.connect("activate", on_activate)
+    # run() handles main loop and integrates with the session (startup notification, WM association)
+    return app.run(sys.argv)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
