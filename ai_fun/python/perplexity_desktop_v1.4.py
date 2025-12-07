@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 # sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests
 
-import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('GdkPixbuf', '2.0')
-from gi.repository import GdkPixbuf
-from gi.repository import Gtk, Gdk, GLib
+import sys
+try:
+    import gi
+    # Ensure this is the PyGObject 'gi' that provides require_version
+    if not hasattr(gi, 'require_version'):
+        raise ImportError("module 'gi' does not provide 'require_version' — PyGObject not installed")
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('GdkPixbuf', '2.0')
+    from gi.repository import GdkPixbuf
+    from gi.repository import Gtk, Gdk, GLib
+except Exception as e:
+    print("Error: PyGObject / GTK bindings are not available or misconfigured:", e)
+    print("On Debian/Ubuntu install required packages and try again:")
+    print("  sudo apt update && sudo apt install -y python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests")
+    sys.exit(1)
+
 import requests
 import datetime
 import os
@@ -14,24 +25,19 @@ import stat
 import hashlib
 
 # API URL and KEY_FILE locations.
-
 API_URL = 'https://api.perplexity.ai/chat/completions'
-
 API_KEY_FILE = os.path.expanduser("~/.perplexity_api_key")
 
 # Styling
-
 DARK_CSS = b"""
 .textview {
-background: #232629;
+background-color: #232629;
 color: #ebebeb;
 font-family: 'Ubuntu Mono', 'monospace';
 font-size: 13px;
 padding: 10px;
 }
 """
-
-# Rendering GUI
 
 class PerplexityApp(Gtk.Window):
 
@@ -45,9 +51,14 @@ class PerplexityApp(Gtk.Window):
         icon_path = os.path.abspath(icon_path)
         if os.path.isfile(icon_path):
             try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
-                self.set_icon(pixbuf)
-                print(f"Custom icon loaded from {icon_path}")
+                # prefer convenience method; fallback to pixbuf if not available
+                try:
+                    self.set_icon_from_file(icon_path)
+                    print(f"Custom icon loaded from {icon_path}")
+                except Exception:
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
+                    self.set_icon(pixbuf)
+                    print(f"Custom icon loaded via pixbuf from {icon_path}")
             except Exception as e:
                 print(f"Failed to load icon: {e}")
         else:
@@ -160,7 +171,6 @@ class PerplexityApp(Gtk.Window):
         except Exception:
             pass
 
-    # Here is the updated method for the Delete API Key button
     def on_delete_api_key_clicked(self, widget):
         self.delete_api_key()
         self.key_entry.set_text("")                # Clear API Key entry
@@ -226,19 +236,58 @@ class PerplexityApp(Gtk.Window):
 
         try:
             res = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-            if not res.ok:
-                GLib.idle_add(self.dialog_message, f"API Error: {res.status_code}\n{res.text}", Gtk.MessageType.ERROR)
-                GLib.idle_add(self.finish_request)
-                return
-
-            data = res.json()
-        except Exception as e:
+        except requests.RequestException as e:
             GLib.idle_add(self.dialog_message, f"Network or request failed: {e}", Gtk.MessageType.ERROR)
             GLib.idle_add(self.finish_request)
             return
 
-        self.citations = data.get("citations", [])
-        self.response_text = data["choices"][0]["message"]["content"] if data.get("choices") else "(No content)"
+        if not res.ok:
+            GLib.idle_add(self.dialog_message, f"API Error: {res.status_code}\n{res.text}", Gtk.MessageType.ERROR)
+            GLib.idle_add(self.finish_request)
+            return
+
+        try:
+            data = res.json()
+        except ValueError:
+            GLib.idle_add(self.dialog_message, "API returned invalid JSON.", Gtk.MessageType.ERROR)
+            GLib.idle_add(self.finish_request)
+            return
+
+        # Defensive parsing of response content
+        content = "(No content)"
+        choices = data.get("choices")
+        if isinstance(choices, list) and len(choices) > 0:
+            first = choices[0]
+            if isinstance(first, dict):
+                # support both chat-like and legacy structures
+                content = (first.get("message", {}) or {}).get("content") or first.get("text") or str(first)
+            else:
+                content = str(first)
+        else:
+            # some APIs return 'text' or other fields at top-level
+            content = data.get("text") or data.get("response") or content
+
+        # Normalize citations to list of strings for rendering
+        raw_citations = data.get("citations") or []
+        norm_citations = []
+        if isinstance(raw_citations, list):
+            for c in raw_citations:
+                if isinstance(c, str):
+                    norm_citations.append(c)
+                elif isinstance(c, dict):
+                    for k in ("url", "link", "href", "title", "text"):
+                        if k in c and c[k]:
+                            norm_citations.append(str(c[k]))
+                            break
+                    else:
+                        norm_citations.append(str(c))
+                else:
+                    norm_citations.append(str(c))
+        elif isinstance(raw_citations, str):
+            norm_citations = [raw_citations]
+
+        self.citations = norm_citations
+        self.response_text = content
         self.prompt_text = prompt
         GLib.idle_add(self.update_response_view)
         GLib.idle_add(self.finish_request)
@@ -259,7 +308,7 @@ class PerplexityApp(Gtk.Window):
             text += "\n"
 
         buffer = self.response_view.get_buffer()
-        buffer.set_text(text)  # plain text display, no markup parsing
+        buffer.set_text(text)
 
     def on_save_clicked(self, button):
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -281,8 +330,8 @@ class PerplexityApp(Gtk.Window):
             return
         md = (
             f"# Perplexity API Response\n\n"
-            f"## Prompt\n{self.prompt_text.strip()}\n"
-            f"## Response\n{self.response_text.strip()}\n"
+            f"## Prompt\n{self.prompt_text.strip()}\n\n"
+            f"## Response\n{self.response_text.strip()}\n\n"
         )
         if self.citations:
             md += "## References\n"
@@ -290,8 +339,12 @@ class PerplexityApp(Gtk.Window):
                 md += f"- {c}\n"
             md += "\n"
 
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(md)
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(md)
+        except Exception as e:
+            self.dialog_message(f"Failed to save file: {e}", Gtk.MessageType.ERROR)
+            return
 
         self.dialog_message(f"Response saved to:\n{filename}", Gtk.MessageType.INFO)
 

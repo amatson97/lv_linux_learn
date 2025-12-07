@@ -80,7 +80,6 @@ services:
       - /path_to/transmission/config:/config
       - /path_to/transmission/downloads:/downloads
       - /path_to/transmission/watch:/watch
-    restart: unless-stopped
     depends_on:
       - vpn
     labels:
