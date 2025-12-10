@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# Robust, idempotent Docker install for Ubuntu/Debian (installs engine + plugins)
+# Robust, idempotent Docker install for Ubuntu/Debian
 set -euo pipefail
 
 # repo-aware helpers
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-if [ -f "$repo_root/includes/main.sh" ]; then
-  # shellcheck source=/dev/null
-  source "$repo_root/includes/main.sh"
-else
-  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
-  log_err() { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
-fi
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
 
 # Use sudo when not root
 if [ "$(id -u)" -ne 0 ]; then

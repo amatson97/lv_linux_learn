@@ -5,12 +5,8 @@ set -euo pipefail
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-if [ -f "$repo_root/includes/main.sh" ]; then
-  # shellcheck source=/dev/null
-  source "$repo_root/includes/main.sh"
-else
-  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
-fi
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
 
 # Check if already installed
 if command -v flatpak &> /dev/null; then
@@ -29,3 +25,4 @@ green_echo "[*] Adding flathub remote..."
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 green_echo "[+] Flatpak setup complete. You may need to restart your session for full integration."
+exit 0

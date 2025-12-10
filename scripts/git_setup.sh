@@ -6,12 +6,8 @@ set -euo pipefail
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-if [ -f "$repo_root/includes/main.sh" ]; then
-  # shellcheck source=/dev/null
-  source "$repo_root/includes/main.sh"
-else
-  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
-fi
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
 
 green_echo "[*] Checking for Git..."
 if ! command -v git &> /dev/null; then
@@ -76,3 +72,4 @@ else
 fi
 
 green_echo "[+] Setup complete! You can now use Git commands and GitHub CLI with HTTPS authentication."
+exit 0

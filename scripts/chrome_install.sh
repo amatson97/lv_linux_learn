@@ -5,12 +5,8 @@ set -euo pipefail
 # Source shared helpers (provides green_echo)
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-if [ -f "$repo_root/includes/main.sh" ]; then
-  # shellcheck source=/dev/null
-  source "$repo_root/includes/main.sh"
-else
-  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
-fi
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
 
 # Helpers
 log_err() { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
@@ -99,3 +95,4 @@ green_echo "[*] Cleaning up..."
 cleanup
 
 green_echo "[+] Done."
+exit 0
