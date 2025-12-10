@@ -1,14 +1,31 @@
 #!/bin/bash
-# Install flatpak, a useful software repository. Has its own software store as well.
+# Install flatpak and gnome-software-plugin-flatpak, add flathub repo
+set -euo pipefail
 
 # Includes
-source includes/main.sh
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+if [ -f "$repo_root/includes/main.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$repo_root/includes/main.sh"
+else
+  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
+fi
 
-green_echo "[*] Installing flatpak..."
-sudo apt install flatpak -y
+# Check if already installed
+if command -v flatpak &> /dev/null; then
+  green_echo "[+] Flatpak already installed ($(flatpak --version | tr -d '\n'))"
+  if flatpak remotes | grep -q flathub; then
+    green_echo "[+] Flathub remote already configured"
+    exit 0
+  fi
+else
+  green_echo "[*] Installing flatpak..."
+  sudo apt update -y
+  sudo apt install -y flatpak gnome-software-plugin-flatpak
+fi
 
-green_echo "[*] Installing gnome-software-plugin-flatpak..."
-sudo apt install gnome-software-plugin-flatpak -y
-
-green_echo "[*] Adding flathub..."
+green_echo "[*] Adding flathub remote..."
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+green_echo "[+] Flatpak setup complete. You may need to restart your session for full integration."
