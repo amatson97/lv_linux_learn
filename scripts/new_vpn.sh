@@ -1,5 +1,9 @@
 #!/bin/bash
 # Install ZeroTier VPN and join Linux Learn Network
+# Description: Installs ZeroTier and joins the Linux Learn Network.
+#              Removes conflicting VPNs (NordVPN, LogMeIn Hamachi) if present.
+# Network URL: https://my.zerotier.com/network/8bd5124fd60a971f
+
 set -euo pipefail
 
 # Includes
@@ -8,22 +12,34 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 # shellcheck source=/dev/null
 source "$repo_root/includes/main.sh"
 
-# https://my.zerotier.com/network/8bd5124fd60a971f
-# Installs zerotier and joins the Linux Learn Network.
-# Removes conflicting VPNs (NordVPN, LogMeIn Hamachi) if present.
+# Constants
+readonly ZEROTIER_NETWORK=8bd5124fd60a971f
 
-#nettowrk ID
-ZEROTIER_NETWORK=8bd5124fd60a971f
+# Main execution
+main() {
+    green_echo "[*] Starting ZeroTier VPN installation and configuration..."
+    
+    # Remove conflicting VPN clients
+    green_echo "[*] Checking for conflicting VPN installations..."
+    remove_if_installed_nord "nordvpn"
+    remove_if_installed_hamachi "logmein-hamachi"
+    
+    # Brief pause to ensure clean removal
+    sleep 3
+    
+    # Install and configure ZeroTier
+    green_echo "[*] Installing ZeroTier..."
+    install_zerotier
+    
+    green_echo "[*] Setting permissions for ZeroTier CLI..."
+    set_permissions_zerotier_cli
+    
+    green_echo "[*] Creating desktop icon..."
+    create_zerotier_info_desktop_icon
+    
+    green_echo "[+] Setup complete! ZeroTier VPN is now installed and configured."
+    green_echo "[+] Network ID: ${ZEROTIER_NETWORK}"
+}
 
-#functions
-
-#calling functions
-remove_if_installed_nord "nordvpn"
-remove_if_installed_hamachi "logmein-hamachi"
-sleep 5
-install_zerotier
-set_permissions_zerotier_cli
-create_zerotier_info_desktop_icon
-
-green_echo "[+] Setup complete"
-exit 0
+# Run main function
+main "$@"

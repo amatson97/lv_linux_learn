@@ -75,10 +75,15 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 3. **Run the installation menu:**
 ```bash
-./menu.sh
+# Recommended: Auto-launcher (detects GUI vs CLI)
+./launcher.sh
 
-# Beta desktop GUI version of this menu can be run via
-./menu.py
+# Or run specific interface:
+./menu.py       # GUI version (requires GTK)
+./menu.sh       # CLI version (works everywhere)
+
+# Or run the uninstaller menu
+./uninstall_menu.sh
 ```
 
 4. **Follow the [Beginner Resources](#-beginner-resources--tools)** section for foundational learning.
@@ -151,16 +156,65 @@ lv_linux_learn/
 │   ├── flac_to_mp3.sh                 # Audio format conversion
 │   ├── convert_*.sh                   # Various file format converters
 │   └── check_power_on*.sh             # Check power-on hours of disks in your system
+├── uninstallers/                      # ⚠️ Removal scripts for installed tools
+│   ├── uninstall_zerotier.sh          # Remove ZeroTier VPN
+│   ├── uninstall_nordvpn.sh           # Remove NordVPN
+│   ├── uninstall_docker.sh            # Remove Docker (with data warning)
+│   ├── uninstall_chrome.sh            # Remove Google Chrome
+│   ├── uninstall_sublime.sh           # Remove Sublime Text
+│   ├── uninstall_flatpak.sh           # Remove Flatpak
+│   ├── uninstall_wine.sh              # Remove Wine
+│   ├── uninstall_nextcloud.sh         # Remove Nextcloud Client
+│   ├── uninstall_all_vpn.sh           # Remove all VPN tools at once
+│   ├── clean_desktop_launchers.sh     # Clean desktop icons only
+│   └── README.md                      # Uninstaller documentation
 ├── zerotier_tools/                    # VPN network management and monitoring
 │   ├── get_ip.sh                      # Network member IP discovery
 │   ├── html_ip.sh                     # Generate network status reports
 │   └── zt_notifications.sh            # Desktop notifications for network changes
 ├── .github/
 │   └── copilot-instructions.md        # AI coding assistant guidelines
-├── menu.py                            # Python-based interactive installation menu (GUI)
-├── menu.sh                            # Bash-based interactive installation menu
+├── launcher.sh                        # 🚀 Auto-launcher (detects GUI vs CLI)
+├── menu.py                            # Python GTK GUI menu (desktop version)
+├── menu.sh                            # Bash CLI menu (terminal version)
+├── uninstall_menu.sh                  # ⚠️ Interactive uninstaller menu
 └── README.md                          # This documentation file
 ```
+
+### 🚀 Menu Interfaces
+
+This repository provides **three ways** to run the setup tool:
+
+**1. Auto-Launcher (Recommended)**
+```bash
+./launcher.sh
+```
+Automatically detects your environment and launches:
+- **GUI version** (`menu.py`) if running on desktop with GTK installed
+- **CLI version** (`menu.sh`) if running over SSH or without GUI
+
+**2. GUI Menu (Desktop)**
+```bash
+./menu.py
+```
+Features:
+- 📦 Install, 🔧 Tools, 📚 Exercises, ⚠️ Uninstall, ℹ️ About tabs
+- Embedded VTE terminal for interactive script execution
+- Syntax highlighting with descriptions
+- Search/filter functionality
+- Right-click context menu (copy/paste)
+
+Requirements: `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-vte-2.91`
+
+**3. CLI Menu (Terminal)**
+```bash
+./menu.sh
+```
+Features:
+- Text-based interactive menu
+- Works over SSH and headless systems
+- No GUI dependencies required
+- Identical functionality to GUI version
 
 ---
 
@@ -276,9 +330,45 @@ cd ~/lv_linux_learn
 | `nextcloud_client.sh` | Nextcloud Desktop client | Flatpak |
 | `sublime_install.sh` | Sublime Text + Sublime Merge | None |
 | `new_vpn.sh` | ZeroTier VPN + network join | None |
-| `remove_all_vpn.sh` | Remove all VPN clients | None |
 | `git_pull.sh` | Pull latest repository changes | Git |
 | `git_push_changes.sh` | Stage, commit, and push changes | Git |
+
+### Uninstaller System
+
+Safe removal of installed tools with cleanup:
+
+```bash
+# Interactive uninstaller menu
+./uninstall_menu.sh
+
+# Or run individual uninstallers directly
+./uninstallers/uninstall_docker.sh
+./uninstallers/uninstall_zerotier.sh
+./uninstallers/uninstall_chrome.sh
+```
+
+**Available uninstallers:**
+- `uninstall_zerotier.sh` - Remove ZeroTier VPN (leaves networks first)
+- `uninstall_nordvpn.sh` - Remove NordVPN (disconnects & removes group)
+- `uninstall_docker.sh` - Remove Docker (warns about data loss)
+- `uninstall_chrome.sh` - Remove Google Chrome (optional user data removal)
+- `uninstall_sublime.sh` - Remove Sublime Text (optional config removal)
+- `uninstall_flatpak.sh` - Remove Flatpak (optional app removal)
+- `uninstall_wine.sh` - Remove Wine (optional prefix removal)
+- `uninstall_nextcloud.sh` - Remove Nextcloud Client (optional config removal)
+- `remove_all_vpn.sh` - [Legacy] Remove all VPN clients (older implementation)
+- `uninstall_all_vpn.sh` - Remove all VPN tools at once (recommended)
+- `clean_desktop_launchers.sh` - Remove desktop icons only
+
+**What gets removed:**
+- Installed packages (with `--purge` flag)
+- Repository configurations and GPG keys
+- System service configurations
+- User group memberships
+- Desktop launchers and helper scripts
+- Optionally: user data and configurations (with confirmation)
+
+See [uninstallers/README.md](uninstallers/README.md) for detailed documentation.
 
 ### Git Workflow Scripts
 
@@ -286,10 +376,10 @@ Simplified Git operations for repository management:
 
 ```bash
 # Pull latest changes from GitHub
-./scripts/git_pull.sh
+./tools/git_pull.sh
 
 # Commit and push all changes
-./scripts/git_push_changes.sh
+./tools/git_push_changes.sh
 ```
 
 **Note:** `git_push_changes.sh` will:

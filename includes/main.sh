@@ -435,3 +435,22 @@ show_menu() {
   echo "[0]   Exit"
   echo
 }
+
+# Uninstaller helper functions
+confirm_uninstall() {
+  local package_name="$1"
+  echo ""
+  read -rp "Are you sure you want to uninstall $package_name? [y/N]: " confirm
+  [[ "$confirm" =~ ^[Yy]$ ]]
+}
+
+check_installed() {
+  local package="$1"
+  if command -v "$package" &> /dev/null; then
+    return 0
+  elif dpkg -l | grep -q "^ii.*$package"; then
+    return 0
+  else
+    return 1
+  fi
+}
