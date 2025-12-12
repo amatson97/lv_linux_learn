@@ -152,6 +152,17 @@ load_custom_scripts() {
   fi
 }
 
+# Reload custom scripts (removes old custom scripts and reloads from JSON)
+reload_custom_scripts() {
+  # Remove all entries after index 41 (the last uninstaller)
+  # This removes the separator and all custom scripts
+  SCRIPTS=("${SCRIPTS[@]:0:42}")
+  DESCRIPTIONS=("${DESCRIPTIONS[@]:0:42}")
+  
+  # Reload custom scripts
+  load_custom_scripts
+}
+
 # Initialize: load custom scripts
 load_custom_scripts
 
@@ -253,8 +264,8 @@ show_menu() {
         continue
       fi
     elif [ "$category" = "custom" ]; then
-      # Only show custom scripts (after separator at index 33)
-      if [ "$i" -le 32 ]; then
+      # Only show custom scripts (after separator at index 42)
+      if [ "$i" -le 42 ]; then
         continue
       fi
     fi
@@ -315,7 +326,11 @@ show_menu() {
   echo
   echo "  ────────────────────────────────────────────────────────────────────────────"
   if [ -n "$category" ]; then
-    echo "   b) Back to Main Menu    s) Search    0) Exit"
+    if [ "$category" = "custom" ]; then
+      echo "   e) Edit Script    d) Delete Script    b) Back    s) Search    0) Exit"
+    else
+      echo "   b) Back to Main Menu    s) Search    0) Exit"
+    fi
   else
     echo "   a) Add Custom Script    h) Help/About    s) Search    0) Exit"
   fi
@@ -466,8 +481,224 @@ add_custom_script() {
      }]' "$CUSTOM_SCRIPTS_JSON" > "$temp_json" && mv "$temp_json" "$CUSTOM_SCRIPTS_JSON"
   
   green_echo "[+] Custom script added successfully!"
-  green_echo "[*] Restart menu.sh to see your new script"
-  read -rp "Press Enter to continue..."
+  green_echo "[*] Reloading custom scripts..."
+  reload_custom_scripts
+  sleep 1
+}
+
+edit_custom_script() {
+  clear
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                         Edit Custom Script                                     ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  # Check if jq is installed
+  if ! command -v jq &> /dev/null; then
+    green_echo "[!] Error: 'jq' is required for custom script management."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  # Check if custom scripts exist
+  if [ ! -f "$CUSTOM_SCRIPTS_JSON" ]; then
+    green_echo "[!] No custom scripts found."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  local script_count
+  script_count=$(jq '.scripts | length' "$CUSTOM_SCRIPTS_JSON")
+  
+  if [ "$script_count" -eq 0 ]; then
+    green_echo "[!] No custom scripts to edit."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  # List custom scripts
+  green_echo "Custom Scripts:"
+  echo
+  jq -r '.scripts[] | "\(.name) - \(.category)"' "$CUSTOM_SCRIPTS_JSON" | nl -w2 -s') '
+  echo
+  
+  read -rp "Enter script number to edit (or 'cancel'): " script_num
+  
+  if [[ "$script_num" == "cancel" || "$script_num" == "back" ]]; then
+    return 0
+  fi
+  
+  if ! [[ "$script_num" =~ ^[0-9]+$ ]] || [ "$script_num" -lt 1 ] || [ "$script_num" -gt "$script_count" ]; then
+    green_echo "[!] Invalid script number"
+    sleep 2
+    return 1
+  fi
+  
+  # Get script details (jq arrays are 0-indexed)
+  local idx=$((script_num - 1))
+  local script_id
+  script_id=$(jq -r ".scripts[$idx].id" "$CUSTOM_SCRIPTS_JSON")
+  
+  green_echo "[*] Editing: $(jq -r ".scripts[$idx].name" "$CUSTOM_SCRIPTS_JSON")"
+  green_echo "Type 'cancel' or 'back' at any prompt to exit"
+  green_echo "Press Enter to keep current value"
+  echo
+  
+  # Get new values or keep existing
+  local current_name current_category current_path current_desc current_sudo
+  current_name=$(jq -r ".scripts[$idx].name" "$CUSTOM_SCRIPTS_JSON")
+  current_category=$(jq -r ".scripts[$idx].category" "$CUSTOM_SCRIPTS_JSON")
+  current_path=$(jq -r ".scripts[$idx].script_path" "$CUSTOM_SCRIPTS_JSON")
+  current_desc=$(jq -r ".scripts[$idx].description" "$CUSTOM_SCRIPTS_JSON")
+  current_sudo=$(jq -r ".scripts[$idx].requires_sudo" "$CUSTOM_SCRIPTS_JSON")
+  
+  read -rp "Script Name [$current_name]: " new_name
+  if [[ "$new_name" == "cancel" || "$new_name" == "back" ]]; then return 0; fi
+  [ -z "$new_name" ] && new_name="$current_name"
+  
+  read -rp "Script Path [$current_path]: " new_path
+  if [[ "$new_path" == "cancel" || "$new_path" == "back" ]]; then return 0; fi
+  [ -z "$new_path" ] && new_path="$current_path"
+  
+  # Validate new path if changed
+  if [ "$new_path" != "$current_path" ] && [ ! -f "$new_path" ]; then
+    green_echo "[!] Warning: Script file not found: $new_path"
+    read -rp "Continue anyway? [y/N]: " continue_edit
+    if [[ ! "${continue_edit,,}" == "y" ]]; then
+      return 1
+    fi
+  fi
+  
+  echo
+  echo "Category: 1) install  2) tools  3) exercises  4) uninstall"
+  read -rp "Category [$current_category]: " new_category_num
+  if [[ "$new_category_num" == "cancel" || "$new_category_num" == "back" ]]; then return 0; fi
+  
+  local new_category="$current_category"
+  if [ -n "$new_category_num" ]; then
+    case "$new_category_num" in
+      1) new_category="install" ;;
+      2) new_category="tools" ;;
+      3) new_category="exercises" ;;
+      4) new_category="uninstall" ;;
+      *) green_echo "[!] Invalid category, keeping current"; new_category="$current_category" ;;
+    esac
+  fi
+  
+  read -rp "Description [$current_desc]: " new_desc
+  if [[ "$new_desc" == "cancel" || "$new_desc" == "back" ]]; then return 0; fi
+  [ -z "$new_desc" ] && new_desc="$current_desc"
+  
+  read -rp "Requires sudo? [y/N] (current: $current_sudo): " new_sudo_input
+  if [[ "$new_sudo_input" == "cancel" || "$new_sudo_input" == "back" ]]; then return 0; fi
+  
+  local new_sudo="$current_sudo"
+  if [ -n "$new_sudo_input" ]; then
+    if [[ "$new_sudo_input" =~ ^[Yy] ]]; then
+      new_sudo="true"
+    else
+      new_sudo="false"
+    fi
+  fi
+  
+  # Update the script in JSON
+  local temp_json
+  temp_json=$(mktemp)
+  jq --arg id "$script_id" \
+     --arg name "$new_name" \
+     --arg category "$new_category" \
+     --arg path "$new_path" \
+     --arg desc "$new_desc" \
+     --argjson sudo "$new_sudo" \
+     '(.scripts[] | select(.id == $id)) |= {
+       id: $id,
+       name: $name,
+       category: $category,
+       script_path: $path,
+       description: $desc,
+       requires_sudo: $sudo,
+       created_date: .created_date,
+       is_custom: true
+     }' "$CUSTOM_SCRIPTS_JSON" > "$temp_json" && mv "$temp_json" "$CUSTOM_SCRIPTS_JSON"
+  
+  green_echo "[+] Custom script updated successfully!"
+  green_echo "[*] Reloading custom scripts..."
+  reload_custom_scripts
+  sleep 1
+}
+
+delete_custom_script() {
+  clear
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                         Delete Custom Script                                   ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  # Check if jq is installed
+  if ! command -v jq &> /dev/null; then
+    green_echo "[!] Error: 'jq' is required for custom script management."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  # Check if custom scripts exist
+  if [ ! -f "$CUSTOM_SCRIPTS_JSON" ]; then
+    green_echo "[!] No custom scripts found."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  local script_count
+  script_count=$(jq '.scripts | length' "$CUSTOM_SCRIPTS_JSON")
+  
+  if [ "$script_count" -eq 0 ]; then
+    green_echo "[!] No custom scripts to delete."
+    read -rp "Press Enter to continue..."
+    return 1
+  fi
+  
+  # List custom scripts
+  green_echo "Custom Scripts:"
+  echo
+  jq -r '.scripts[] | "\(.name) - \(.category) - \(.script_path)"' "$CUSTOM_SCRIPTS_JSON" | nl -w2 -s') '
+  echo
+  
+  read -rp "Enter script number to delete (or 'cancel'): " script_num
+  
+  if [[ "$script_num" == "cancel" || "$script_num" == "back" ]]; then
+    return 0
+  fi
+  
+  if ! [[ "$script_num" =~ ^[0-9]+$ ]] || [ "$script_num" -lt 1 ] || [ "$script_num" -gt "$script_count" ]; then
+    green_echo "[!] Invalid script number"
+    sleep 2
+    return 1
+  fi
+  
+  # Get script details for confirmation
+  local idx=$((script_num - 1))
+  local script_name
+  script_name=$(jq -r ".scripts[$idx].name" "$CUSTOM_SCRIPTS_JSON")
+  
+  echo
+  green_echo "[!] WARNING: This will permanently delete: $script_name"
+  read -rp "Are you sure? [y/N]: " confirm
+  
+  if [[ ! "${confirm,,}" == "y" ]]; then
+    green_echo "[*] Deletion cancelled"
+    sleep 1
+    return 0
+  fi
+  
+  # Delete the script from JSON
+  local temp_json
+  temp_json=$(mktemp)
+  jq "del(.scripts[$idx])" "$CUSTOM_SCRIPTS_JSON" > "$temp_json" && mv "$temp_json" "$CUSTOM_SCRIPTS_JSON"
+  
+  green_echo "[+] Custom script deleted successfully!"
+  green_echo "[*] Reloading custom scripts..."
+  reload_custom_scripts
+  sleep 1
 }
 
 show_help() {
@@ -618,6 +849,24 @@ while true; do
       ;;
     s|S)
       search_scripts
+      continue
+      ;;
+    e|E)
+      if [ "$CURRENT_CATEGORY" = "custom" ]; then
+        edit_custom_script
+      else
+        green_echo "[!] Invalid choice in this menu"
+        sleep 1
+      fi
+      continue
+      ;;
+    d|D)
+      if [ "$CURRENT_CATEGORY" = "custom" ]; then
+        delete_custom_script
+      else
+        green_echo "[!] Invalid choice in this menu"
+        sleep 1
+      fi
       continue
       ;;
   esac
