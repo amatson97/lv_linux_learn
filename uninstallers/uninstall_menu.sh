@@ -18,7 +18,7 @@ UNINSTALL_SCRIPTS=(
   "uninstallers/uninstall_flatpak.sh"
   "uninstallers/uninstall_wine.sh"
   "uninstallers/uninstall_nextcloud.sh"
-  "scripts/remove_all_vpn.sh"
+  "uninstallers/remove_all_vpn.sh"
   "uninstallers/uninstall_all_vpn.sh"
   "uninstallers/clean_desktop_launchers.sh"
 )

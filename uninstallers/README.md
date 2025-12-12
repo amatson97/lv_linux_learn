@@ -7,7 +7,7 @@ This directory contains removal scripts for all tools installed by lv_linux_lear
 ### Interactive Menu
 Run the uninstaller menu for a guided experience:
 ```bash
-./uninstall_menu.sh
+./uninstallers/uninstall_menu.sh
 ```
 
 ### Individual Uninstallers
