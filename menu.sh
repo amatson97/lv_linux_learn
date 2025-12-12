@@ -54,7 +54,17 @@ SCRIPTS=(
   "bash_exercises/count_lines.sh"
   ""  # Separator
   # Uninstall Options
-  "uninstallers/uninstall_menu.sh"
+  "uninstallers/uninstall_zerotier.sh"
+  "uninstallers/uninstall_chrome.sh"
+  "uninstallers/uninstall_docker.sh"
+  "uninstallers/uninstall_flatpak.sh"
+  "uninstallers/uninstall_sublime.sh"
+  "uninstallers/uninstall_vscode.sh"
+  "uninstallers/uninstall_wine.sh"
+  "uninstallers/uninstall_nextcloud.sh"
+  "uninstallers/uninstall_nordvpn.sh"
+  "uninstallers/uninstall_all_vpn.sh"
+  "uninstallers/clean_desktop_launchers.sh"
 )
 
 DESCRIPTIONS=(
@@ -91,9 +101,19 @@ DESCRIPTIONS=(
   "Performs all basic math (+, -, ×, ÷) with input validation and error handling"
   "Searches files with grep, shows match count, lists available files first"
   "Counts lines/words/characters/bytes, demonstrates all wc command options"
-  "── System Management ──"
+  "── Uninstall ──"
   # Uninstall Options
-  "⚠️  Uninstall tools - Remove installed applications and clean configurations."
+  "Remove ZeroTier VPN (leaves networks first, removes service and configuration)"
+  "Remove Google Chrome (optional: remove user data and configuration)"
+  "⚠️  Remove Docker (warns about data loss, removes engine, CLI, and containers)"
+  "Remove Flatpak (optional: remove installed apps and Flathub repository)"
+  "Remove Sublime Text and Sublime Merge (optional: remove configuration)"
+  "Remove Visual Studio Code (optional: remove extensions and configuration)"
+  "Remove Wine and Winetricks (optional: remove Wine prefix and installed apps)"
+  "Remove Nextcloud Desktop Client (optional: remove sync configuration)"
+  "Remove NordVPN (disconnects, removes service, and group membership)"
+  "⚠️  Remove ALL VPN tools at once (ZeroTier, NordVPN, Hamachi)"
+  "Clean desktop launchers only (removes .lv_connect scripts and desktop icons)"
 )
 
 # Load custom scripts from JSON and append to arrays
@@ -150,7 +170,7 @@ show_main_menu() {
   install_count=9
   tools_count=11
   exercises_count=8
-  uninstall_count=1
+  uninstall_count=11
   custom_count=$(jq '.scripts | length' "$CUSTOM_SCRIPTS_JSON" 2>/dev/null || echo "0")
   
   echo "  Select a category:"
@@ -164,7 +184,7 @@ show_main_menu() {
   printf "   \033[1;32m3)\033[0m 📚 Bash Exercises          (%d exercises)\n" "$exercises_count"
   echo "      Learn bash scripting with interactive examples"
   echo
-  printf "   \033[1;32m4)\033[0m ⚠️  Uninstall               (%d option)\n" "$uninstall_count"
+  printf "   \033[1;32m4)\033[0m ⚠️  Uninstall               (%d scripts)\n" "$uninstall_count"
   echo "      Remove installed applications and clean configurations"
   echo
   if [ "$custom_count" -gt 0 ]; then
@@ -218,11 +238,11 @@ show_menu() {
       start_idx=22; end_idx=29
       ;;
     uninstall)
-      start_idx=31; end_idx=31
+      start_idx=31; end_idx=41
       ;;
     custom)
       # Show only custom scripts
-      start_idx=33; end_idx=100
+      start_idx=43; end_idx=100
       ;;
   esac
   
