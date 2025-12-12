@@ -48,8 +48,29 @@ remove_package() {
 
 green_echo "[*] Uninstalling Sublime Text..."
 
-# Check if Sublime Text is installed
+# Check if Sublime Text or Sublime Merge is installed
+sublime_text_installed=0
+sublime_merge_installed=0
+
+# Quick check for Sublime Text
 if command -v subl &>/dev/null || dpkg -l sublime-text 2>/dev/null | grep -q "^ii"; then
+  sublime_text_installed=1
+fi
+
+# Quick check for Sublime Merge
+if command -v smerge &>/dev/null || dpkg -l sublime-merge 2>/dev/null | grep -q "^ii"; then
+  sublime_merge_installed=1
+fi
+
+# Exit early if nothing is installed
+if [ "$sublime_text_installed" -eq 0 ] && [ "$sublime_merge_installed" -eq 0 ]; then
+  green_echo "[!] Neither Sublime Text nor Sublime Merge is installed."
+  green_echo "[*] Nothing to uninstall."
+  exit 0
+fi
+
+# Check if Sublime Text is installed
+if [ "$sublime_text_installed" -eq 1 ]; then
   remove_package "sublime-text"
   
   # Remove repository
@@ -90,8 +111,12 @@ fi
 
 green_echo "[*] Uninstalling Sublime Merge..."
 
-# Enhanced detection - check all possible locations
-merge_found=0
+# Skip if not installed (already checked at the start)
+if [ "$sublime_merge_installed" -eq 0 ]; then
+  green_echo "[!] Sublime Merge is not installed."
+else
+  # Enhanced detection - check all possible locations
+  merge_found=0
 
 # Check for smerge binary
 if command -v smerge &>/dev/null; then
@@ -208,8 +233,6 @@ if [ "$merge_found" -eq 1 ]; then
   fi
   
   green_echo "[+] Sublime Merge removal complete"
-else
-  green_echo "[!] Sublime Merge is not installed."
 fi
 
 # Update package list
