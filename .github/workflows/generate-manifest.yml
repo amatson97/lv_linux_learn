@@ -1,0 +1,47 @@
+name: Generate Manifest
+
+on:
+  push:
+    paths:
+      - 'scripts/**'
+      - 'tools/**'
+      - 'bash_exercises/**'
+      - 'uninstallers/**'
+      - 'scripts/generate_manifest.sh'
+  workflow_dispatch:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Generate manifest.json
+        run: |
+          chmod +x scripts/generate_manifest.sh
+          ./scripts/generate_manifest.sh
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet manifest.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push manifest
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add manifest.json
+          git commit -m "Auto-update manifest.json [skip ci]"
+          git push

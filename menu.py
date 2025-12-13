@@ -33,6 +33,14 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 
+# Import repository management
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
+try:
+    from lib.repository import ScriptRepository
+except ImportError:
+    print("Warning: Repository module not available")
+    ScriptRepository = None
+
 try:
     # optional nicer icons / pixbuf usage if available
     from gi.repository import GdkPixbuf
@@ -759,6 +767,21 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Initialize custom script manager
         self.custom_manager = CustomScriptManager()
+        
+        # Initialize repository system
+        self.repository = None
+        self.repo_enabled = False
+        if ScriptRepository:
+            try:
+                self.repository = ScriptRepository()
+                self.repo_config = self.repository.load_config()
+                self.repo_enabled = self.repo_config.get('use_remote_scripts', True)
+                
+                # Check for updates in background if enabled
+                if self.repo_enabled and self.repo_config.get('auto_check_updates', True):
+                    GLib.idle_add(self._check_updates_background)
+            except Exception as e:
+                print(f"Warning: Failed to initialize repository: {e}")
 
         # HeaderBar + integrated search (keeps GNOME decoration/behavior consistent)
         hb = Gtk.HeaderBar()
@@ -802,6 +825,12 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         uninstall_box = self._create_script_tab(UNINSTALL_SCRIPTS, UNINSTALL_DESCRIPTIONS, "uninstall")
         uninstall_tab_label = self._create_tab_label("⚠️ Uninstall", "uninstall")
         self.notebook.append_page(uninstall_box, uninstall_tab_label)
+        
+        # Create Repository tab (if enabled)
+        if self.repo_enabled:
+            repository_box = self._create_repository_tab()
+            repository_label = Gtk.Label(label="📥 Repository")
+            self.notebook.append_page(repository_box, repository_label)
 
         # Create About tab
         help_box = self._create_help_tab()
@@ -1320,6 +1349,324 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         dialog.destroy()
         if response == Gtk.ResponseType.YES:
             self.install_packages_in_terminal(missing_optional, required=False)
+
+    # ========================================================================
+    # Repository Management Methods
+    # ========================================================================
+    
+    def _create_repository_tab(self):
+        """Create the repository management tab"""
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        vbox.set_margin_start(10)
+        vbox.set_margin_end(10)
+        vbox.set_margin_top(10)
+        vbox.set_margin_bottom(10)
+        
+        # Header with status
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.repo_status_label = Gtk.Label()
+        self._update_repo_status()
+        header_box.pack_start(self.repo_status_label, False, False, 0)
+        
+        # Control buttons
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        
+        update_all_btn = Gtk.Button(label="Update All Scripts")
+        update_all_btn.connect("clicked", self._on_update_all_scripts)
+        button_box.pack_start(update_all_btn, False, False, 0)
+        
+        check_updates_btn = Gtk.Button(label="Check Updates")
+        check_updates_btn.connect("clicked", self._on_check_updates)
+        button_box.pack_start(check_updates_btn, False, False, 0)
+        
+        download_all_btn = Gtk.Button(label="Download All")
+        download_all_btn.connect("clicked", self._on_download_all)
+        button_box.pack_start(download_all_btn, False, False, 0)
+        
+        clear_cache_btn = Gtk.Button(label="Clear Cache")
+        clear_cache_btn.connect("clicked", self._on_clear_cache)
+        button_box.pack_start(clear_cache_btn, False, False, 0)
+        
+        settings_btn = Gtk.Button(label="Settings")
+        settings_btn.connect("clicked", self._on_repo_settings)
+        button_box.pack_end(settings_btn, False, False, 0)
+        
+        header_box.pack_end(button_box, False, False, 0)
+        
+        vbox.pack_start(header_box, False, False, 0)
+        
+        # Scripts list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        
+        self.repo_store = Gtk.ListStore(str, str, str, str, str)  # id, name, version, status, category
+        self.repo_tree = Gtk.TreeView(model=self.repo_store)
+        
+        # Columns
+        name_renderer = Gtk.CellRendererText()
+        name_column = Gtk.TreeViewColumn("Script Name", name_renderer, text=1)
+        name_column.set_resizable(True)
+        name_column.set_min_width(200)
+        self.repo_tree.append_column(name_column)
+        
+        cat_renderer = Gtk.CellRendererText()
+        cat_column = Gtk.TreeViewColumn("Category", cat_renderer, text=4)
+        cat_column.set_resizable(True)
+        self.repo_tree.append_column(cat_column)
+        
+        ver_renderer = Gtk.CellRendererText()
+        ver_column = Gtk.TreeViewColumn("Version", ver_renderer, text=2)
+        self.repo_tree.append_column(ver_column)
+        
+        status_renderer = Gtk.CellRendererText()
+        status_column = Gtk.TreeViewColumn("Status", status_renderer, text=3)
+        self.repo_tree.append_column(status_column)
+        
+        scrolled.add(self.repo_tree)
+        vbox.pack_start(scrolled, True, True, 0)
+        
+        # Populate tree
+        self._populate_repository_tree()
+        
+        return vbox
+    
+    def _update_repo_status(self):
+        """Update repository status label"""
+        if not self.repository:
+            return
+        
+        try:
+            total = len(self.repository.parse_manifest())
+            cached = self.repository.count_cached_scripts()
+            updates = len(self.repository.list_available_updates())
+            
+            status_text = f"<b>Repository Status:</b>  Total: {total}  |  Cached: {cached}  |  Updates: {updates}"
+            self.repo_status_label.set_markup(status_text)
+        except Exception as e:
+            self.repo_status_label.set_markup(f"<b>Status:</b> Error - {e}")
+    
+    def _populate_repository_tree(self):
+        """Populate repository tree view"""
+        if not self.repository:
+            return
+        
+        self.repo_store.clear()
+        
+        try:
+            scripts = self.repository.parse_manifest()
+            
+            for script in scripts:
+                script_id = script.get('id')
+                name = script.get('name')
+                version = script.get('version')
+                category = script.get('category')
+                
+                # Determine status
+                status = self.repository.get_script_status(script.get('file_name'))
+                
+                status_text = {
+                    'cached': '✓ Up to date',
+                    'outdated': '📥 Update available',
+                    'not_installed': '☁️ Not installed'
+                }.get(status, 'Unknown')
+                
+                self.repo_store.append([script_id, name, version, status_text, category])
+                
+        except Exception as e:
+            print(f"Error populating repository tree: {e}")
+    
+    def _check_updates_background(self):
+        """Check for updates in background"""
+        if not self.repository or not self.repo_enabled:
+            return False
+        
+        if self.repository.is_update_check_needed():
+            try:
+                update_count = self.repository.check_for_updates()
+                if update_count > 0:
+                    self._update_repo_status()
+                    if hasattr(self, 'repo_tree'):
+                        self._populate_repository_tree()
+            except Exception as e:
+                print(f"Background update check failed: {e}")
+        
+        return False
+    
+    def _on_update_all_scripts(self, button):
+        """Update all cached scripts"""
+        if not self.repository:
+            return
+        
+        self.terminal.feed_child(b"clear\n")
+        self.terminal.feed_child(b"echo 'Updating all cached scripts...'\n")
+        
+        try:
+            updated, failed = self.repository.update_all_scripts()
+            self.terminal.feed_child(f"echo 'Update complete: {updated} updated, {failed} failed'\n".encode())
+            
+            # Refresh display
+            self._update_repo_status()
+            self._populate_repository_tree()
+            
+        except Exception as e:
+            self.terminal.feed_child(f"echo 'Error: {e}'\n".encode())
+    
+    def _on_check_updates(self, button):
+        """Manually check for updates"""
+        if not self.repository:
+            return
+        
+        self.terminal.feed_child(b"clear\n")
+        self.terminal.feed_child(b"echo 'Checking for updates...'\n")
+        
+        try:
+            update_count = self.repository.check_for_updates()
+            self.terminal.feed_child(f"echo 'Found {update_count} updates available'\n".encode())
+            
+            # Refresh display
+            self._update_repo_status()
+            self._populate_repository_tree()
+            
+        except Exception as e:
+            self.terminal.feed_child(f"echo 'Error: {e}'\n".encode())
+    
+    def _on_download_all(self, button):
+        """Download all scripts from repository"""
+        if not self.repository:
+            return
+        
+        # Confirmation dialog
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Download All Scripts"
+        )
+        
+        total = len(self.repository.parse_manifest())
+        dialog.format_secondary_text(
+            f"This will download all {total} scripts from the repository.\\n\\n"
+            "This may take a few minutes. Continue?"
+        )
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response != Gtk.ResponseType.YES:
+            return
+        
+        self.terminal.feed_child(b"clear\n")
+        self.terminal.feed_child(f"echo 'Downloading all {total} scripts...'\n".encode())
+        
+        try:
+            downloaded, failed = self.repository.download_all_scripts()
+            self.terminal.feed_child(f"echo 'Download complete: {downloaded} downloaded, {failed} failed'\n".encode())
+            
+            # Refresh display
+            self._update_repo_status()
+            self._populate_repository_tree()
+            
+        except Exception as e:
+            self.terminal.feed_child(f"echo 'Error: {e}'\n".encode())
+    
+    def _on_clear_cache(self, button):
+        """Clear script cache"""
+        if not self.repository:
+            return
+        
+        # Confirmation dialog
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Clear Script Cache"
+        )
+        
+        dialog.format_secondary_text(
+            "This will remove all cached scripts.\\n\\n"
+            "You will need to download them again. Continue?"
+        )
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response != Gtk.ResponseType.YES:
+            return
+        
+        try:
+            self.repository.clear_cache()
+            self.terminal.feed_child(b"clear\n")
+            self.terminal.feed_child(b"echo 'Cache cleared successfully'\n")
+            
+            # Refresh display
+            self._update_repo_status()
+            self._populate_repository_tree()
+            
+        except Exception as e:
+            self.terminal.feed_child(f"echo 'Error: {e}'\n".encode())
+    
+    def _on_repo_settings(self, button):
+        """Show repository settings dialog"""
+        if not self.repository:
+            return
+        
+        dialog = Gtk.Dialog(
+            title="Repository Settings",
+            parent=self,
+            flags=0
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OK, Gtk.ResponseType.OK
+        )
+        
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_start(10)
+        content.set_margin_end(10)
+        content.set_margin_top(10)
+        content.set_margin_bottom(10)
+        
+        # Settings widgets
+        use_remote = Gtk.CheckButton(label="Use remote scripts")
+        use_remote.set_active(self.repo_config.get('use_remote_scripts', True))
+        content.pack_start(use_remote, False, False, 0)
+        
+        auto_check = Gtk.CheckButton(label="Auto-check for updates")
+        auto_check.set_active(self.repo_config.get('auto_check_updates', True))
+        content.pack_start(auto_check, False, False, 0)
+        
+        auto_install = Gtk.CheckButton(label="Auto-install updates")
+        auto_install.set_active(self.repo_config.get('auto_install_updates', True))
+        content.pack_start(auto_install, False, False, 0)
+        
+        interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        interval_label = Gtk.Label(label="Check interval (minutes):")
+        interval_spin = Gtk.SpinButton()
+        interval_spin.set_range(1, 1440)
+        interval_spin.set_increments(1, 10)
+        interval_spin.set_value(self.repo_config.get('update_check_interval_minutes', 30))
+        interval_box.pack_start(interval_label, False, False, 0)
+        interval_box.pack_start(interval_spin, False, False, 0)
+        content.pack_start(interval_box, False, False, 0)
+        
+        dialog.show_all()
+        
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            # Save settings
+            self.repo_config['use_remote_scripts'] = use_remote.get_active()
+            self.repo_config['auto_check_updates'] = auto_check.get_active()
+            self.repo_config['auto_install_updates'] = auto_install.get_active()
+            self.repo_config['update_check_interval_minutes'] = int(interval_spin.get_value())
+            self.repository.save_config(self.repo_config)
+            
+            self.terminal.feed_child(b"echo 'Repository settings saved'\n")
+        
+        dialog.destroy()
 
     def install_packages_in_terminal(self, pkgs, required=True):
         """Install packages by running commands in the embedded terminal"""

@@ -11,9 +11,19 @@ else
   green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
 fi
 
+# Repository system
+if [ -f "$script_dir/includes/repository.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$script_dir/includes/repository.sh"
+fi
+
 # Custom scripts configuration
 CUSTOM_SCRIPTS_DIR="$HOME/.lv_linux_learn"
 CUSTOM_SCRIPTS_JSON="$CUSTOM_SCRIPTS_DIR/custom_scripts.json"
+
+# Repository system variables
+REPO_ENABLED=false
+REPO_UPDATES_AVAILABLE=0
 
 # Search filter
 SEARCH_FILTER=""
@@ -166,6 +176,16 @@ reload_custom_scripts() {
 # Initialize: load custom scripts
 load_custom_scripts
 
+# Initialize repository system
+if type -t init_repo_config &>/dev/null; then
+  init_repo_config
+  REPO_ENABLED=true
+  # Check for updates on startup if auto-check is enabled
+  if [ "$(get_config_value 'auto_check_updates' 'true')" = "true" ]; then
+    check_for_updates &>/dev/null || true
+  fi
+fi
+
 # Current menu state
 CURRENT_CATEGORY=""
 
@@ -203,8 +223,20 @@ show_main_menu() {
     echo "      Your personally added scripts"
     echo
   fi
+  
+  # Show repository option if enabled
+  if [ "$REPO_ENABLED" = true ]; then
+    local repo_status="enabled"
+    if [ "$REPO_UPDATES_AVAILABLE" -gt 0 ]; then
+      repo_status="$REPO_UPDATES_AVAILABLE updates available"
+    fi
+    printf "   \033[1;32m6)\033[0m 📦 Script Repository       (%s)\n" "$repo_status"
+    echo "      Download and update scripts from remote repository"
+    echo
+  fi
+  
   echo "  ────────────────────────────────────────────────────────────────────────────"
-  echo "   a) Add Custom Script    h) Help/About    s) Search All    0) Exit"
+  echo "   a) Add Custom Script    h) Help/About    s) Search All    u) Check Updates    0) Exit"
   echo
 }
 
@@ -701,6 +733,177 @@ delete_custom_script() {
   sleep 1
 }
 
+show_repository_menu() {
+  if [ "$REPO_ENABLED" != true ]; then
+    green_echo "[!] Repository system not available"
+    sleep 2
+    return 1
+  fi
+  
+  while true; do
+    clear
+    echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                       Script Repository Manager                                ║"
+    echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+    echo
+    
+    local total_scripts=$(jq -r '.scripts | length' "$MANIFEST_FILE" 2>/dev/null || echo "0")
+    local cached_count=$(count_cached_scripts)
+    local updates="$REPO_UPDATES_AVAILABLE"
+    
+    echo "  Repository Status:"
+    echo "  • Available scripts: $total_scripts"
+    echo "  • Cached locally:    $cached_count"
+    echo "  • Updates available: $updates"
+    echo
+    echo "  Options:"
+    printf "   \033[1;32m1)\033[0m Update All Scripts         ($updates updates)\n"
+    echo "   2) Download All Scripts        (bulk download)"
+    echo "   3) View Cached Scripts         (list local cache)"
+    echo "   4) Clear Script Cache          (remove all cached)"
+    echo "   5) Check for Updates           (manual refresh)"
+    echo "   6) Repository Settings"
+    echo
+    echo "  ──────────────────────────────────────────────────────────────────────────────"
+    echo "   b) Back to Main Menu    0) Exit"
+    echo
+    
+    read -rp "Enter your choice: " repo_choice
+    
+    case "$repo_choice" in
+      1)
+        update_all_scripts
+        read -rp "Press Enter to continue..."
+        ;;
+      2)
+        green_echo "[*] This will download all $total_scripts scripts from the repository."
+        read -rp "Continue? [y/N]: " confirm
+        if [[ "${confirm,,}" == "y" ]]; then
+          download_all_scripts
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      3)
+        clear
+        list_cached_scripts
+        read -rp "Press Enter to continue..."
+        ;;
+      4)
+        clear_script_cache
+        read -rp "Press Enter to continue..."
+        ;;
+      5)
+        green_echo "[*] Checking for updates..."
+        check_for_updates
+        green_echo "[+] Update check complete. $REPO_UPDATES_AVAILABLE updates available."
+        read -rp "Press Enter to continue..."
+        ;;
+      6)
+        show_repo_settings
+        ;;
+      b|B)
+        return 0
+        ;;
+      0)
+        green_echo "Exiting. Goodbye!"
+        exit 0
+        ;;
+      *)
+        green_echo "[!] Invalid choice"
+        sleep 1
+        ;;
+    esac
+  done
+}
+
+show_repo_settings() {
+  while true; do
+    clear
+    echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                       Repository Settings                                      ║"
+    echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+    echo
+    
+    local use_remote=$(get_config_value "use_remote_scripts" "true")
+    local auto_check=$(get_config_value "auto_check_updates" "true")
+    local auto_install=$(get_config_value "auto_install_updates" "true")
+    local interval=$(get_config_value "update_check_interval_minutes" "30")
+    
+    echo "  Current Settings:"
+    echo "  1) Use Remote Scripts:      $use_remote"
+    echo "  2) Auto-check Updates:      $auto_check"
+    echo "  3) Auto-install Updates:    $auto_install"
+    echo "  4) Check Interval:          $interval minutes"
+    echo
+    echo "  Options:"
+    echo "  r) Toggle remote scripts"
+    echo "  c) Toggle auto-check"
+    echo "  i) Toggle auto-install"
+    echo "  t) Change interval"
+    echo "  d) Reset to defaults"
+    echo "  b) Back"
+    echo
+    
+    read -rp "Enter your choice: " settings_choice
+    
+    case "$settings_choice" in
+      r|R)
+        if [ "$use_remote" = "true" ]; then
+          set_config_value "use_remote_scripts" "false"
+          green_echo "[*] Remote scripts disabled"
+        else
+          set_config_value "use_remote_scripts" "true"
+          green_echo "[*] Remote scripts enabled"
+        fi
+        sleep 1
+        ;;
+      c|C)
+        if [ "$auto_check" = "true" ]; then
+          set_config_value "auto_check_updates" "false"
+          green_echo "[*] Auto-check disabled"
+        else
+          set_config_value "auto_check_updates" "true"
+          green_echo "[*] Auto-check enabled"
+        fi
+        sleep 1
+        ;;
+      i|I)
+        if [ "$auto_install" = "true" ]; then
+          set_config_value "auto_install_updates" "false"
+          green_echo "[*] Auto-install disabled"
+        else
+          set_config_value "auto_install_updates" "true"
+          green_echo "[*] Auto-install enabled"
+        fi
+        sleep 1
+        ;;
+      t|T)
+        read -rp "Enter interval in minutes [30]: " new_interval
+        if [[ "$new_interval" =~ ^[0-9]+$ ]]; then
+          set_config_value "update_check_interval_minutes" "$new_interval"
+          green_echo "[*] Interval updated to $new_interval minutes"
+        else
+          green_echo "[!] Invalid number"
+        fi
+        sleep 1
+        ;;
+      d|D)
+        green_echo "[*] Resetting to defaults..."
+        init_repo_config
+        green_echo "[+] Settings reset"
+        sleep 1
+        ;;
+      b|B)
+        return 0
+        ;;
+      *)
+        green_echo "[!] Invalid choice"
+        sleep 1
+        ;;
+    esac
+  done
+}
+
 show_help() {
   clear
   echo "╔════════════════════════════════════════════════════════════════════════════════╗"
@@ -847,6 +1050,18 @@ while true; do
       fi
       continue
       ;;
+    u|U)
+      if [ -z "$CURRENT_CATEGORY" ] && [ "$REPO_ENABLED" = true ]; then
+        green_echo "[*] Checking for updates..."
+        check_for_updates
+        green_echo "[+] Update check complete. $REPO_UPDATES_AVAILABLE updates available."
+        sleep 2
+      else
+        green_echo "[!] Invalid choice in this menu"
+        sleep 1
+      fi
+      continue
+      ;;
     s|S)
       search_scripts
       continue
@@ -892,6 +1107,15 @@ while true; do
         ;;
       5)
         CURRENT_CATEGORY="custom"
+        continue
+        ;;
+      6)
+        if [ "$REPO_ENABLED" = true ]; then
+          show_repository_menu
+        else
+          green_echo "[!] Invalid choice"
+          sleep 1
+        fi
         continue
         ;;
       *)
