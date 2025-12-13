@@ -1,8 +1,8 @@
 #!/bin/bash
-# Install ZeroTier VPN and join Linux Learn Network
-# Description: Installs ZeroTier and joins the Linux Learn Network.
+# Install ZeroTier VPN and join configured network
+# Description: Installs ZeroTier and joins a user-configured network.
 #              Removes conflicting VPNs (NordVPN, LogMeIn Hamachi) if present.
-# Network URL: https://my.zerotier.com/network/8bd5124fd60a971f
+#              Network ID must be provided via ZEROTIER_NETWORK_ID environment variable.
 
 set -euo pipefail
 
