@@ -250,8 +250,8 @@ To add your VM to the Linux learning network (facilitated by ZeroTier VPN):
 
 **What this script does:**
 1. Installs ZeroTier One client
-2. Joins the Linux Learn Network (network ID embedded)
-3. Removes conflicting VPN clients (NordVPN, Hamachi)
+2. Joins a user-configured network (via ZEROTIER_NETWORK_ID env var)
+3. Removes conflicting VPN clients if present (NordVPN, Hamachi - legacy)
 
 After installation, enable remote desktop in: **Settings > System > Remote Desktop**
 

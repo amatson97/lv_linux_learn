@@ -196,48 +196,8 @@ install_nord() {
   green_echo "    Remember to enable GNOME Remote Desktop (Settings → System → Remote Desktop)."
 }
 
-install_hamachi(){
-  DESKTOP_LAUNCHER="$HOME/Desktop/ShowHamachiInfo.desktop"
-  set -e
-
-  # Ensure the system is up-to-date
-  green_echo "[*] Updating..."
-  sudo apt update
-
-  # Download the latest Hamachi .deb package from the official site
-  green_echo "[*] Downloading hamachi installer..."
-  wget -O logmein-hamachi.deb "https://vpn.net/installers/logmein-hamachi_2.1.0.203-1_amd64.deb"
-
-  # Install the downloaded package
-  green_echo "[*] Installing hamachi..."
-  sudo dpkg -i logmein-hamachi.deb
-
-  # Log in to Hamachi
-  green_echo "[*] Logging in to hamachi..."
-  sleep 10
-  sudo hamachi login
-
-
-  # Join the specified network
-  green_echo "[*] Joining Hamach hetwork..."
-  sudo hamachi join 496-925-380
-  sleep 1
-
-  green_echo "[!] Hamachi should now be installed, logged in, and joined to network 496-925-380!"
-  green_echo "[*] Adding $USER to /var/lib/logmein-hamachi/h2-engine-override.cfg..."
-
-  cat <<EOF | sudo tee /var/lib/logmein-hamachi/h2-engine-override.cfg > /dev/null
-  Ipc.User      $USER
-  EOF
-
-  sleep 1
-
-  green_echo "[*] Restarting logmein-hamachi..."
-  sudo /etc/init.d/logmein-hamachi restart
-}
-
 create_meshnet_info_desktop_icon() {
-  mkdir $HOME/.lv_connect
+  mkdir -p "$HOME/.lv_connect"
   cat > "$HOME/.lv_connect/ShowMeshnetInfo.sh" <<'EOF'
 #!/bin/bash
 
@@ -286,59 +246,6 @@ EOF
 Name=Remote Desktop Info
 Comment=Show Meshnet hostname and Remote Desktop instructions
 Exec=$HOME/.lv_connect/ShowMeshnetInfo.sh
-Icon=network-workgroup
-Terminal=false
-Type=Application
-Categories=Network;Utility;
-EOF
-
-  chmod +x "$DESKTOP_LAUNCHER"
-  gio set "$DESKTOP_LAUNCHER" metadata::trusted true || green_echo "Note: You may need to right-click the launcher and allow launching."
-  green_echo "[+] Created desktop launcher at $DESKTOP_LAUNCHER"
-}
-
-create_hamachi_info_desktop_icon() {
-  mkdir $HOME/.lv_connect
-  cat > "$HOME/.lv_connect/ShowHamachiInfo.sh" <<'EOF'
-#!/bin/bash
-
-HAM_IP=$(ip address show dev ham0 | awk '/inet / {print $2}' | cut -d'/' -f1)
-
-enabled=$(gsettings get org.gnome.desktop.remote-desktop.rdp enable)
-if [ "$enabled" != "true" ]; then
-  zenity --info --title="Enable Remote Desktop" --text="
-GNOME Remote Desktop (RDP) is currently disabled.
-
-To enable remote assistance:
-
-1. Open Settings.
-2. Go to System → Remote Desktop.
-3. Enable 'Desktop Sharing'.
-4. Enable 'Remote Control'.
-5. Set a password.
-
-After enabling, use the hostname:$HAM_IP to connect remotely.
-"
-  exit 1
-fi
-
-HAM_IP=$(ip address show dev ham0 | awk '/inet / {print $2}' | cut -d'/' -f1)
-
-if [[ -z "$HAM_IP" ]]; then
-  zenity --error --text="Hamachi IP hostname not found. Is Hamachi running and logged in?"
-  exit 1
-fi
-
-zenity --info --title="Remote Desktop Details" --text="Connect using: $HAM_IP"
-EOF
-
-  chmod +x "$HOME/.lv_connect/ShowHamachiInfo.sh"
-
-  cat > "$DESKTOP_LAUNCHER" <<EOF
-[Desktop Entry]
-Name=Remote Desktop Info
-Comment=Show Hamchi IP and Remote Desktop instructions
-Exec=$HOME/.lv_connect/ShowHamachiInfo.sh
 Icon=network-workgroup
 Terminal=false
 Type=Application

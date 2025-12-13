@@ -4,7 +4,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 1) Big picture
 - This repository is a curated collection of Ubuntu-focused setup and utility scripts (mostly Bash) and small helper apps. Primary user flows are interactive installers and desktop helpers invoked from `./menu.sh` or `./menu.py`.
-- Key responsibilities: install packages (`apt`), configure VPN/networking tools (ZeroTier, NordVPN, Hamachi), create desktop launchers, and provide utility tools under `tools/` and `scripts/`.
+- Key responsibilities: install packages (`apt`), configure VPN/networking tools (ZeroTier, NordVPN), create desktop launchers, and provide utility tools under `tools/` and `scripts/`.
 
 2) Entry points & important paths
 - Run interactive menu: `./launcher.sh` (auto-detects GUI vs CLI), `./menu.sh` (bash CLI), or `./menu.py` (Python GUI). These are the most common developer/test entry points.
@@ -22,7 +22,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 4) Safety, secrets & sensitive state
 - There are hard-coded tokens/IDs in scripts (example: `NORDVPN_TOKEN` in `includes/main.sh`). Do NOT expose, modify, or commit secrets. If a change requires a token, prompt the repo owner or add configuration to read it from environment variables instead.
-- Network identifiers (ZeroTier network IDs, Hamachi networks) appear in scripts. Confirm with the owner before changing those values.
+- Network identifiers (ZeroTier network IDs) may appear in legacy cleanup scripts. User-configured networks are the standard approach.
 
 5) Developer workflows & testing
 - Quick local test: make scripts executable then run the menu and the target script:

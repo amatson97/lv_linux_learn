@@ -64,6 +64,6 @@ Remove all VPN technologies from your machine:
 This removes:
 - ZeroTier One
 - NordVPN
-- LogMeIn Hamachi
+- LogMeIn Hamachi (deprecated, but cleanup included for legacy systems)
 
 You can then disable remote desktop features in system settings.
