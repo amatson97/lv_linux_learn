@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests
-# Improvements: Gtk.Application integration, clipboard, Ctrl+Enter, env fallback, --cli mode.
+# sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests python3-cryptography
+# Improvements: Gtk.Application integration, clipboard, Ctrl+Enter, env fallback, --cli mode, encrypted API key storage.
 
 import sys
 import os
@@ -12,6 +12,11 @@ import shlex
 import json
 import re
 from pathlib import Path
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import getpass
 
 # Guarded import for PyGObject
 try:
@@ -24,7 +29,7 @@ try:
 except Exception as e:
     print("Error: PyGObject / GTK bindings are not available or misconfigured:", e)
     print("On Debian/Ubuntu install required packages and try again:")
-    print("  sudo apt update && sudo apt install -y python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests")
+    print("  sudo apt update && sudo apt install -y python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 python3-requests python3-cryptography")
     sys.exit(1)
 
 import requests
@@ -169,11 +174,35 @@ class PerplexityWindow(Gtk.ApplicationWindow):
         # Clipboard
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
-    # API key helpers
+    # API key helpers with encryption
+    def _get_encryption_key(self):
+        """Generate encryption key from system-specific data"""
+        # Use machine-specific data to create a consistent key
+        machine_id = os.getenv('MACHINE_ID') or str(os.getuid()) + str(os.getpid())
+        username = getpass.getuser()
+        salt_data = f"{machine_id}{username}".encode()
+        
+        # Create a consistent salt from system data
+        salt = hashlib.sha256(salt_data).digest()[:16]
+        
+        # Generate key using PBKDF2
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(salt_data))
+        return Fernet(key)
+
     def save_api_key(self, key):
         try:
-            with open(API_KEY_FILE, "w") as f:
-                f.write(key)
+            # Encrypt the API key before storing
+            f = self._get_encryption_key()
+            encrypted_key = f.encrypt(key.encode())
+            
+            with open(API_KEY_FILE, "wb") as file:
+                file.write(encrypted_key)
             os.chmod(API_KEY_FILE, stat.S_IRUSR | stat.S_IWUSR)  # 600
         except Exception as e:
             self.dialog_message(f"Failed to save API Key: {e}", Gtk.MessageType.ERROR)
@@ -181,8 +210,13 @@ class PerplexityWindow(Gtk.ApplicationWindow):
     def load_api_key(self):
         try:
             if os.path.isfile(API_KEY_FILE):
-                with open(API_KEY_FILE, "r") as f:
-                    return f.read().strip()
+                with open(API_KEY_FILE, "rb") as file:
+                    encrypted_key = file.read()
+                
+                # Decrypt the API key
+                f = self._get_encryption_key()
+                decrypted_key = f.decrypt(encrypted_key)
+                return decrypted_key.decode().strip()
         except Exception:
             pass
         return None
