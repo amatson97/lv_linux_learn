@@ -45,12 +45,21 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
-          git commit -m "Auto-update manifest.json [skip ci]"
           
-          # Pull latest changes and rebase our commit
-          git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git main || {
-            echo "Failed to pull, attempting force push..."
+          # Fetch latest changes from remote
+          git fetch origin main
+          
+          # Rebase our changes on top of latest main
+          git rebase origin/main || {
+            echo "Rebase failed, aborting and regenerating"
+            git rebase --abort
+            ./scripts/generate_manifest.sh
+          }
+          
+          # Add and commit the manifest
+          git add manifest.json
+          git commit -m "Auto-update manifest.json [skip ci]" || {
+            echo "Nothing to commit (possibly already committed during rebase)"
           }
           
           # Push the changes
