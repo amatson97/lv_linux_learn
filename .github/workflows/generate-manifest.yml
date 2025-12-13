@@ -9,9 +9,6 @@ on:
       - 'uninstallers/**'
       - 'scripts/generate_manifest.sh'
   workflow_dispatch:
-  schedule:
-    # Run every 30 minutes
-    - cron: '*/30 * * * *'
 
 permissions:
   contents: write
