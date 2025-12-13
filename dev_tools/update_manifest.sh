@@ -53,29 +53,30 @@ success() {
   echo -e "${GREEN}[✓]${NC} $*"
 }
 
-# Get script directory
+# Get script directory and repository root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Backup current manifest
 BACKUP_FILE="/tmp/manifest_backup_$(date +%s).json"
-if [ -f "manifest.json" ]; then
-  cp manifest.json "$BACKUP_FILE"
+if [ -f "$REPO_ROOT/manifest.json" ]; then
+  cp "$REPO_ROOT/manifest.json" "$BACKUP_FILE"
   info "Backed up current manifest to: $BACKUP_FILE"
 fi
 
 log "Updating manifest.json..."
 
 # Generate new manifest
-if [ -f "dev_tools/generate_manifest.sh" ]; then
-  ./dev_tools/generate_manifest.sh
+if [ -f "generate_manifest.sh" ]; then
+  ./generate_manifest.sh
 else
-  error "Error: dev_tools/generate_manifest.sh not found"
+  error "Error: generate_manifest.sh not found in current directory"
   exit 1
 fi
 
 # Check if there are changes
-if git diff --quiet manifest.json 2>/dev/null; then
+if git -C "$REPO_ROOT" diff --quiet manifest.json 2>/dev/null; then
   success "No changes to manifest.json - already up to date!"
   rm -f "$BACKUP_FILE"
   exit 0
@@ -90,14 +91,14 @@ echo ""
 # Analyze changes with jq
 if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
   OLD_COUNT=$(jq '.scripts | length' "$BACKUP_FILE" 2>/dev/null || echo "0")
-  NEW_COUNT=$(jq '.scripts | length' manifest.json 2>/dev/null || echo "0")
+  NEW_COUNT=$(jq '.scripts | length' "$REPO_ROOT/manifest.json" 2>/dev/null || echo "0")
   
   echo -e "${BLUE}Script Count:${NC} $OLD_COUNT → $NEW_COUNT ($(($NEW_COUNT - $OLD_COUNT)))"
   echo ""
   
   # Get script names for comparison
   OLD_SCRIPTS=$(jq -r '.scripts[].id' "$BACKUP_FILE" 2>/dev/null | sort)
-  NEW_SCRIPTS=$(jq -r '.scripts[].id' manifest.json 2>/dev/null | sort)
+  NEW_SCRIPTS=$(jq -r '.scripts[].id' "$REPO_ROOT/manifest.json" 2>/dev/null | sort)
   
   # Find added scripts
   ADDED=$(comm -13 <(echo "$OLD_SCRIPTS") <(echo "$NEW_SCRIPTS"))
@@ -105,8 +106,8 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
     echo -e "${GREEN}✚ Added Scripts:${NC}"
     while IFS= read -r script_id; do
       if [ -n "$script_id" ]; then
-        script_name=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .name" manifest.json 2>/dev/null)
-        script_path=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .relative_path" manifest.json 2>/dev/null)
+        script_name=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .name" "$REPO_ROOT/manifest.json" 2>/dev/null)
+        script_path=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .relative_path" "$REPO_ROOT/manifest.json" 2>/dev/null)
         echo -e "  ${GREEN}+${NC} $script_name ($script_path)"
       fi
     done <<< "$ADDED"
@@ -133,7 +134,7 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
   while IFS= read -r script_id; do
     if [ -n "$script_id" ]; then
       OLD_CHECKSUM=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$BACKUP_FILE" 2>/dev/null)
-      NEW_CHECKSUM=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" manifest.json 2>/dev/null)
+      NEW_CHECKSUM=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$REPO_ROOT/manifest.json" 2>/dev/null)
       if [ "$OLD_CHECKSUM" != "$NEW_CHECKSUM" ]; then
         MODIFIED="${MODIFIED}${script_id}\n"
       fi
@@ -144,8 +145,8 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
     echo -e "${YELLOW}✎ Modified Scripts (checksum changed):${NC}"
     echo -e "$MODIFIED" | while IFS= read -r script_id; do
       if [ -n "$script_id" ]; then
-        script_name=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .name" manifest.json 2>/dev/null)
-        script_path=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .relative_path" manifest.json 2>/dev/null)
+        script_name=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .name" "$REPO_ROOT/manifest.json" 2>/dev/null)
+        script_path=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .relative_path" "$REPO_ROOT/manifest.json" 2>/dev/null)
         echo -e "  ${YELLOW}~${NC} $script_name ($script_path)"
       fi
     done
@@ -160,7 +161,7 @@ fi
 
 # Show raw git diff stats
 echo -e "${BLUE}Git Diff Summary:${NC}"
-git diff --stat manifest.json
+git -C "$REPO_ROOT" diff --stat manifest.json
 echo ""
 
 # Ask if user wants to see full diff
@@ -168,7 +169,7 @@ read -p "View full diff? [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   echo ""
-  git diff --color=always manifest.json | less -R
+  git -C "$REPO_ROOT" diff --color=always manifest.json | less -R
   echo ""
 fi
 
@@ -180,7 +181,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
   warn "Cancelled by user"
   # Restore backup
   if [ -f "$BACKUP_FILE" ]; then
-    cp "$BACKUP_FILE" manifest.json
+    cp "$BACKUP_FILE" "$REPO_ROOT/manifest.json"
     info "Restored previous manifest from backup"
     rm -f "$BACKUP_FILE"
   fi
@@ -192,7 +193,7 @@ rm -f "$BACKUP_FILE"
 
 # Force add (despite gitignore) and commit
 log "Committing manifest.json..."
-git add -f manifest.json
+git -C "$REPO_ROOT" add -f manifest.json
 
 # Build commit message
 COMMIT_MSG="chore: Update manifest.json"
@@ -209,11 +210,11 @@ if [ -n "${MODIFIED:-}" ]; then
   COMMIT_MSG="${COMMIT_MSG}\n~ Modified: $MODIFIED_COUNT script(s)"
 fi
 
-git commit -m "$(echo -e "$COMMIT_MSG")"
+git -C "$REPO_ROOT" commit -m "$(echo -e "$COMMIT_MSG")"
 
 # Push to GitHub
 log "Pushing to GitHub..."
-git push origin main
+git -C "$REPO_ROOT" push origin main
 
 echo ""
 success "✓ Manifest updated and pushed successfully!"

@@ -42,9 +42,9 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 ### 🎯 Core Features
 - **🖥️ Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
-- **☁️ GitHub Integration** — Auto-updating script distribution from public repository
+- **☁️ Multi-Repository System** — Support for custom script repositories and libraries
 - **📦 Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
-- **🔧 Custom Scripts** — Add your own scripts without editing code
+- **🔧 Custom Scripts** — Add your own scripts and configure custom repositories
 - **🎓 Learning Exercises** — Interactive bash tutorials for beginners
 - **🛠️ Utility Tools** — File conversion, extraction, and system utilities
 - **🤖 AI Integration** — Perplexity CLI with streaming and context support
@@ -196,16 +196,23 @@ Contributions welcome! Please:
 
 ---
 
-## 🌐 Remote Repository System (v2.0.0+)
+## 🌐 Multi-Repository System (v2.1.0+)
 
-**Automated script distribution from GitHub with local caching.**
+**Enhanced repository system supporting custom script libraries with automated distribution and local caching.**
+
+### 🆕 New Features
+- **🏗️ Custom Repositories**: Configure custom manifest URLs for your own script libraries
+- **📁 Remote Includes**: Automatic download of includes directories from custom repositories
+- **🔄 Cache-First Execution**: Scripts download to cache before execution for optimal performance
+- **⚙️ Multi-Repository Management**: Switch between different script repositories seamlessly
 
 ### Features
-- **Auto-updates**: Scripts automatically downloaded from GitHub
+- **Auto-updates**: Scripts automatically downloaded from GitHub or custom repositories
 - **Checksum Verification**: SHA256 validation for security
 - **Local Caching**: Fast execution with `~/.lv_linux_learn/script_cache/`
-- **Configurable**: Auto-check intervals, auto-install options
-- **Dual Interface**: Full CLI and GUI support
+- **Custom Manifest Support**: Point to your own repository with custom scripts and includes
+- **Configurable**: Auto-check intervals, auto-install options, custom repository URLs
+- **Dual Interface**: Full CLI and GUI support with feature parity
 
 ### Quick Usage
 ```bash
@@ -218,14 +225,37 @@ Contributions welcome! Please:
 # Click: Repository tab → Check Updates
 ```
 
-### Configuration
-Edit settings via menu or directly:
+### Custom Repository Configuration
+Configure custom repositories for your own script libraries:
 ```bash
-# Location: ~/.lv_linux_learn/config.json
-# Toggle auto-updates, change intervals, etc.
+# CLI: Repository Settings
+./menu.sh → 6) Script Repository → 6) Repository Settings
+# Set custom manifest URL
 
-# CLI: Main Menu → 6 → 6 (Repository Settings)
-# GUI: Repository tab → Settings button
+# GUI: Repository Settings
+./menu.py → Repository tab → Settings button → Manifest URL field
+# Enter your custom repository URL and save
+```
+
+### Custom Repository Format
+Your custom repository needs:
+- **manifest.json**: Script definitions with repository_url for includes
+- **includes/**: Shared functions and utilities  
+- **scripts/**: Your custom scripts
+
+Example manifest.json:
+```json
+{
+  "repository_url": "https://raw.githubusercontent.com/youruser/yourrepo/main",
+  "scripts": [
+    {
+      "id": "custom-installer",
+      "name": "Custom Installer",
+      "relative_path": "scripts/custom-installer.sh",
+      "category": "install"
+    }
+  ]
+}
 ```
 
 ### Documentation

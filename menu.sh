@@ -22,8 +22,9 @@ CUSTOM_SCRIPTS_DIR="$HOME/.lv_linux_learn"
 CUSTOM_SCRIPTS_JSON="$CUSTOM_SCRIPTS_DIR/custom_scripts.json"
 MANIFEST_CACHE="$CUSTOM_SCRIPTS_DIR/manifest.json"
 
-# Manifest URL
-MANIFEST_URL="https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+# Manifest URL (can be overridden by config)
+DEFAULT_MANIFEST_URL="https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+MANIFEST_URL="${CUSTOM_MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
 
 # Repository system variables
 REPO_ENABLED=false
@@ -33,8 +34,9 @@ REPO_UPDATES_AVAILABLE=0
 SEARCH_FILTER=""
 
 # Dynamic arrays loaded from manifest
-SCRIPTS=()
-DESCRIPTIONS=()
+declare -a SCRIPTS=()
+declare -a DESCRIPTIONS=()
+declare -a MENU_SCRIPT_IDS=()
 
 # Ensure cache directory exists
 mkdir -p "$CUSTOM_SCRIPTS_DIR"
@@ -50,21 +52,37 @@ fetch_manifest() {
   # Fetch if cache doesn't exist or is older than 1 hour (3600 seconds)
   if [ ! -f "$MANIFEST_CACHE" ] || [ $cache_age -gt 3600 ]; then
     green_echo "[*] Fetching latest manifest from GitHub..."
+    green_echo "[*] Connecting to: $MANIFEST_URL"
+    
+    local download_success=false
     if command -v curl &> /dev/null; then
-      curl -sS -f -o "$MANIFEST_CACHE" "$MANIFEST_URL" || {
-        green_echo "[!] Failed to fetch manifest from GitHub"
-        return 1
-      }
+      green_echo "[*] Using curl for download..."
+      if curl -sS -f -o "$MANIFEST_CACHE" "$MANIFEST_URL"; then
+        download_success=true
+      else
+        green_echo "[!] Failed to fetch manifest with curl"
+      fi
     elif command -v wget &> /dev/null; then
-      wget -q -O "$MANIFEST_CACHE" "$MANIFEST_URL" || {
-        green_echo "[!] Failed to fetch manifest from GitHub"
-        return 1
-      }
+      green_echo "[*] Using wget for download..."
+      if wget -q -O "$MANIFEST_CACHE" "$MANIFEST_URL"; then
+        download_success=true
+      else
+        green_echo "[!] Failed to fetch manifest with wget"
+      fi
     else
       green_echo "[!] Error: Neither curl nor wget is installed"
       return 1
     fi
-    green_echo "[+] Manifest updated successfully"
+    
+    if [ "$download_success" = true ]; then
+      local file_size
+      file_size=$(stat -c%s "$MANIFEST_CACHE" 2>/dev/null || echo "unknown")
+      green_echo "[*] Downloaded ${file_size} bytes"
+      green_echo "[*] Cached to: $MANIFEST_CACHE"
+      green_echo "[+] Manifest updated successfully"
+    else
+      return 1
+    fi
   fi
   
   return 0
@@ -91,9 +109,24 @@ load_scripts_from_manifest() {
     return 1
   fi
   
+  # Display manifest information
+  local manifest_version repo_version last_updated total_scripts
+  manifest_version=$(jq -r '.version // "unknown"' "$manifest_path" 2>/dev/null)
+  repo_version=$(jq -r '.repository_version // "unknown"' "$manifest_path" 2>/dev/null)
+  last_updated=$(jq -r '.last_updated // "unknown"' "$manifest_path" 2>/dev/null)
+  total_scripts=$(jq '.scripts | length' "$manifest_path" 2>/dev/null || echo 0)
+  
+  green_echo "[*] Loaded manifest version $manifest_version (repo: $repo_version)"
+  green_echo "[*] Last updated: $last_updated"
+  green_echo "[*] Processing $total_scripts scripts..."
+  
   # Clear arrays
   SCRIPTS=()
   DESCRIPTIONS=()
+  MENU_SCRIPT_IDS=()
+  
+  # Track scripts per category
+  local install_count=0 tools_count=0 exercises_count=0 uninstall_count=0
   
   # Load each category in order: install, tools, exercises, uninstall
   local categories=("install" "tools" "exercises" "uninstall")
@@ -104,19 +137,33 @@ load_scripts_from_manifest() {
     category_scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .relative_path" "$manifest_path" 2>/dev/null)
     
     if [ -n "$category_scripts" ]; then
+      local count=0
       # Add scripts from this category
       while IFS= read -r script_path; do
         SCRIPTS+=("$script_path")
         
-        # Get description for this script
-        local desc
+        # Get description and ID for this script
+        local desc script_id
         desc=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .description" "$manifest_path" 2>/dev/null)
+        script_id=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .id" "$manifest_path" 2>/dev/null)
+        
         DESCRIPTIONS+=("$desc")
+        MENU_SCRIPT_IDS+=("$script_id")
+        count=$((count + 1))
       done <<< "$category_scripts"
+      
+      # Update category counters
+      case "$category" in
+        install) install_count=$count ;;
+        tools) tools_count=$count ;;
+        exercises) exercises_count=$count ;;
+        uninstall) uninstall_count=$count ;;
+      esac
       
       # Add separator after each category (except last)
       if [ "$category" != "uninstall" ]; then
         SCRIPTS+=("")
+        MENU_SCRIPT_IDS+=("__separator__")
         local separator_name
         case "$category" in
           install) separator_name="Utility Tools" ;;
@@ -127,6 +174,13 @@ load_scripts_from_manifest() {
       fi
     fi
   done
+  
+  # Display category breakdown
+  green_echo "[*] Script breakdown:"
+  [ $install_count -gt 0 ] && green_echo "    Install: $install_count scripts"
+  [ $tools_count -gt 0 ] && green_echo "    Tools: $tools_count scripts"
+  [ $exercises_count -gt 0 ] && green_echo "    Exercises: $exercises_count scripts"
+  [ $uninstall_count -gt 0 ] && green_echo "    Uninstall: $uninstall_count scripts"
   
   return 0
 }
@@ -182,15 +236,712 @@ load_scripts_from_manifest
 # Then append custom scripts
 load_custom_scripts
 
+# ============================================================================
+# Path Resolution for Cached Scripts
+# ============================================================================
+
+ensure_remote_includes() {
+  local cache_root="$1"
+  local includes_cache="$cache_root/includes"
+  
+  # Get repository URL from manifest
+  local repo_url=""
+  if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
+    repo_url=$(jq -r '.repository_url // ""' "$MANIFEST_CACHE" 2>/dev/null)
+  fi
+  
+  if [ -z "$repo_url" ]; then
+    echo "[INFO] No repository URL found in manifest, using local includes" >&2
+    return 1
+  fi
+  
+  # Check if we already have remote includes cached
+  if [ -d "$includes_cache" ] && [ ! -L "$includes_cache" ]; then
+    # Check if cached includes are from remote repository
+    local cached_origin=""
+    if [ -f "$includes_cache/.origin" ]; then
+      cached_origin=$(cat "$includes_cache/.origin" 2>/dev/null || echo "")
+    fi
+    
+    if [ "$cached_origin" = "$repo_url" ]; then
+      # Check freshness (within 24 hours)
+      local cache_time=0
+      if [ -f "$includes_cache/.timestamp" ]; then
+        cache_time=$(cat "$includes_cache/.timestamp" 2>/dev/null || echo 0)
+      fi
+      local current_time=$(date +%s)
+      local age=$((current_time - cache_time))
+      
+      if [ $age -lt 86400 ]; then # 24 hours
+        echo "[INFO] Using cached remote includes (age: ${age}s)" >&2
+        return 0
+      fi
+    fi
+  fi
+  
+  # Download remote includes
+  echo "[INFO] Downloading includes from remote repository: $repo_url" >&2
+  
+  # Remove existing includes if it exists
+  if [ -e "$includes_cache" ]; then
+    rm -rf "$includes_cache" 2>/dev/null || {
+      echo "[WARNING] Cannot remove existing includes cache: $includes_cache" >&2
+      return 1
+    }
+  fi
+  
+  # Create temporary directory for download
+  local temp_dir=$(mktemp -d 2>/dev/null || echo "/tmp/includes_$$")
+  trap "rm -rf '$temp_dir' 2>/dev/null || true" EXIT
+  
+  # Try to download main.sh and repository.sh
+  local download_success=false
+  
+  if command -v curl &> /dev/null; then
+    if curl -sS -f -o "$temp_dir/main.sh" "$repo_url/includes/main.sh" 2>/dev/null && \
+       curl -sS -f -o "$temp_dir/repository.sh" "$repo_url/includes/repository.sh" 2>/dev/null; then
+      download_success=true
+    fi
+  elif command -v wget &> /dev/null; then
+    if wget -q -O "$temp_dir/main.sh" "$repo_url/includes/main.sh" 2>/dev/null && \
+       wget -q -O "$temp_dir/repository.sh" "$repo_url/includes/repository.sh" 2>/dev/null; then
+      download_success=true
+    fi
+  fi
+  
+  if [ "$download_success" = true ]; then
+    # Create includes directory and copy files
+    mkdir -p "$includes_cache"
+    cp "$temp_dir"/*.sh "$includes_cache/" 2>/dev/null
+    chmod +x "$includes_cache"/*.sh 2>/dev/null
+    
+    # Mark cache with origin and timestamp
+    echo "$repo_url" > "$includes_cache/.origin"
+    date +%s > "$includes_cache/.timestamp"
+    
+    echo "[INFO] Successfully downloaded remote includes to cache" >&2
+    return 0
+  else
+    echo "[WARNING] Failed to download remote includes from: $repo_url" >&2
+    return 1
+  fi
+}
+
+# Ensure includes directory is available for cached scripts
+ensure_cache_includes_symlink() {
+  local cache_root="$HOME/.lv_linux_learn/script_cache"
+  local includes_symlink="$cache_root/includes"
+  
+  # Ensure cache directory exists
+  if [ ! -d "$cache_root" ]; then
+    if ! mkdir -p "$cache_root" 2>/dev/null; then
+      echo "[WARNING] No permission to create cache directory: $cache_root" >&2
+      return 1
+    fi
+  fi
+  
+  # Try to get remote includes first, then fall back to local
+  if ensure_remote_includes "$cache_root"; then
+    return 0
+  fi
+  
+  # Fall back to local repository includes
+  local repo_includes="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/includes"
+  if [ ! -d "$repo_includes" ]; then
+    echo "[WARNING] Local repository includes directory not found: $repo_includes" >&2
+    return 1
+  fi
+  
+  # Handle existing symlink/file
+  if [ -e "$includes_symlink" ] || [ -L "$includes_symlink" ]; then
+    if [ -L "$includes_symlink" ]; then
+      # Check if symlink points to correct location
+      local current_target
+      current_target=$(readlink "$includes_symlink" 2>/dev/null || echo "")
+      if [ "$(realpath "$current_target" 2>/dev/null || echo "")" = "$(realpath "$repo_includes" 2>/dev/null || echo "")" ]; then
+        # Symlink already correct
+        return 0
+      else
+        # Symlink points to wrong location, remove and recreate
+        if ! rm "$includes_symlink" 2>/dev/null; then
+          echo "[WARNING] Cannot remove existing symlink: $includes_symlink" >&2
+          return 1
+        fi
+        echo "[INFO] Removed outdated symlink: $includes_symlink" >&2
+      fi
+    else
+      # Regular file/directory exists with same name
+      echo "[WARNING] File/directory exists at symlink path: $includes_symlink" >&2
+      return 1
+    fi
+  fi
+  
+  # Create the symlink
+  if ln -s "$repo_includes" "$includes_symlink" 2>/dev/null; then
+    echo "[INFO] Created includes symlink: $includes_symlink -> $repo_includes" >&2
+    return 0
+  else
+    local errno=$?
+    if [ $errno -eq 1 ]; then
+      echo "[WARNING] Symlinks not supported on this filesystem" >&2
+    else
+      echo "[WARNING] Cannot create symlink (filesystem issue)" >&2
+    fi
+    return 1
+  fi
+}
+
+# Fallback method: copy includes directory if symlink creation fails
+fallback_copy_includes() {
+  local cache_root="$HOME/.lv_linux_learn/script_cache"
+  local includes_cache="$cache_root/includes"
+  
+  # Try remote includes first
+  if ensure_remote_includes "$cache_root"; then
+    return 0
+  fi
+  
+  # Fall back to local repository includes
+  local repo_includes="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/includes"
+  if [ ! -d "$repo_includes" ]; then
+    echo "[WARNING] Local repository includes directory not found: $repo_includes" >&2
+    return 1
+  fi
+  
+  # Remove existing includes if it exists
+  if [ -e "$includes_cache" ]; then
+    if ! rm -rf "$includes_cache" 2>/dev/null; then
+      echo "[WARNING] Cannot remove existing includes directory: $includes_cache" >&2
+      return 1
+    fi
+  fi
+  
+  # Copy the includes directory
+  if cp -r "$repo_includes" "$includes_cache" 2>/dev/null; then
+    echo "[INFO] Copied includes directory to cache (symlink fallback): $includes_cache" >&2
+    return 0
+  else
+    echo "[WARNING] Cannot copy includes directory" >&2
+    return 1
+  fi
+}
+
+# Check if copied includes directory is up to date with repository
+check_includes_freshness() {
+  local cache_root="$HOME/.lv_linux_learn/script_cache"
+  local includes_cache="$cache_root/includes"
+  
+  if [ ! -d "$includes_cache" ]; then
+    return 1
+  fi
+  
+  # If it's a symlink to local repo, check if target exists
+  if [ -L "$includes_cache" ]; then
+    local target=$(readlink "$includes_cache" 2>/dev/null || echo "")
+    if [ -d "$target" ]; then
+      return 0
+    else
+      # Symlink is broken
+      return 1
+    fi
+  fi
+  
+  # For cached remote includes, check age and origin
+  if [ -f "$includes_cache/.origin" ] && [ -f "$includes_cache/.timestamp" ]; then
+    local cache_time=$(cat "$includes_cache/.timestamp" 2>/dev/null || echo 0)
+    local current_time=$(date +%s)
+    local age=$((current_time - cache_time))
+    
+    # Consider fresh if less than 24 hours old
+    if [ $age -lt 86400 ]; then
+      return 0
+    fi
+  fi
+  
+  # For local copied includes, compare with local repository
+  local repo_includes="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/includes"
+  if [ -d "$repo_includes" ]; then
+    local cache_main="$includes_cache/main.sh"
+    local repo_main="$repo_includes/main.sh"
+    
+    if [ -f "$cache_main" ] && [ -f "$repo_main" ]; then
+      local cache_mtime repo_mtime
+      cache_mtime=$(stat -c %Y "$cache_main" 2>/dev/null || echo 0)
+      repo_mtime=$(stat -c %Y "$repo_main" 2>/dev/null || echo 0)
+      
+      # Consider fresh if cache is newer or equal (within 1 second tolerance)
+      [ $cache_mtime -ge $((repo_mtime - 1)) ]
+    else
+      return 1
+    fi
+  else
+    # No local repository to compare with, assume cached version is fresh
+    return 0
+  fi
+}
+
+# Ensure includes directory is available in cache (symlink preferred, copy as fallback)
+ensure_includes_available() {
+  # Check if we already have fresh includes
+  if check_includes_freshness; then
+    return 0
+  fi
+  
+  # Try symlink first
+  if ensure_cache_includes_symlink; then
+    return 0
+  fi
+  
+  # Fall back to copying if symlink fails
+  echo "[INFO] Symlink failed, trying copy fallback..." >&2
+  if fallback_copy_includes; then
+    return 0
+  fi
+  
+  echo "[ERROR] Both symlink and copy methods failed - cached scripts may not work properly" >&2
+  return 1
+}
+
 # Initialize repository system
 if type -t init_repo_config &>/dev/null; then
   init_repo_config
   REPO_ENABLED=true
+  
+  # Load custom manifest URL from config if set
+  custom_url=$(get_config_value 'custom_manifest_url' '' 2>/dev/null || echo "")
+  if [ -n "$custom_url" ]; then
+    export CUSTOM_MANIFEST_URL="$custom_url"
+    MANIFEST_URL="$custom_url"
+  fi
+  
   # Check for updates on startup if auto-check is enabled
   if [ "$(get_config_value 'auto_check_updates' 'true')" = "true" ]; then
     check_for_updates &>/dev/null || true
   fi
 fi
+
+# Repository Management Functions
+# =============================================================================
+
+download_all_scripts() {
+  # Check if repository system is available
+  if [ "$REPO_ENABLED" != "true" ]; then
+    green_echo "[!] Repository system not enabled"
+    return 1
+  fi
+  
+  # Call the repository download function
+  # This function exists in includes/repository.sh
+  if command -v fetch_remote_manifest &> /dev/null; then
+    # Fetch manifest first
+    if [ ! -f "$MANIFEST_FILE" ]; then
+      green_echo "[*] Fetching manifest..."
+      if ! fetch_remote_manifest; then
+        green_echo "[!] Failed to fetch manifest"
+        return 1
+      fi
+    fi
+    
+    green_echo "[*] Downloading all scripts from repository..."
+    
+    local script_count=$(get_script_count)
+    local downloaded=0
+    local failed=0
+    
+    for ((i=0; i<script_count; i++)); do
+      local script_id=$(jq -r ".scripts[$i].id" "$MANIFEST_FILE" 2>/dev/null)
+      local script_name=$(jq -r ".scripts[$i].name" "$MANIFEST_FILE" 2>/dev/null)
+      
+      if [ "$script_id" != "null" ] && [ -n "$script_id" ]; then
+        echo "[*] Downloading $script_name..."
+        
+        if download_script "$script_id"; then
+          downloaded=$((downloaded + 1))
+        else
+          failed=$((failed + 1))
+        fi
+      fi
+    done
+    
+    green_echo "[+] Download complete: $downloaded downloaded, $failed failed"
+    
+    # Refresh script arrays after download
+    load_scripts_from_manifest
+  else
+    green_echo "[!] Repository functions not available"
+    return 1
+  fi
+}
+
+list_cached_scripts() {
+  local cache_dir="$HOME/.lv_linux_learn/script_cache"
+  
+  if [ ! -d "$cache_dir" ]; then
+    green_echo "[!] No script cache directory found"
+    return 1
+  fi
+  
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                           Cached Scripts                                       ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  local total_cached=0
+  local categories=("install" "tools" "exercises" "uninstall")
+  
+  for category in "${categories[@]}"; do
+    local category_dir="$cache_dir/$category"
+    if [ -d "$category_dir" ]; then
+      local count=$(find "$category_dir" -name "*.sh" | wc -l)
+      if [ "$count" -gt 0 ]; then
+        echo "  📦 $category ($count scripts):"
+        find "$category_dir" -name "*.sh" -exec basename {} \; | sort | sed 's/^/    /'
+        total_cached=$((total_cached + count))
+        echo
+      fi
+    fi
+  done
+  
+  if [ "$total_cached" -eq 0 ]; then
+    echo "  No scripts currently cached."
+    echo "  Use 'Download All Scripts' option to populate the cache."
+  else
+    echo "  Total cached scripts: $total_cached"
+  fi
+  echo
+}
+
+clear_script_cache() {
+  local cache_dir="$HOME/.lv_linux_learn/script_cache"
+  
+  if [ ! -d "$cache_dir" ]; then
+    green_echo "[!] No script cache directory found"
+    return 0
+  fi
+  
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                         Clear Script Cache                                     ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  # Count cached scripts
+  local total_cached=0
+  for category in install tools exercises uninstall; do
+    if [ -d "$cache_dir/$category" ]; then
+      local count=$(find "$cache_dir/$category" -name "*.sh" | wc -l)
+      total_cached=$((total_cached + count))
+    fi
+  done
+  
+  if [ "$total_cached" -eq 0 ]; then
+    green_echo "[!] Cache is already empty"
+    return 0
+  fi
+  
+  echo "  This will remove all $total_cached cached scripts."
+  echo "  You can download them again later using the repository options."
+  echo
+  read -rp "  Continue? [y/N]: " confirm
+  
+  if [[ "${confirm,,}" != "y" ]]; then
+    green_echo "[*] Cache clear cancelled"
+    return 0
+  fi
+  
+  # Remove cached scripts but preserve directory structure
+  for category in install tools exercises uninstall; do
+    if [ -d "$cache_dir/$category" ]; then
+      rm -f "$cache_dir/$category"/*.sh 2>/dev/null || true
+    fi
+  done
+  
+  # Remove includes symlink/directory if it exists
+  if [ -L "$cache_dir/includes" ]; then
+    rm -f "$cache_dir/includes"
+  elif [ -d "$cache_dir/includes" ]; then
+    rm -rf "$cache_dir/includes"
+  fi
+  
+  green_echo "[+] Script cache cleared successfully"
+  
+  # Refresh script arrays after clearing cache
+  load_scripts_from_manifest
+}
+
+remove_cached_script() {
+  local script_name="$1"
+  local cache_dir="$HOME/.lv_linux_learn/script_cache"
+  
+  if [ -z "$script_name" ]; then
+    green_echo "[!] Script name required"
+    return 1
+  fi
+  
+  # Find the script in cache
+  local cached_script=""
+  for category in install tools exercises uninstall; do
+    local category_path="$cache_dir/$category/$script_name"
+    if [ -f "$category_path" ]; then
+      cached_script="$category_path"
+      break
+    fi
+  done
+  
+  if [ -z "$cached_script" ]; then
+    green_echo "[!] Script not found in cache: $script_name"
+    return 1
+  fi
+  
+  echo
+  read -rp "Remove $script_name from cache? [y/N]: " confirm
+  
+  if [[ "${confirm,,}" == "y" ]]; then
+    rm -f "$cached_script"
+    green_echo "[+] Removed $script_name from cache"
+    
+    # Refresh script arrays after removal
+    load_scripts_from_manifest
+  else
+    green_echo "[*] Removal cancelled"
+  fi
+}
+
+count_cached_scripts() {
+  local count=0
+  if [ -d "$SCRIPT_CACHE_DIR" ]; then
+    count=$(find "$SCRIPT_CACHE_DIR" -name "*.sh" -type f 2>/dev/null | wc -l)
+  fi
+  echo "$count"
+}
+
+update_all_scripts() {
+  if [ "$REPO_UPDATES_AVAILABLE" -eq 0 ]; then
+    green_echo "[*] No updates available"
+    return 0
+  fi
+  
+  green_echo "[*] Updating $REPO_UPDATES_AVAILABLE cached scripts..."
+  
+  # Get list of all cached scripts
+  local updated_count=0
+  local error_count=0
+  
+  if [ ! -d "$SCRIPT_CACHE_DIR" ]; then
+    green_echo "[!] No script cache directory found"
+    return 1
+  fi
+  
+  # Find all cached scripts
+  local cached_scripts=$(find "$SCRIPT_CACHE_DIR" -name "*.sh" -type f 2>/dev/null)
+  
+  if [ -z "$cached_scripts" ]; then
+    green_echo "[!] No cached scripts found to update"
+    return 1
+  fi
+  
+  while IFS= read -r cached_file; do
+    if [ -z "$cached_file" ]; then continue; fi
+    
+    local script_name=$(basename "$cached_file")
+    local script_id="${script_name%.sh}"
+    
+    green_echo "[*] Updating $script_name..."
+    
+    if download_script "$script_id"; then
+      updated_count=$((updated_count + 1))
+      green_echo "[+] Updated $script_name"
+    else
+      error_count=$((error_count + 1))
+      green_echo "[!] Failed to update $script_name"
+    fi
+  done <<< "$cached_scripts"
+  
+  green_echo "[+] Update complete: $updated_count updated, $error_count errors"
+  
+  # Reset updates available counter after successful update
+  if [ "$error_count" -eq 0 ]; then
+    REPO_UPDATES_AVAILABLE=0
+  fi
+  
+  # Refresh script arrays after updates
+  load_scripts_from_manifest
+}
+
+check_for_updates() {
+  green_echo "[*] Checking for script updates..."
+  
+  # Fetch latest manifest
+  if ! fetch_manifest; then
+    green_echo "[!] Failed to fetch latest manifest"
+    return 1
+  fi
+  
+  local updates=0
+  
+  # Compare cached scripts with manifest versions (if available)
+  if [ -d "$SCRIPT_CACHE_DIR" ]; then
+    local cached_scripts=$(find "$SCRIPT_CACHE_DIR" -name "*.sh" -type f 2>/dev/null)
+    if [ -n "$cached_scripts" ]; then
+      # For simplicity, assume all cached scripts have updates available
+      # In a real implementation, you'd compare timestamps or versions
+      updates=$(echo "$cached_scripts" | wc -l)
+    fi
+  fi
+  
+  REPO_UPDATES_AVAILABLE="$updates"
+  green_echo "[+] Found $updates potential updates"
+}
+
+show_repo_settings() {
+  while true; do
+    clear
+    echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                       Repository Settings                                      ║"
+    echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+    echo
+    
+    local use_remote=$(get_config_value "use_remote_scripts" "true")
+    local auto_check=$(get_config_value "auto_check_updates" "true")
+    local auto_install=$(get_config_value "auto_install_updates" "true")
+    local interval=$(get_config_value "update_check_interval_minutes" "30")
+    
+    local current_manifest_url="${MANIFEST_URL}"
+    
+    echo "  Current Settings:"
+    echo "  1) Use Remote Scripts:      $use_remote"
+    echo "  2) Auto-check Updates:      $auto_check"
+    echo "  3) Auto-install Updates:    $auto_install"
+    echo "  4) Check Interval:          $interval minutes"
+    echo "  5) Manifest URL:            $current_manifest_url"
+    echo
+    echo "  Options:"
+    echo "   r) Toggle remote scripts"
+    echo "   c) Toggle auto-check updates"
+    echo "   i) Toggle auto-install updates"
+    echo "   t) Change check interval"
+    echo "   m) Change manifest URL"
+    echo "   v) View repository info"
+    echo
+    echo "  ──────────────────────────────────────────────────────────────────────────────"
+    echo "   b) Back to Repository Menu    0) Exit"
+    echo
+    
+    read -rp "Enter your choice: " settings_choice
+    
+    case "$settings_choice" in
+      r|R)
+        if [ "$use_remote" = "true" ]; then
+          set_config_value "use_remote_scripts" "false"
+          green_echo "[*] Remote scripts disabled"
+        else
+          set_config_value "use_remote_scripts" "true"
+          green_echo "[*] Remote scripts enabled"
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      c|C)
+        if [ "$auto_check" = "true" ]; then
+          set_config_value "auto_check_updates" "false"
+          green_echo "[*] Auto-check updates disabled"
+        else
+          set_config_value "auto_check_updates" "true"
+          green_echo "[*] Auto-check updates enabled"
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      i|I)
+        if [ "$auto_install" = "true" ]; then
+          set_config_value "auto_install_updates" "false"
+          green_echo "[*] Auto-install updates disabled"
+        else
+          set_config_value "auto_install_updates" "true"
+          green_echo "[*] Auto-install updates enabled"
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      t|T)
+        echo
+        read -rp "Enter new check interval (minutes, 1-1440): " new_interval
+        if [[ "$new_interval" =~ ^[0-9]+$ ]] && [ "$new_interval" -ge 1 ] && [ "$new_interval" -le 1440 ]; then
+          set_config_value "update_check_interval_minutes" "$new_interval"
+          green_echo "[*] Check interval updated to $new_interval minutes"
+        else
+          green_echo "[!] Invalid interval. Please enter a number between 1 and 1440"
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      v|V)
+        clear
+        echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+        echo "║                         Repository Information                                 ║"
+        echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+        echo
+        echo "  Repository URL: $REPO_URL"
+        echo "  Cache Directory: $SCRIPT_CACHE_DIR"
+        echo "  Config File: $CONFIG_FILE"
+        echo "  Manifest File: $MANIFEST_FILE"
+        echo
+        if [ -f "$MANIFEST_FILE" ]; then
+          local manifest_version=$(jq -r '.version // "unknown"' "$MANIFEST_FILE" 2>/dev/null)
+          local repo_version=$(jq -r '.repository_version // "unknown"' "$MANIFEST_FILE" 2>/dev/null)
+          local last_updated=$(jq -r '.last_updated // "unknown"' "$MANIFEST_FILE" 2>/dev/null)
+          echo "  Manifest Version: $manifest_version"
+          echo "  Repository Version: $repo_version" 
+          echo "  Last Updated: $last_updated"
+        else
+          echo "  Manifest: Not cached"
+        fi
+        echo
+        read -rp "Press Enter to continue..."
+        ;;
+      m|M)
+        echo
+        echo "Current manifest URL: $MANIFEST_URL"
+        echo
+        read -rp "Enter new manifest URL (or press Enter to reset to default): " new_manifest_url
+        
+        if [ -z "$new_manifest_url" ]; then
+          # Reset to default
+          unset CUSTOM_MANIFEST_URL
+          MANIFEST_URL="$DEFAULT_MANIFEST_URL"
+          # Remove from config if it exists
+          if command -v set_config_value &> /dev/null; then
+            set_config_value "custom_manifest_url" ""
+          fi
+          green_echo "[*] Manifest URL reset to default: $MANIFEST_URL"
+        else
+          # Validate URL format
+          if [[ "$new_manifest_url" =~ ^https?:// ]]; then
+            export CUSTOM_MANIFEST_URL="$new_manifest_url"
+            MANIFEST_URL="$new_manifest_url"
+            # Save to config if possible
+            if command -v set_config_value &> /dev/null; then
+              set_config_value "custom_manifest_url" "$new_manifest_url"
+            fi
+            green_echo "[*] Manifest URL updated to: $MANIFEST_URL"
+            echo
+            green_echo "[*] Note: Clear script cache to download from new repository"
+            green_echo "        Includes will be automatically updated on next script run"
+          else
+            green_echo "[!] Invalid URL format. Please use http:// or https://"
+          fi
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      b|B)
+        return 0
+        ;;
+      0)
+        green_echo "Exiting. Goodbye!"
+        exit 0
+        ;;
+      *)
+        green_echo "[!] Invalid choice"
+        read -rp "Press Enter to continue..."
+        ;;
+    esac
+  done
+}
 
 # Current menu state
 CURRENT_CATEGORY=""
@@ -356,13 +1107,34 @@ show_menu() {
       show_num=$num
     fi
     
+    # Check cache status
+    local cache_status=""
+    local script_id=""
+    
+    # Safely get script ID from array if it exists and has been loaded
+    if [ "${#MENU_SCRIPT_IDS[@]}" -gt 0 ] && [ "$i" -lt "${#MENU_SCRIPT_IDS[@]}" ]; then
+      script_id="${MENU_SCRIPT_IDS[$i]:-}"
+    fi
+    
+    # Check if script is cached (skip separators and empty IDs)
+    if [ -n "$script_id" ] && [ "$script_id" != "__separator__" ] && type get_cached_script_path &> /dev/null; then
+      local cached_path=""
+      cached_path=$(get_cached_script_path "$script_id" 2>/dev/null || echo "")
+      if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+        cache_status=" \033[1;36m[📁 CACHED]\033[0m"
+      fi
+    fi
+    
     # Compact format: number, name, status on one line
     if [ ! -f "$script" ]; then
-      printf "  \033[1;31m%2d)\033[0m %-35s \033[1;31m[MISSING]\033[0m\n" "$show_num" "$script_name"
+      printf "  \033[1;31m%2d)\033[0m %-35s \033[1;31m[MISSING]\033[0m" "$show_num" "$script_name"
+      printf "%b\n" "$cache_status"
     elif [ ! -x "$script" ]; then
-      printf "  \033[1;33m%2d)\033[0m %-35s \033[1;33m[NOT EXEC]\033[0m\n" "$show_num" "$script_name"
+      printf "  \033[1;33m%2d)\033[0m %-35s \033[1;33m[NOT EXEC]\033[0m" "$show_num" "$script_name"
+      printf "%b\n" "$cache_status"
     else
-      printf "  \033[1;32m%2d)\033[0m %-35s\n" "$show_num" "$script_name"
+      printf "  \033[1;32m%2d)\033[0m %-35s" "$show_num" "$script_name"
+      printf "%b\n" "$cache_status"
     fi
     # Description indented on next line
     printf "      \033[2m%s\033[0m\n" "$desc"
@@ -991,9 +1763,88 @@ run_script() {
   local script_name
   script_name="$(basename "$script")"
   
-  if [ ! -f "$script" ]; then
-    green_echo "[!] Error: Script not found: $script"
-    return 1
+  # Priority 1: Always check if script is available in cache first
+  if [ "$REPO_ENABLED" = "true" ] && command -v get_cached_script_path &> /dev/null; then
+    # Try to find script ID from manifest
+    local script_id=""
+    if [ -f "$MANIFEST_CACHE" ]; then
+      script_id=$(jq -r ".scripts[] | select(.relative_path | endswith(\"$script_name\")) | .id" "$MANIFEST_CACHE" 2>/dev/null | head -1)
+    fi
+    
+    if [ -n "$script_id" ] && [ "$script_id" != "null" ]; then
+      # Check if script is already cached
+      local cached_path=$(get_cached_script_path "$script_id" 2>/dev/null)
+      
+      if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+        # Script is cached - use cached version
+        green_echo "[*] Using cached version of $script_name"
+        script="$cached_path"
+      else
+        # Script not cached - offer to download to cache
+        echo
+        green_echo "[!] $script_name is not in cache"
+        echo "This script is available in the repository and can be downloaded to cache."
+        read -rp "Download $script_name to cache and run? [y/N]: " download_choice
+        
+        if [[ "${download_choice,,}" == "y" ]]; then
+          green_echo "[*] Downloading $script_name to cache..."
+          
+          if download_script "$script_id"; then
+            green_echo "[+] Downloaded successfully to cache!"
+            
+            # Get the cached script path and use it
+            cached_path=$(get_cached_script_path "$script_id")
+            if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+              script="$cached_path"
+              green_echo "[*] Running from cache..."
+            else
+              green_echo "[!] Error: Could not locate downloaded script in cache"
+              return 1
+            fi
+          else
+            green_echo "[!] Download failed"
+            # Fall back to local version if it exists
+            if [ -f "$script" ]; then
+              green_echo "[*] Falling back to local version..."
+            else
+              green_echo "[!] Cannot run script - not cached and download failed"
+              return 1
+            fi
+          fi
+        else
+          # User declined download - fall back to local version if it exists
+          if [ -f "$script" ]; then
+            green_echo "[*] Using local version (not cached)"
+          else
+            green_echo "[!] Script not found locally and download declined"
+            return 1
+          fi
+        fi
+      fi
+    else
+      # Script not in manifest - fall back to local version if it exists
+      if [ ! -f "$script" ]; then
+        green_echo "[!] Error: Script not found: $script"
+        return 1
+      fi
+      green_echo "[*] Script not in repository manifest, using local version"
+    fi
+  else
+    # Repository not enabled or functions not available - use local version
+    if [ ! -f "$script" ]; then
+      green_echo "[!] Error: Script not found: $script"
+      return 1
+    fi
+    green_echo "[*] Repository system not available, using local version"
+  fi
+  
+  # Check if this is a cached script that needs special handling
+  if [[ "$script" == *"/.lv_linux_learn/script_cache/"* ]]; then
+    # Cached script - ensure includes directory is available
+    ensure_includes_available || {
+      green_echo "[!] Warning: Could not ensure includes availability for cached script"
+    }
+    green_echo "[*] Executing cached script with includes support..."
   fi
   
   if [ ! -x "$script" ]; then

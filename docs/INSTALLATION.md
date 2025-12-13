@@ -4,10 +4,11 @@ Complete guide for installing and configuring tools in the lv_linux_learn reposi
 
 ## Table of Contents
 1. [Menu Interfaces](#menu-interfaces)
-2. [Installation Scripts](#installation-scripts)
-3. [Git Workflow Scripts](#git-workflow-scripts)
-4. [Uninstaller System](#uninstaller-system)
-5. [Custom Script Addition](#custom-script-addition)
+2. [Multi-Repository System](#multi-repository-system)
+3. [Installation Scripts](#installation-scripts)
+4. [Git Workflow Scripts](#git-workflow-scripts)
+5. [Uninstaller System](#uninstaller-system)
+6. [Custom Script Addition](#custom-script-addition)
 
 ---
 
@@ -33,7 +34,12 @@ Automatically detects your environment and launches:
 - Syntax highlighting with descriptions
 - Search/filter functionality
 - Right-click context menu (copy/paste)
-- **✨ NEW: Custom Script Addition** - Add your own scripts to any tab without editing code
+- **✨ Multi-Repository System** - Support for custom script repositories
+  - Repository tab for script management
+  - Custom manifest URL configuration in settings
+  - Automatic includes directory download
+  - Cache-first script execution with user prompts
+- **✨ Custom Script Addition** - Add your own scripts to any tab without editing code
   - Click **+** button on tab headers to add scripts
   - Right-click custom scripts to edit or delete
   - Persistent storage in `~/.lv_linux_learn/`
@@ -48,16 +54,115 @@ Automatically detects your environment and launches:
 **Features:**
 - **Hierarchical category navigation** - Browse by Install, Tools, Exercises, Uninstall, or Custom Scripts
 - Text-based interactive menu with compact spacing
+- **Multi-Repository System** - Full repository management with custom manifest support
 - **Custom script addition** - Add your own scripts via 'a' command (with cancel support)
+- **Repository menu** - Access repository management via option 6
 - Works over SSH and headless systems
 - No GUI dependencies required
 - Full feature parity with GUI version
 - Search/filter functionality across all scripts
 
 **Navigation:**
-- **Main Menu:** Numbers 1-5 select categories
+- **Main Menu:** Numbers 1-6 select categories (includes Repository)
 - **Category View:** Numbers select scripts, `b` returns to main menu
 - **Commands:** `a` add custom script, `h` help, `s` search, `0` exit
+
+---
+
+## Multi-Repository System
+
+Version 2.1.0 introduces comprehensive multi-repository support for both GUI and CLI interfaces.
+
+### Repository Management
+
+#### GUI Repository Tab
+- **Repository TreeView**: Shows all scripts with cache status
+- **Update All**: Download available updates from configured repository
+- **Check Updates**: Refresh status from remote repository
+- **Download All**: Bulk download all scripts to cache
+- **Clear Cache**: Remove all cached scripts
+- **Settings Button**: Configure repository behavior and custom manifest URLs
+
+#### CLI Repository Menu (Option 6)
+```
+Script Repository Menu:
+1) Update All Scripts         - Download available updates
+2) Download All Scripts       - Bulk download all scripts
+3) View Cached Scripts        - List local cache contents
+4) Clear Script Cache         - Remove all cached files
+5) Check for Updates          - Manual refresh
+6) Repository Settings        - Configure behavior and custom repositories
+```
+
+### Custom Repository Configuration
+
+#### Setting Up Custom Repositories
+
+**GUI Configuration:**
+1. Open menu.py
+2. Click Repository tab
+3. Click Settings button
+4. Enter custom manifest URL in "Manifest URL" field
+5. Click OK to save
+
+**CLI Configuration:**
+```bash
+./menu.sh
+# Select: 6) Script Repository
+# Select: 6) Repository Settings
+# Select: m) Set Custom Manifest URL
+# Enter your repository URL
+```
+
+#### Custom Repository Format
+
+Your custom repository should have:
+
+```
+your-repo/
+├── manifest.json           # Required: Script definitions
+├── includes/              # Recommended: Shared functions
+│   └── main.sh
+└── scripts/               # Your scripts organized by category
+    ├── install-tool.sh
+    └── utility-script.sh
+```
+
+**Example manifest.json:**
+```json
+{
+  "version": "1.0.0",
+  "repository_url": "https://raw.githubusercontent.com/youruser/yourrepo/main",
+  "scripts": [
+    {
+      "id": "custom-installer",
+      "name": "Custom Software Installer",
+      "relative_path": "scripts/install-tool.sh",
+      "category": "install",
+      "checksum": "sha256:your_checksum_here"
+    }
+  ]
+}
+```
+
+### Cache-First Execution
+
+The system now uses cache-first execution for optimal performance:
+
+1. **Cache Check**: System checks if script is already cached locally
+2. **User Prompt**: If not cached, prompts user to download first  
+3. **Download**: Downloads script and includes to `~/.lv_linux_learn/script_cache/`
+4. **Execute**: Runs script from cache with proper includes path setup
+5. **Performance**: Subsequent executions use cached version
+
+### Repository Features
+
+- **Automatic Updates**: Configurable auto-check and auto-install
+- **Checksum Verification**: SHA256 validation for security
+- **Remote Includes**: Automatic download of includes directories
+- **Local Caching**: Fast execution with local cache
+- **Dual Interface**: Full support in both CLI and GUI
+- **Multi-Repository**: Switch between different script repositories
 
 ---
 

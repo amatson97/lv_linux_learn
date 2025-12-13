@@ -1,38 +1,47 @@
-# Custom Script Addition Feature
+# Custom Script System with Multi-Repository Support
 
 ## Overview
-The Custom Script Addition feature allows you to add your own scripts to the menu.py GUI without editing Python code. This makes the tool more flexible and personalized to your workflow.
+The Custom Script System allows you to add your own scripts and configure custom repositories in both GUI and CLI interfaces. This includes local custom scripts and complete custom script repositories with their own manifests and includes directories.
 
 ## Features
 
-### 1. Add Custom Scripts
-- Click the **+** button on any tab header (Install, Tools, Exercises, or Uninstall)
-- Fill in the script details:
+### 1. Local Custom Scripts
+- **GUI**: Click the **+** button on any tab header (Install, Tools, Exercises, or Uninstall)
+- **CLI**: Use "Custom Scripts" menu option (5) to add, edit, and manage scripts
+- Fill in script details:
   - **Script Name**: Display name that will appear in the list
   - **Script Path**: Full path to your executable script file, or browse with the **Browse...** button
-  - **Description**: Markdown-formatted description with formatting support:
-    - `<b>Bold</b>` for bold text
-    - `<tt>monospace</tt>` for code/file paths
-    - Bullet points with `•`
+  - **Description**: Markdown-formatted description with formatting support
   - **Requires sudo**: Check if your script needs sudo privileges
 
-### 2. Manage Custom Scripts
+### 2. Custom Repository Configuration
+- **Configure Custom Repositories**: Point to your own script libraries with manifests
+- **Remote Includes Support**: Automatic download of includes directories from custom repositories
+- **Multi-Repository Management**: Switch between different script repositories seamlessly
+- **GUI Configuration**: Repository tab → Settings button → Manifest URL field
+- **CLI Configuration**: Repository menu → Repository Settings → Custom Manifest URL
+
+### 3. Manage Custom Scripts
 - **Edit**: Right-click on any custom script (marked with 📝) and select "✏️ Edit Script"
 - **Delete**: Right-click and select "🗑️ Delete Script" (confirms before deletion)
 - **Run**: Double-click or click "Run Script in Terminal" (works just like built-in scripts)
+- **Cache-First Execution**: Repository scripts download to cache before execution
 
-### 3. Visual Indicators
+### 4. Visual Indicators
 - Custom scripts are marked with a 📝 emoji prefix
+- Repository scripts show cache status indicators
 - Built-in scripts have no prefix
 - Right-click menu only appears for custom scripts
 
 ## Storage
 
-Custom scripts are stored in:
-- **Configuration file**: `~/.lv_linux_learn/custom_scripts.json`
+Custom scripts and repository configuration are stored in:
+- **Local custom scripts**: `~/.lv_linux_learn/custom_scripts.json`
+- **Repository configuration**: `~/.lv_linux_learn/config.json` (includes custom_manifest_url)
+- **Repository cache**: `~/.lv_linux_learn/script_cache/` (downloaded scripts with includes)
 - **Scripts directory**: `~/.lv_linux_learn/scripts/` (for scripts you create within the GUI)
 
-The configuration is persistent across application restarts.
+All configuration is persistent across application restarts and shared between CLI and GUI.
 
 ## Example Usage
 
@@ -70,14 +79,77 @@ The configuration is persistent across application restarts.
 3. Confirm deletion
 4. Script is removed from the menu (actual file is NOT deleted)
 
+### Setting Up Custom Repositories
+
+#### Creating Your Repository Structure
+
+1. **Create repository structure**:
+```
+your-custom-repo/
+├── manifest.json
+├── includes/
+│   └── main.sh              # Shared functions
+└── scripts/
+    ├── my-installer.sh
+    └── my-tool.sh
+```
+
+2. **Create manifest.json**:
+```json
+{
+  "version": "1.0.0",
+  "repository_url": "https://raw.githubusercontent.com/youruser/yourrepo/main",
+  "scripts": [
+    {
+      "id": "my-custom-installer",
+      "name": "My Custom Installer",
+      "relative_path": "scripts/my-installer.sh",
+      "category": "install",
+      "checksum": "sha256:your_checksum_here"
+    }
+  ]
+}
+```
+
+3. **Configure in application**:
+- **GUI**: Repository tab → Settings → Manifest URL field
+- **CLI**: Main menu → Repository → Settings → Custom Manifest URL
+
+#### CLI Repository Configuration
+
+```bash
+./menu.sh
+# Select: 6) Script Repository
+# Select: 6) Repository Settings
+# Select: m) Set Custom Manifest URL
+# Enter: https://raw.githubusercontent.com/youruser/yourrepo/main/manifest.json
+```
+
+#### GUI Repository Configuration
+
+1. Open menu.py
+2. Click Repository tab
+3. Click Settings button
+4. Enter your manifest URL in "Manifest URL" field
+5. Click OK to save
+6. System automatically downloads your repository and includes
+
 ## Script Requirements
 
-For a script to work properly:
+### Local Custom Scripts
 1. **Must be executable**: `chmod +x your_script.sh`
 2. **Must have shebang**: First line should be `#!/bin/bash` (or appropriate interpreter)
 3. **Should use `green_echo`**: Source `includes/main.sh` for consistent output formatting
 
-## Example Custom Script Template
+### Repository Scripts
+1. **All above requirements plus**:
+2. **Manifest entry**: Must be defined in manifest.json with correct checksum
+3. **Repository structure**: Must follow repository_url + relative_path pattern
+4. **Includes support**: Can use shared functions from repository's includes/ directory
+
+## Example Custom Script Templates
+
+### Local Custom Script
 
 ```bash
 #!/bin/bash
@@ -96,6 +168,37 @@ green_echo "[*] Starting custom operation..."
 # Your script logic here
 
 green_echo "[✓] Operation completed!"
+read -p "Press Enter to continue..."
+```
+
+### Repository-Compatible Script
+
+```bash
+#!/bin/bash
+
+# Repository scripts can use includes/ directory
+# Works for both local repository and cached execution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INCLUDES_DIR="$SCRIPT_DIR/../includes"
+
+# Try multiple locations for includes
+if [ -f "$INCLUDES_DIR/main.sh" ]; then
+    source "$INCLUDES_DIR/main.sh"
+elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
+    source "$HOME/lv_linux_learn/includes/main.sh"
+else
+    echo "Warning: Could not find shared functions"
+fi
+
+green_echo "╔════════════════════════════════════════╗"
+green_echo "║   Repository Custom Script             ║"
+green_echo "╚════════════════════════════════════════╝"
+
+green_echo "[*] Running from repository with includes support..."
+
+# Your script logic here using shared functions
+
+green_echo "[✓] Repository script completed!"
 read -p "Press Enter to continue..."
 ```
 

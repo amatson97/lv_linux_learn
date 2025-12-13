@@ -1,7 +1,7 @@
 #!/bin/bash
-# Batch remux .mkv files (dual audio/soft subs) to MP4 for Plex NVIDIA Quadro M2000 NVENC hardware transcoding [web:34][web:60]
-# Ubuntu 24.04: sudo apt install ffmpeg nvidia-driver-550 nvidia-utils-550 [memory:6]
-# Quadro M2000 supports NVENC H.264/HEVC transcoding in Plex (Linux driver required) [web:34]
+# Batch remux .mkv files (dual audio/soft subs) to MP4 for Plex NVIDIA Quadro M2000 NVENC hardware transcoding
+# Ubuntu 24.04: sudo apt install ffmpeg nvidia-driver-550 nvidia-utils-550
+# Quadro M2000 supports NVENC H.264/HEVC transcoding in Plex (Linux driver required)
 # Nvidia docker tool git required for passing GPU through to docker container.
 # Usage: ./plex-batch-remux.sh /path/to/mkv/folder  (creates .mp4 alongside each .mkv)
 

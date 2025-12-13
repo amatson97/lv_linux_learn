@@ -3,45 +3,70 @@
 Purpose: Help an AI coding agent be productive in this repo by summarizing architecture, conventions, workflows, and safe constraints discovered in the codebase.
 
 1) Big picture
-- This repository is a curated collection of Ubuntu-focused setup and utility scripts (mostly Bash) and small helper apps. Primary user flows are interactive installers and desktop helpers invoked from `./menu.sh` or `./menu.py`.
-- Key responsibilities: install packages (`apt`), configure VPN/networking tools (ZeroTier, NordVPN), create desktop launchers, and provide utility tools under `tools/` and `scripts/`.
+- This repository is a curated collection of Ubuntu-focused setup and utility scripts (mostly Bash) with multi-repository support. Primary user flows are interactive installers and desktop helpers invoked from `./launcher.sh`, `./menu.sh` (CLI), or `./menu.py` (GUI).
+- **Version 2.1.0**: Multi-repository system supporting custom script libraries, remote includes, cache-first execution, and dual CLI/GUI interfaces with feature parity.
+- Key responsibilities: install packages (`apt`), configure VPN/networking tools, create desktop launchers, provide utility tools, and manage custom script repositories with automated distribution and caching.
 
 2) Entry points & important paths
-- Run interactive menu: `./launcher.sh` (auto-detects GUI vs CLI), `./menu.sh` (bash CLI), or `./menu.py` (Python GUI). These are the most common developer/test entry points.
-- Shared shell functions: `includes/main.sh` — prefer adding global helpers here and `source` it from scripts.
-- Main script directories: `scripts/`, `tools/`, `zerotier_tools/`, `docker-compose/`, `ai_fun/`, `bash_exercises/`, `uninstallers/`.
-- Documentation: `docs/` contains topic-specific guides (INSTALLATION.md, DOCKER.md, TROUBLESHOOTING.md, etc.). Main README.md is streamlined to <250 lines.
-- Custom scripts: `~/.lv_linux_learn/custom_scripts.json` stores user-added scripts (shared between menu.py and menu.sh).
+- **Primary interfaces**: `./launcher.sh` (auto-detects GUI vs CLI), `./menu.sh` (bash CLI), or `./menu.py` (Python GUI)
+- **Repository backends**: `includes/repository.sh` (bash), `lib/repository.py` (Python) — core multi-repository functionality
+- **Shared functions**: `includes/main.sh` — global helpers sourced by scripts, works with both local and cached execution
+- **Main directories**: `scripts/`, `tools/`, `zerotier_tools/`, `docker-compose/`, `ai_fun/`, `bash_exercises/`, `uninstallers/`
+- **Cache system**: `~/.lv_linux_learn/script_cache/` — downloaded scripts with includes support
+- **Configuration**: `~/.lv_linux_learn/config.json` — repository settings including custom manifest URLs
+- **Documentation**: Comprehensive docs in `docs/` with README.md kept <250 lines
+- **Custom scripts**: Local custom scripts in `~/.lv_linux_learn/custom_scripts.json`, repository scripts via manifest system
 
 3) Coding & style conventions (project-specific)
-- Shell flavor: scripts use `#!/bin/bash`. Use bash-compatible constructs (arrays, `[[ ... ]]`) rather than strict POSIX `sh` unless you intentionally change a script.
-- Logging: use the existing `green_echo` helper for status messages. Follow its pattern for consistent output.
-- Shared helpers: put reusable functions in `includes/main.sh`. New scripts should `source includes/main.sh` where they rely on shared helpers.
-- Execution assumptions: many scripts assume they're run from the repo root and sometimes reference `$HOME/lv_linux_learn`. Prefer absolute `$HOME` expansions and note where code uses repo-root-relative paths.
-- Desktop integration: desktop launchers and small helper scripts are created under `$HOME/.lv_connect` and `$HOME/Desktop`. Use `gio set <file> metadata::trusted true` when creating `.desktop` files.
+- **Shell flavor**: scripts use `#!/bin/bash`. Use bash-compatible constructs (arrays, `[[ ... ]]`) rather than strict POSIX `sh`
+- **Logging**: use `green_echo` helper for status messages. Available in both local and cached execution contexts
+- **Shared helpers**: put reusable functions in `includes/main.sh`. Repository-compatible scripts should handle both local and cached includes paths:
+  ```bash
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  INCLUDES_DIR="$SCRIPT_DIR/../includes"
+  if [ -f "$INCLUDES_DIR/main.sh" ]; then
+      source "$INCLUDES_DIR/main.sh"
+  elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
+      source "$HOME/lv_linux_learn/includes/main.sh"
+  fi
+  ```
+- **Execution contexts**: Scripts must work in both local repository and cached execution (`~/.lv_linux_learn/script_cache/`)
+- **Path handling**: Use absolute paths and detect execution context. Cached scripts run from cache directory with symlinked/downloaded includes
+- **Desktop integration**: launchers created under `$HOME/.lv_connect` and `$HOME/Desktop` with `gio set <file> metadata::trusted true`
 
 4) Safety, secrets & sensitive state
 - There are hard-coded tokens/IDs in scripts (example: `NORDVPN_TOKEN` in `includes/main.sh`). Do NOT expose, modify, or commit secrets. If a change requires a token, prompt the repo owner or add configuration to read it from environment variables instead.
 - Network identifiers (ZeroTier network IDs) may appear in legacy cleanup scripts. User-configured networks are the standard approach.
 
 5) Developer workflows & testing
-- Quick local test: make scripts executable then run the menu and the target script:
-
-  chmod +x scripts/*.sh includes/*.sh *.sh
-  ./menu.sh
-
-- For individual scripts: run `./scripts/foo.sh` or `bash scripts/foo.sh` and observe `green_echo` output and created artifacts in `$HOME`.
-- There are no automated tests — validate manually on an Ubuntu Desktop VM (the README recommends Ubuntu 24.04.3 LTS).
-- **Testing menu.sh with heredoc** (automated input):
+- **Quick local test**: Make scripts executable and test both interfaces:
   ```bash
+  chmod +x scripts/*.sh includes/*.sh *.sh
+  ./menu.sh  # CLI interface
+  ./menu.py  # GUI interface (if desktop available)
+  ```
+- **Repository system testing**: Test both local and cached execution:
+  ```bash
+  # Test repository menu (CLI)
   ./menu.sh << 'EOF'
-  5
-  d
-  2
-  y
+  6
+  6
+  b
   0
   EOF
+  
+  # Test cache-first execution by running uncached script
+  # Verify includes path resolution in cached context
   ```
+- **Multi-repository testing**: Configure custom repositories and test includes download:
+  ```bash
+  # Set custom manifest URL via environment variable
+  export CUSTOM_MANIFEST_URL="https://your-repo/manifest.json"
+  ./menu.sh  # Test with custom repository
+  ```
+- **Individual scripts**: Test in both contexts: `./scripts/foo.sh` and from cache directory
+- **Validation**: Manual testing on Ubuntu Desktop VM (24.04.3 LTS recommended)
+- **No automated tests**: Rely on manual validation and community testing
 
 6) Dependency & install patterns
 - Package manager: `apt` is used across scripts. When adding a new external dependency, update `README.md` with install steps and note any required `sudo` or group membership changes (docker, nordvpn, etc.).
@@ -72,39 +97,82 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 - `menu.sh`, `menu.py` — entry points and menu system architecture.
 - `scripts/`, `tools/`, `ai_fun/`, `uninstallers/` — examples of patterns and how installers/uninstallers are implemented.
 
-11) Menu system architecture (menu.sh)
-- **GitHub-hosted manifest**: Scripts loaded from public repository manifest.json with 1-hour caching
-- **Dynamic loading**: No hardcoded script arrays - all loaded from cached manifest
-- **Hierarchical navigation**: 5 main categories (Install, Tools, Exercises, Uninstall, Custom Scripts) with drill-down functionality
-- **Script counts**: Install (10), Tools (11), Exercises (10), Uninstall (12), Custom (user-defined)
-- **Display-to-index mapping**: `DISPLAY_TO_INDEX` array maps displayed numbers (1,2,3...) to actual array indices in category views
-- **Fetch mechanism**: `fetch_manifest()` downloads from GitHub with curl/wget fallback
+11) Multi-repository system architecture (v2.1.0)
+- **Multi-repository support**: Default GitHub manifest + custom repository configuration via `custom_manifest_url`
+- **Remote includes**: Automatic download of includes directories from repository_url in manifest
+- **Cache-first execution**: Scripts download to `~/.lv_linux_learn/script_cache/` before execution with user permission
+- **Dynamic loading**: Scripts loaded from manifest (local or remote) with category organization
+- **Navigation**: 6 main categories (Install, Tools, Exercises, Uninstall, Custom Scripts, Repository)
+- **Feature parity**: Identical functionality in CLI (`menu.sh`) and GUI (`menu.py`)
+- **Repository menu**: Full repository management (update, download, clear cache, settings)
+- **Custom manifest support**: Environment variable `CUSTOM_MANIFEST_URL` or config setting
+- **Includes management**: Smart includes resolution for both local and remote repositories
 
-12) GitHub-hosted architecture (v2.0.0+)
-- **Manifest source**: https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json
-- **Local cache**: ~/.lv_linux_learn/manifest.json with 1-hour TTL
-- **Update workflow**: Developer runs `./update_manifest.sh` to regenerate and push updates
-- **Both menus fetch**: menu.sh and menu.py both use fetch_manifest() functions
-- **Custom script system**: `~/.lv_linux_learn/custom_scripts.json` (shared between GUI and CLI)
-- **Key functions** in menu.sh:
-  - `fetch_manifest()` - Downloads from GitHub with caching
-  - `load_scripts_from_manifest()` - Loads from cached manifest.json
-  - `add_custom_script()` - Interactive CLI for adding scripts
-  - `edit_custom_script()` - Edit existing custom scripts  
-  - `delete_custom_script()` - Delete custom scripts with confirmation
-- Custom scripts display with 📝 emoji prefix in both interfaces
+12) Multi-repository architecture (v2.1.0)
+- **Default manifest**: https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json
+- **Custom repositories**: User-configurable via `custom_manifest_url` in config or `CUSTOM_MANIFEST_URL` env var
+- **Local cache**: `~/.lv_linux_learn/script_cache/` with downloaded scripts and includes
+- **Repository detection**: Automatic repository_url extraction from manifest for includes download
+- **Both interfaces**: CLI and GUI have identical multi-repository capabilities
+- **Key backend functions**:
+  - `fetch_manifest()` / `parse_manifest()` - Download from configured repository
+  - `ensure_remote_includes()` / `_ensure_remote_includes()` - Download remote includes with 24h caching
+  - `download_script()` / `download_script()` - Cache script with checksum validation
+  - `get_cached_script_path()` - Resolve cached script locations
+  - Cache management (clear, update, bulk operations)
+- **Custom scripts**: Both local (`custom_scripts.json`) and repository-based scripts supported
+- **Visual indicators**: 📝 for custom scripts, cache status for repository scripts
 
-13) Documentation strategy
-- **Main README.md**: Keep under 250 lines, focus on quick start, link to detailed docs
-- **Topic guides in docs/**: Comprehensive coverage of specific areas
-- **When adding features**: Update both README.md (brief mention) and relevant docs/ file (detailed guide)
-- **New topics**: Create new file in docs/ rather than bloating README.md
+13) Documentation strategy (v2.1.0)
+- **Main README.md**: Keep <250 lines, highlight multi-repository system, link to detailed guides
+- **Core documentation**: 
+  - `docs/SCRIPT_REPOSITORY.md` - Multi-repository system comprehensive guide
+  - `docs/CUSTOM_SCRIPTS.md` - Local and repository-based custom scripts
+  - `docs/ADVANCED.md` - Multi-repository development and enterprise patterns
+  - `docs/REPOSITORY_SECURITY.md` - Security considerations for multi-repository usage
+  - `docs/INSTALLATION.md` - Updated with repository configuration guidance
+- **Feature documentation**: Multi-repository features documented across multiple files
+- **Version consistency**: All documentation reflects v2.1.0 multi-repository capabilities
+- **AI guidance**: This copilot-instructions.md provides comprehensive development context
+- **Update pattern**: When modifying repository features, update README.md + relevant docs/ files
 
-14) Bash compatibility notes
+14) Multi-repository development patterns
+- **Creating custom repositories**: Use repository_url field in manifest.json to specify includes base URL
+- **Manifest format**: Include repository_url, proper checksums, and category organization
+- **Remote includes**: Custom repositories should provide includes/main.sh with shared functions
+- **Security considerations**: All repository URLs must use HTTPS, implement checksum validation
+- **Testing custom repositories**: Test with both local and lv_linux_learn system integration
+- **Repository configuration**: Support both environment variables and config file settings
+
+15) Cache system integration
+- **Cache directory**: `~/.lv_linux_learn/script_cache/` organized by category with includes/ subdirectory
+- **Cache-first execution**: Always prefer cached scripts with proper includes setup
+- **User permission**: Prompt users before downloading scripts to cache
+- **Includes handling**: Symlink preferred, copy fallback for includes directory setup
+- **Cache validation**: Check freshness, verify checksums, handle remote includes updates
+
+16) Repository backend architecture
+- **Bash backend**: `includes/repository.sh` with functions like `ensure_remote_includes()`, `download_script()`
+- **Python backend**: `lib/repository.py` with equivalent functionality for GUI
+- **Configuration**: `~/.lv_linux_learn/config.json` shared between CLI and GUI
+- **Feature parity**: Identical capabilities in both bash and Python implementations
+- **Error handling**: Graceful fallbacks from remote to local to cached includes
+
+17) Bash compatibility notes
 - Use `set -euo pipefail` in all new bash scripts
 - Avoid bash array slicing syntax `${array[@]:start:length}` - build new arrays instead
 - Arithmetic: use `count=$((count + 1))` instead of `((count++))` with strict mode
 - No `local` keyword outside functions (main script body uses regular variables)
 - Path handling: check if path starts with `/` for absolute paths before adding prefixes
+- Repository context: Handle both local repository execution and cached execution contexts
 
-If any section is unclear or you want me to expand examples for modifying a particular script (for example, adding a new installer to `scripts/` or a new category to menu.sh), tell me which file to update and I'll propose a concrete patch.
+18) AI agent development guidance
+- **System understanding**: This is a multi-repository script management system with caching
+- **Feature development**: Maintain feature parity between CLI (bash) and GUI (Python)
+- **Repository compatibility**: New scripts should work in both local and cached contexts
+- **Documentation updates**: Always update relevant docs/ files when adding features
+- **Security focus**: Multi-repository support requires careful security considerations
+- **Testing approach**: Test both local development and repository distribution scenarios
+- **Configuration management**: Respect existing configuration patterns and file locations
+
+If any section needs clarification or you want specific examples for modifying components (adding repository features, creating custom scripts, updating interfaces), specify the component and I'll provide concrete implementation patterns.

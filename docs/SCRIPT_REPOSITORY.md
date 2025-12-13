@@ -1,27 +1,29 @@
-# Script Repository System
+# Multi-Repository Script System
 
 ## Overview
 
-The Script Repository System provides automated script distribution, updates, and management through GitHub. Scripts are downloaded from the remote repository, cached locally, and automatically updated based on configurable intervals.
+The Multi-Repository Script System provides automated script distribution, updates, and management from multiple sources including GitHub and custom repositories. Scripts are downloaded from remote repositories, cached locally with their includes dependencies, and automatically updated based on configurable intervals.
 
-**Version:** 2.0.0  
+**Version:** 2.1.0  
 **Status:** Production Ready  
-**Architecture:** GitHub-hosted manifest with 1-hour caching
+**Architecture:** Multi-repository support with GitHub-hosted default manifest and custom manifest capability
 
-## Features
+## 🆕 Version 2.1.0 Features
 
-### Core Functionality
-- **Remote Script Distribution**: All scripts served from GitHub raw URLs
-- **Automatic Updates**: Configurable auto-check and auto-install
+### Multi-Repository Support
+- **🏗️ Custom Repositories**: Configure custom manifest URLs for your own script libraries
+- **📁 Remote Includes**: Automatic download of includes directories from custom repositories  
+- **🔄 Cache-First Execution**: Scripts download to cache before execution for optimal performance
+- **⚙️ Multi-Repository Management**: Switch between different script repositories seamlessly
+- **🔗 Repository URL Support**: Manifests can specify `repository_url` for includes and resources
+
+### Enhanced Features
+- **Remote Script Distribution**: Scripts served from GitHub or custom repository raw URLs
+- **Automatic Updates**: Configurable auto-check and auto-install with custom repository support
 - **Checksum Verification**: SHA256 validation for downloaded scripts
-- **Local Caching**: Scripts cached in `~/.lv_linux_learn/script_cache/`
-- **Manifest System**: Central registry of all scripts with metadata
-- **Dual Interface**: Full support in both CLI (menu.sh) and GUI (menu.py)
-
-### Automation
-- **Manual Updates**: Manifest updated via update_manifest.sh script
-- **Background Checks**: Periodic update checking based on interval
-- **Bulk Operations**: Download or update all scripts at once
+- **Local Caching**: Scripts and includes cached in `~/.lv_linux_learn/script_cache/`
+- **Manifest System**: Central registry supporting custom repository configurations
+- **Dual Interface**: Full support in both CLI (menu.sh) and GUI (menu.py) with feature parity
 
 ## Architecture
 
@@ -39,10 +41,11 @@ lv_linux_learn/
     └── generate-manifest.yml        # Manual-trigger workflow (disabled)
 
 ~/.lv_linux_learn/
-├── config.json                      # Repository configuration
+├── config.json                      # Repository configuration with custom_manifest_url
 ├── manifest.json                    # Cached manifest
 ├── manifest_meta.json               # Metadata (last fetch, etc.)
-├── script_cache/                    # Cached scripts by category
+├── script_cache/                    # Cached scripts and includes by category
+│   ├── includes/                    # Remote or symlinked includes directory
 │   ├── install/
 │   ├── tools/
 │   ├── exercises/
@@ -51,16 +54,14 @@ lv_linux_learn/
     └── repository.log               # Operation logs
 ```
 
-### Data Flow
+### Multi-Repository Data Flow
 
-1. **Manual Updates** via `update_manifest.sh` script (workflow disabled)
-2. Manifest committed to repository automatically
-3. **menu.sh/menu.py** checks for updates on startup (if enabled)
-4. **fetch_remote_manifest()** downloads latest manifest from GitHub
-5. **check_for_updates()** compares local vs remote script checksums
-6. **download_script()** fetches updated scripts to cache
-7. **verify_checksum()** validates downloaded files
-8. Scripts executed from cache location
+1. **Configuration**: User sets custom manifest URL or uses default GitHub repository
+2. **Manifest Fetch**: System downloads manifest from configured repository URL
+3. **Includes Management**: Downloads includes directory from `repository_url` in manifest
+4. **Script Distribution**: Scripts downloaded from repository with includes support
+5. **Cache-First Execution**: Scripts run from cache with proper includes path setup
+6. **Auto-Updates**: Periodic checks for updates from configured repository
 
 ## Configuration
 
@@ -70,6 +71,7 @@ lv_linux_learn/
 {
   "version": "1.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
+  "custom_manifest_url": "",
   "use_remote_scripts": true,
   "fallback_to_bundled": false,
   "auto_check_updates": true,
@@ -86,6 +88,7 @@ lv_linux_learn/
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `custom_manifest_url` | `""` | Custom repository manifest URL |
 | `use_remote_scripts` | `true` | Enable remote script fetching |
 | `auto_check_updates` | `true` | Check for updates on startup |
 | `auto_install_updates` | `true` | Automatically download updates |
@@ -93,40 +96,107 @@ lv_linux_learn/
 | `verify_checksums` | `true` | SHA256 validation |
 | `cache_timeout_days` | `30` | Days before cache expires |
 
+### Custom Repository Setup
+
+To use a custom repository, you need:
+
+1. **Manifest file** (`manifest.json`) with repository_url:
+```json
+{
+  "repository_url": "https://raw.githubusercontent.com/youruser/yourrepo/main",
+  "version": "1.0.0",
+  "scripts": [
+    {
+      "id": "custom-installer",
+      "name": "Custom Software Installer",
+      "relative_path": "scripts/custom-installer.sh",
+      "category": "install",
+      "checksum": "sha256_hash_here"
+    }
+  ]
+}
+```
+
+2. **Includes directory** with shared functions:
+```
+your-repo/
+├── manifest.json
+├── includes/
+│   └── main.sh              # Shared functions
+└── scripts/
+    └── custom-installer.sh  # Your scripts
+```
+
+3. **Configure the system** to use your repository:
+- CLI: Menu → Repository → Settings → Custom Manifest URL
+- GUI: Repository Tab → Settings → Manifest URL field
+
 ### Changing Settings
 
 **CLI (menu.sh)**:
 - Main Menu → 6) Script Repository → 6) Repository Settings
 - Toggle options with `r`, `c`, `i`
+- Set custom manifest URL with `m`
 - Change interval with `t`
 - Reset to defaults with `d`
 
 **GUI (menu.py)**:
 - Repository tab → Settings button
-- Dialog with toggles and input fields
+- Dialog with toggles, input fields, and manifest URL configuration
 - Changes saved immediately
 
 ## Usage
 
-### CLI (menu.sh)
+### Setting Up Custom Repositories
 
-#### Main Menu Options
-- **6) Script Repository** - Enter repository management
-- **u** - Manually check for updates
+#### CLI (menu.sh)
 
-#### Repository Menu
+1. **Access Repository Settings**:
+   ```bash
+   ./menu.sh
+   # Select: 6) Script Repository
+   # Select: 6) Repository Settings
+   ```
+
+2. **Configure Custom Manifest**:
+   - Enter your manifest URL when prompted
+   - Example: `https://raw.githubusercontent.com/youruser/yourrepo/main/manifest.json`
+
+3. **System will**:
+   - Download your manifest
+   - Download includes directory from `repository_url`
+   - Cache scripts with proper includes support
+   - Switch to your repository for script execution
+
+#### GUI (menu.py)
+
+1. **Open Repository Settings**:
+   - Click Repository tab
+   - Click Settings button
+
+2. **Set Manifest URL**:
+   - Enter URL in "Manifest URL" field
+   - Click "Reset to Default" to revert to GitHub repository
+   - Click OK to save
+
+3. **System will**:
+   - Automatically download and configure your repository
+   - Update includes and cache as needed
+   - Provide feedback in terminal
+
+### Repository Management
+
+#### CLI (menu.sh) Repository Menu
 ```
 1) Update All Scripts         - Download available updates
-2) Download All Scripts        - Bulk download all 42 scripts
-3) View Cached Scripts         - List local cache contents
-4) Clear Script Cache          - Remove all cached files
-5) Check for Updates           - Manual refresh
-6) Repository Settings         - Configure behavior
+2) Download All Scripts       - Bulk download all scripts
+3) View Cached Scripts        - List local cache contents
+4) Clear Script Cache         - Remove all cached files
+5) Check for Updates          - Manual refresh
+6) Repository Settings        - Configure behavior and custom repositories
 ```
 
-### GUI (menu.py)
-
-#### Repository Tab
+#### GUI (menu.py) Repository Tab
 - **TreeView**: Lists all scripts with:
   - Script Name
   - Category (Install, Tools, Exercises, Uninstall)
@@ -136,7 +206,19 @@ lv_linux_learn/
 - **Check Updates** button - Refresh status
 - **Download All** button - Bulk download
 - **Clear Cache** button - Remove cached files
-- **Settings** button - Open configuration dialog
+- **Settings** button - Open configuration dialog with custom manifest support
+
+### Cache-First Execution
+
+When running scripts from any interface:
+
+1. **Check Cache**: System checks if script is already cached
+2. **User Prompt**: If not cached, prompts user to download first
+3. **Download**: Downloads script and includes to cache
+4. **Execute**: Runs script from cache with proper includes path
+5. **Includes Support**: Automatic includes directory setup for cached scripts
+
+This ensures optimal performance and proper includes functionality for scripts from any repository.
 
 ### Programmatic Access (Bash)
 
