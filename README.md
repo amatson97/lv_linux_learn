@@ -83,6 +83,9 @@ docs/
 ├── CUSTOM_SCRIPTS.md        # Custom script addition guide
 ├── CUSTOM_SCRIPTS_QUICKSTART.md
 └── CUSTOM_SCRIPTS_IMPLEMENTATION.md
+
+dev_tools/
+└── README.md                # Development & maintenance tools
 ```
 
 ---
@@ -182,7 +185,7 @@ Contributions welcome! Please:
 4. Use `includes/main.sh` for shared functions
 5. Add `set -euo pipefail` to bash scripts
 6. Update documentation for changes
-7. Update manifest: `./scripts/generate_manifest.sh` (auto-updates every 30 min)
+7. Update manifest: `./dev_tools/update_manifest.sh` (recommended) or `./dev_tools/generate_manifest.sh`
 8. Submit a Pull Request
 
 ### Reporting Issues

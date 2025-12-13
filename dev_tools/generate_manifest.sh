@@ -1,10 +1,26 @@
 #!/bin/bash
 # Generate manifest.json from current scripts
-# This script scans all script directories and creates a comprehensive manifest
+# 
+# DEVELOPMENT TOOL - Used by contributors to update script manifest
+# 
+# Purpose:
+#   - Scans scripts/, tools/, bash_exercises/, uninstallers/ directories
+#   - Extracts metadata from script headers (description, version, requirements)
+#   - Generates SHA256 checksums for integrity validation
+#   - Creates manifest.json with all discovered script information
+#
+# Usage:
+#   ./dev_tools/generate_manifest.sh
+#
+# Output:
+#   Updates manifest.json in repository root
+#   Used by menu.sh and menu.py to populate script lists
+#
+# For publishing changes, use: ./dev_tools/update_manifest.sh
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../" && pwd)"
 MANIFEST_FILE="$REPO_ROOT/manifest.json"
 REPO_VERSION=$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "2.0.0")
 

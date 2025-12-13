@@ -1,6 +1,27 @@
 #!/bin/bash
 # Development tool to update manifest.json and push to GitHub
-# Used by maintainers and contributors to update the script manifest
+#
+# DEVELOPMENT TOOL - Complete manifest update workflow
+#
+# Purpose:
+#   - Regenerates manifest.json from current scripts
+#   - Shows detailed diff of changes (added/removed/modified scripts)
+#   - Provides interactive confirmation with safety checks
+#   - Commits and pushes changes to GitHub with descriptive messages
+#
+# Usage:
+#   ./dev_tools/update_manifest.sh
+#
+# Features:
+#   - Automatic backup/restore on cancellation
+#   - Change visualization (script counts, modifications)
+#   - Optional full diff preview
+#   - Descriptive commit messages
+#
+# Prerequisites:
+#   - Git repository with push access
+#   - jq installed (for JSON processing)
+#   - Generated scripts via ./dev_tools/generate_manifest.sh
 
 set -euo pipefail
 
@@ -46,10 +67,10 @@ fi
 log "Updating manifest.json..."
 
 # Generate new manifest
-if [ -f "scripts/generate_manifest.sh" ]; then
-  ./scripts/generate_manifest.sh
+if [ -f "dev_tools/generate_manifest.sh" ]; then
+  ./dev_tools/generate_manifest.sh
 else
-  error "Error: scripts/generate_manifest.sh not found"
+  error "Error: dev_tools/generate_manifest.sh not found"
   exit 1
 fi
 

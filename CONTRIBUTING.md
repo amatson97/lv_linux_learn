@@ -55,6 +55,7 @@ lv_linux_learn/
 ├── includes/         # Shared functions (main.sh)
 ├── zerotier_tools/   # ZeroTier VPN utilities
 ├── ai_fun/           # AI integration scripts
+├── dev_tools/        # Development & maintenance tools
 ├── docs/             # Documentation
 ├── menu.sh           # CLI menu (bash)
 ├── menu.py           # GUI menu (Python/GTK)
@@ -198,10 +199,13 @@ The manifest is auto-generated, but you should test it:
 
 ```bash
 # Generate updated manifest
-./scripts/generate_manifest.sh
+./dev_tools/generate_manifest.sh
 
 # Check your script appears correctly
 jq '.scripts[] | select(.id == "my-installer")' manifest.json
+
+# Or use the complete workflow (recommended)
+./dev_tools/update_manifest.sh
 ```
 
 ### 4. Test Thoroughly
@@ -308,6 +312,35 @@ fi
 green_echo "[*] Installing myapp..."
 sudo apt install -y myapp
 ```
+
+## 🛠️ Development Tools
+
+All development and maintenance tools are located in the [`dev_tools/`](dev_tools/) directory:
+
+### **Available Tools**
+- **`generate_manifest.sh`** - Generate manifest.json from current scripts
+- **`update_manifest.sh`** - Complete workflow: generate → diff → commit → push
+- **`README.md`** - Detailed documentation for all development tools
+
+### **Quick Development Workflow**
+```bash
+# 1. Add your script
+vim scripts/my_new_script.sh
+
+# 2. Test locally
+./scripts/my_new_script.sh
+
+# 3. Update and publish manifest
+./dev_tools/update_manifest.sh
+```
+
+### **Development Tool Features**
+- ✅ **Change visualization** - See exactly what scripts were added/removed/modified
+- ✅ **Safety checks** - Backup/restore, confirmation prompts
+- ✅ **Descriptive commits** - Auto-generated commit messages with change summaries
+- ✅ **JSON validation** - Ensures manifest integrity
+
+**📚 Full documentation:** See [`dev_tools/README.md`](dev_tools/README.md)
 
 ## 🧪 Testing
 
@@ -466,7 +499,9 @@ privilege escalation concerns.
 
 1. **Update manifest:**
    ```bash
-   ./scripts/generate_manifest.sh
+   ./dev_tools/update_manifest.sh  # Complete workflow (recommended)
+   # OR just generate without pushing:
+   ./dev_tools/generate_manifest.sh
    ```
 
 2. **Check for errors:**
