@@ -83,6 +83,37 @@ nslookup <domain>
 
 ---
 
+## Script Download & Cache Issues
+
+### Checksum Verification Errors
+
+If you see "checksum verification failed" errors when downloading scripts:
+
+**What it means:**
+- The downloaded script doesn't match the expected SHA256 checksum
+- This usually indicates the script was updated but the manifest hasn't been regenerated yet
+- It's a security feature to prevent corrupted or modified scripts from running
+
+**Solutions:**
+1. **Clear cache and retry:** Use "Clear Script Cache" in the Repository tab
+2. **Wait for manifest update:** Contributors typically update the manifest within hours
+3. **Check for local modifications:** Ensure you haven't modified scripts in the repository
+
+**CLI Commands:**
+```bash
+# Clear cache manually
+rm -rf ~/.lv_linux_learn/script_cache/
+
+# Check script integrity
+sha256sum scripts/example.sh
+```
+
+### Cache Management
+
+- **Cache location:** `~/.lv_linux_learn/script_cache/`
+- **Includes cache:** Automatically managed, refreshes every 24 hours
+- **Manual cache clear:** Use Repository tab or delete cache directory
+
 ## Additional Tips
 
 ```bash

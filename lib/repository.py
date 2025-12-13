@@ -8,6 +8,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import logging
 
+class ChecksumVerificationError(Exception):
+    """Raised when checksum verification fails"""
+    pass
+
 class ScriptRepository:
     """Manages remote script repository, caching, and updates"""
     
@@ -267,8 +271,8 @@ class ScriptRepository:
             if self.get_config_value("verify_checksums", True):
                 actual_checksum = hashlib.sha256(content).hexdigest()
                 if actual_checksum != checksum:
-                    logging.error(f"Checksum verification failed for {script_id}")
-                    return False
+                    logging.error(f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}")
+                    raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
             
             # Save script
             dest_path.parent.mkdir(parents=True, exist_ok=True)

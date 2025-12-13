@@ -40,10 +40,11 @@ import uuid
 # Import repository management
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 try:
-    from lib.repository import ScriptRepository
+    from lib.repository import ScriptRepository, ChecksumVerificationError
 except ImportError:
     print("Warning: Repository module not available")
     ScriptRepository = None
+    ChecksumVerificationError = Exception
 
 try:
     # optional nicer icons / pixbuf usage if available
@@ -257,7 +258,7 @@ def load_scripts_from_manifest(terminal_widget=None):
         terminal_output(f"[*] Processing {total_scripts} scripts...")
         
         # Initialize repository for cache management
-        from lib.repository import ScriptRepository
+        from lib.repository import ScriptRepository, ChecksumVerificationError
         repository = ScriptRepository()
         
         # Track scripts per category and cache status
@@ -1787,7 +1788,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     self.terminal.feed(f"  ✗ {script_name} (failed)\r\n".encode())
                     failed_count += 1
             except Exception as e:
-                self.terminal.feed(f"  ✗ {script_name} (error: {e})\r\n".encode())
+                error_msg = "checksum verification failed" if "Checksum verification failed" in str(e) else f"error: {e}"
+                self.terminal.feed(f"  ✗ {script_name} ({error_msg})\r\n".encode())
                 failed_count += 1
         
         self.terminal.feed(f"\x1b[32m[*] Download complete: {success_count} downloaded, {failed_count} failed\x1b[0m\r\n".encode())
@@ -2303,30 +2305,58 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Clear and repopulate install tab
             if hasattr(self, 'install_liststore'):
                 self.install_liststore.clear()
-                for i, script_path in enumerate(SCRIPTS):
-                    if i < len(SCRIPT_NAMES) and i < len(DESCRIPTIONS):
-                        self.install_liststore.append([SCRIPT_NAMES[i], script_path, DESCRIPTIONS[i], False, ""])
+                # Only add repository scripts if repository is enabled
+                if self.repo_enabled:
+                    for i, script_path in enumerate(SCRIPTS):
+                        if i < len(SCRIPT_NAMES) and i < len(DESCRIPTIONS):
+                            self.install_liststore.append([SCRIPT_NAMES[i], script_path, DESCRIPTIONS[i], False, ""])
+                # Add custom scripts
+                custom_scripts = self.custom_manager.get_scripts("install")
+                for script in custom_scripts:
+                    display_name = f"📝 {script['name']}"
+                    self.install_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
             
             # Clear and repopulate tools tab  
             if hasattr(self, 'tools_liststore'):
                 self.tools_liststore.clear()
-                for i, script_path in enumerate(TOOLS_SCRIPTS):
-                    if i < len(TOOLS_NAMES) and i < len(TOOLS_DESCRIPTIONS):
-                        self.tools_liststore.append([TOOLS_NAMES[i], script_path, TOOLS_DESCRIPTIONS[i], False, ""])
+                # Only add repository scripts if repository is enabled
+                if self.repo_enabled:
+                    for i, script_path in enumerate(TOOLS_SCRIPTS):
+                        if i < len(TOOLS_NAMES) and i < len(TOOLS_DESCRIPTIONS):
+                            self.tools_liststore.append([TOOLS_NAMES[i], script_path, TOOLS_DESCRIPTIONS[i], False, ""])
+                # Add custom scripts
+                custom_scripts = self.custom_manager.get_scripts("tools")
+                for script in custom_scripts:
+                    display_name = f"📝 {script['name']}"
+                    self.tools_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
             
             # Clear and repopulate exercises tab
             if hasattr(self, 'exercises_liststore'):
-                self.exercises_liststore.clear() 
-                for i, script_path in enumerate(EXERCISES_SCRIPTS):
-                    if i < len(EXERCISES_NAMES) and i < len(EXERCISES_DESCRIPTIONS):
-                        self.exercises_liststore.append([EXERCISES_NAMES[i], script_path, EXERCISES_DESCRIPTIONS[i], False, ""])
+                self.exercises_liststore.clear()
+                # Only add repository scripts if repository is enabled
+                if self.repo_enabled:
+                    for i, script_path in enumerate(EXERCISES_SCRIPTS):
+                        if i < len(EXERCISES_NAMES) and i < len(EXERCISES_DESCRIPTIONS):
+                            self.exercises_liststore.append([EXERCISES_NAMES[i], script_path, EXERCISES_DESCRIPTIONS[i], False, ""])
+                # Add custom scripts
+                custom_scripts = self.custom_manager.get_scripts("exercises")
+                for script in custom_scripts:
+                    display_name = f"📝 {script['name']}"
+                    self.exercises_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
             
             # Clear and repopulate uninstall tab
             if hasattr(self, 'uninstall_liststore'):
                 self.uninstall_liststore.clear()
-                for i, script_path in enumerate(UNINSTALL_SCRIPTS):
-                    if i < len(UNINSTALL_NAMES) and i < len(UNINSTALL_DESCRIPTIONS):
-                        self.uninstall_liststore.append([UNINSTALL_NAMES[i], script_path, UNINSTALL_DESCRIPTIONS[i], False, ""])
+                # Only add repository scripts if repository is enabled
+                if self.repo_enabled:
+                    for i, script_path in enumerate(UNINSTALL_SCRIPTS):
+                        if i < len(UNINSTALL_NAMES) and i < len(UNINSTALL_DESCRIPTIONS):
+                            self.uninstall_liststore.append([UNINSTALL_NAMES[i], script_path, UNINSTALL_DESCRIPTIONS[i], False, ""])
+                # Add custom scripts
+                custom_scripts = self.custom_manager.get_scripts("uninstall")
+                for script in custom_scripts:
+                    display_name = f"📝 {script['name']}"
+                    self.uninstall_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
                         
         except Exception as e:
             print(f"Error repopulating tab stores: {e}")
@@ -2480,23 +2510,33 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         
                         if script_id:
                             self.terminal.feed(f"\r\n\x1b[32m[*] Downloading {script_name}...\x1b[0m\r\n".encode())
-                            success = self.repository.download_script(script_id)
-                            if success:
-                                # Get the cached script path and run it
-                                cached_path = self.repository.get_cached_script_path(script_id)
-                                if cached_path and os.path.isfile(cached_path):
-                                    self._ensure_includes_available()
-                                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                                    command = f"cd '{cache_root}' && bash '{cached_path}'\n"
-                                    self.terminal.feed(f"\x1b[33m[*] Downloaded successfully! Executing cached script with includes support\x1b[0m\r\n".encode())
-                                    # Refresh UI to show updated cache status
-                                    GLib.timeout_add(500, self._refresh_ui_after_cache_change)
+                            try:
+                                success = self.repository.download_script(script_id)
+                                if success:
+                                    # Get the cached script path and run it
+                                    cached_path = self.repository.get_cached_script_path(script_id)
+                                    if cached_path and os.path.isfile(cached_path):
+                                        self._ensure_includes_available()
+                                        cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
+                                        command = f"cd '{cache_root}' && bash '{cached_path}'\n"
+                                        self.terminal.feed(f"\x1b[33m[*] Downloaded successfully! Executing cached script with includes support\x1b[0m\r\n".encode())
+                                        # Refresh UI to show updated cache status
+                                        GLib.timeout_add(500, self._refresh_ui_after_cache_change)
+                                    else:
+                                        # Fallback to local execution
+                                        command = f"bash '{abs_path}'\n"
+                                        self.terminal.feed(f"\x1b[31m[!] Cache issue, executing local script\x1b[0m\r\n".encode())
                                 else:
-                                    # Fallback to local execution
+                                    # Download failed, run local script
                                     command = f"bash '{abs_path}'\n"
-                                    self.terminal.feed(f"\x1b[31m[!] Cache issue, executing local script\x1b[0m\r\n".encode())
-                            else:
-                                # Download failed, run local script
+                                    self.terminal.feed(f"\x1b[31m[!] Download failed, executing local script\x1b[0m\r\n".encode())
+                            except Exception as e:
+                                if "Checksum verification failed" in str(e):
+                                    self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed - script may have been updated\x1b[0m\r\n".encode())
+                                    self.terminal.feed(f"\x1b[33m[!] Try clearing cache and downloading again\x1b[0m\r\n".encode())
+                                else:
+                                    self.terminal.feed(f"\x1b[31m[✗] Download error: {e}\x1b[0m\r\n".encode())
+                                # Fallback to local execution
                                 command = f"bash '{abs_path}'\n"
                                 self.terminal.feed(f"\x1b[31m[!] Download failed, executing local script\x1b[0m\r\n".encode())
                         else:
@@ -3084,7 +3124,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             else:
                 self.terminal.feed(f"\x1b[31m[✗] Failed to download {script_name}\x1b[0m\r\n".encode())
         except Exception as e:
-            self.terminal.feed(f"\x1b[31m[✗] Error downloading {script_name}: {e}\x1b[0m\r\n".encode())
+            if "Checksum verification failed" in str(e):
+                self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed for {script_name}\x1b[0m\r\n".encode())
+                self.terminal.feed(f"\x1b[33m[!] Script may have been updated since manifest was generated\x1b[0m\r\n".encode())
+            else:
+                self.terminal.feed(f"\x1b[31m[✗] Error downloading {script_name}: {e}\x1b[0m\r\n".encode())
         
         # Auto-complete after short delay
         GLib.timeout_add(1500, self._complete_terminal_operation)
@@ -3110,7 +3154,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             else:
                 self.terminal.feed(f"\x1b[31m[✗] Failed to update {script_name}\x1b[0m\r\n".encode())
         except Exception as e:
-            self.terminal.feed(f"\x1b[31m[✗] Error updating {script_name}: {e}\x1b[0m\r\n".encode())
+            if "Checksum verification failed" in str(e):
+                self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed for {script_name}\x1b[0m\r\n".encode())
+                self.terminal.feed(f"\x1b[33m[!] Script may have been updated since manifest was generated\x1b[0m\r\n".encode())
+            else:
+                self.terminal.feed(f"\x1b[31m[✗] Error updating {script_name}: {e}\x1b[0m\r\n".encode())
         
         # Auto-complete after short delay
         GLib.timeout_add(1500, self._complete_terminal_operation)
@@ -3148,6 +3196,28 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     def _create_menubar(self):
         """Create application menu bar"""
         menubar = Gtk.MenuBar()
+
+        # File Menu
+        file_menu = Gtk.Menu()
+        file_item = Gtk.MenuItem(label="File")
+        file_item.set_submenu(file_menu)
+        
+        # Refresh Scripts
+        self.refresh_item = Gtk.MenuItem(label="Refresh Scripts")
+        self.refresh_item.connect("activate", lambda w: self._refresh_all_script_data())
+        self.refresh_item.set_sensitive(self.repo_enabled)  # Enable/disable based on repository state
+        file_menu.append(self.refresh_item)
+        
+        # Separator
+        separator = Gtk.SeparatorMenuItem()
+        file_menu.append(separator)
+        
+        # Exit
+        exit_item = Gtk.MenuItem(label="Exit")
+        exit_item.connect("activate", lambda w: self.destroy())
+        file_menu.append(exit_item)
+        
+        menubar.append(file_item)
         
         # Settings Menu
         settings_menu = Gtk.Menu()
@@ -3174,6 +3244,36 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         menubar.append(help_item)
         
         return menubar
+
+    def _refresh_all_script_data(self):
+        """Refresh all script data from repository and local sources"""
+        try:
+            # Show progress in terminal
+            self.terminal.feed(b"\r\n\x1b[33m[*] Refreshing script data...\x1b[0m\r\n")
+            
+            # Refresh repository manifest if available
+            if self.repository:
+                self.terminal.feed(b"\x1b[33m[*] Updating repository manifest...\x1b[0m\r\n")
+                self.repository.fetch_remote_manifest()
+            
+            # Refresh custom scripts (reload from disk)
+            self.terminal.feed(b"\x1b[33m[*] Refreshing custom scripts...\x1b[0m\r\n")
+            # Custom manager automatically loads from disk on each get_scripts() call
+            
+            # Repopulate all tab stores
+            self._repopulate_tab_stores()
+            
+            # Refresh UI
+            if hasattr(self, '_refresh_ui_after_cache_change'):
+                GLib.timeout_add(100, self._refresh_ui_after_cache_change)
+            
+            self.terminal.feed(b"\x1b[32m[*] Script data refreshed successfully!\x1b[0m\r\n")
+            
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[✗] Error refreshing script data: {e}\x1b[0m\r\n".encode())
+        
+        # Auto-complete after short delay
+        GLib.timeout_add(1500, self._complete_terminal_operation)
 
     def _show_about_dialog(self):
         """Show about dialog with application information"""
@@ -3233,6 +3333,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Switch to the repository tab to make it visible
             self.notebook.set_current_page(insert_pos)
             
+        # Update menu item states based on repository status
+        if hasattr(self, 'refresh_item'):
+            self.refresh_item.set_sensitive(self.repo_enabled)
+        
         # Refresh all tab contents to update cache status indicators
         self._repopulate_tab_stores()
         
