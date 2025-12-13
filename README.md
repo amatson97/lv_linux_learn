@@ -40,6 +40,7 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 ### 🎯 Core Features
 - **Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
+- **Remote Repository** — Auto-updating script distribution from GitHub (v2.0.0+)
 - **Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
 - **Custom Scripts** — Add your own scripts without editing code
 - **Learning Exercises** — 8 interactive bash tutorials
@@ -176,13 +177,53 @@ Contributions welcome! Please:
 4. Use `includes/main.sh` for shared functions
 5. Add `set -euo pipefail` to bash scripts
 6. Update documentation for changes
-7. Submit a Pull Request
+7. Update manifest: `./scripts/generate_manifest.sh` (auto-updates every 30 min)
+8. Submit a Pull Request
 
 ### Reporting Issues
 - Use GitHub Issues for bugs/features
 - Include system info and error messages
 - Provide reproduction steps
 - Check existing issues first
+
+---
+
+## 🌐 Remote Repository System (v2.0.0+)
+
+**Automated script distribution from GitHub with local caching.**
+
+### Features
+- **Auto-updates**: Scripts automatically downloaded from GitHub
+- **Checksum Verification**: SHA256 validation for security
+- **Local Caching**: Fast execution with `~/.lv_linux_learn/script_cache/`
+- **Configurable**: Auto-check intervals, auto-install options
+- **Dual Interface**: Full CLI and GUI support
+
+### Quick Usage
+```bash
+# CLI: Access repository menu
+./menu.sh
+# Select: 6) Script Repository
+
+# GUI: Repository tab
+./menu.py
+# Click: Repository tab → Check Updates
+```
+
+### Configuration
+Edit settings via menu or directly:
+```bash
+# Location: ~/.lv_linux_learn/config.json
+# Toggle auto-updates, change intervals, etc.
+
+# CLI: Main Menu → 6 → 6 (Repository Settings)
+# GUI: Repository tab → Settings button
+```
+
+### Documentation
+- **Full Guide**: [docs/SCRIPT_REPOSITORY.md](docs/SCRIPT_REPOSITORY.md)
+- **Manifest**: [manifest.json](manifest.json) (auto-generated)
+- **Backend**: [includes/repository.sh](includes/repository.sh), [lib/repository.py](lib/repository.py)
 
 ---
 
