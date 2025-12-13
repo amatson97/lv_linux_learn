@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.1.0",
-  "last_updated": "2025-12-13T23:44:00+00:00",
+  "last_updated": "2025-12-13T23:47:47+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -50,7 +50,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -114,7 +114,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:00+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -162,7 +162,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -194,7 +194,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -258,7 +258,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -322,7 +322,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -338,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -354,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -370,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -386,7 +386,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -402,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -418,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:47+00:00"
     }
 ,
     {
@@ -434,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -450,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -466,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -482,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -493,12 +493,12 @@
       "file_name": "clean_desktop_launchers.sh",
       "relative_path": "uninstallers/clean_desktop_launchers.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/clean_desktop_launchers.sh",
-      "checksum": "sha256:7e0d0859b558487c031008b1739ebd4216c48358d10fced88628c65b42e81219",
+      "checksum": "sha256:ae0e236b9c742b2c477c598621693c8305511d375aa083efbc95cadd56e5f887",
       "description": "Clean Desktop Launchers and Helper Scripts",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -509,12 +509,12 @@
       "file_name": "uninstall_all_vpn.sh",
       "relative_path": "uninstallers/uninstall_all_vpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_all_vpn.sh",
-      "checksum": "sha256:766c301ef9b10b03ac4bb890de8b45395843e1099a5dd33c70c05bac927656df",
+      "checksum": "sha256:fbeaf4311c41c6293a8ca044c0a3e4154afa434a92c6a63d89685d1c69320ecb",
       "description": "Uninstall All VPN Tools",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -525,12 +525,12 @@
       "file_name": "uninstall_chrome.sh",
       "relative_path": "uninstallers/uninstall_chrome.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_chrome.sh",
-      "checksum": "sha256:48ff3f094d23fbfb972117af7438b424f390deac8e21218453a01d61be01b782",
+      "checksum": "sha256:46b5da7e4219f6f21416628e85c646ad244403e12e3599be45abd26d22d2103f",
       "description": "Uninstall Google Chrome",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -541,12 +541,12 @@
       "file_name": "uninstall_docker.sh",
       "relative_path": "uninstallers/uninstall_docker.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_docker.sh",
-      "checksum": "sha256:8320761ea38ebc3420078b4a88e23a8baecbed68f976d082c0ca32b6641b847b",
+      "checksum": "sha256:2cabc9dcde68e6000a80979266b88a3a151fd2e03f5ebec651ddb1ad2a534a3a",
       "description": "Uninstall Docker and Docker Compose",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -557,12 +557,12 @@
       "file_name": "uninstall_flatpak.sh",
       "relative_path": "uninstallers/uninstall_flatpak.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_flatpak.sh",
-      "checksum": "sha256:428ff30a17eaf5bb97cd9a4869ef7c55864b812f191ae252e7f870bca8522db3",
+      "checksum": "sha256:3463b4b58b9f980b880a1015e6280300c9732c96531de6679c86660c53c50dc8",
       "description": "Uninstall Flatpak",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -573,12 +573,12 @@
       "file_name": "uninstall_nextcloud.sh",
       "relative_path": "uninstallers/uninstall_nextcloud.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_nextcloud.sh",
-      "checksum": "sha256:369e081522b4f2d1f81c27581c48d674b7a1db180388bd3e8c38cffa7b09f92c",
+      "checksum": "sha256:748bd26013f7a0b16b7c7fb06dab7481c040c8b8ad10e419d54e53d5ec52c7f9",
       "description": "Uninstall Nextcloud Client",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -589,12 +589,12 @@
       "file_name": "uninstall_nordvpn.sh",
       "relative_path": "uninstallers/uninstall_nordvpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_nordvpn.sh",
-      "checksum": "sha256:99bdb3f66b98827ad492409b43699bf58c8fbeefcb9808f311a470427b699359",
+      "checksum": "sha256:a2b9e1ba4fa02a980d21e5f27d60ecd32de9188a7c51885d9c5426398216dd14",
       "description": "Uninstall NordVPN",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -605,12 +605,12 @@
       "file_name": "uninstall_sublime.sh",
       "relative_path": "uninstallers/uninstall_sublime.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_sublime.sh",
-      "checksum": "sha256:0cdb1476cc25d7428bf7649f679292c6c70d382a64663d8e9dbdc7ff16b9f485",
+      "checksum": "sha256:0092f862090e2658704d5be1b171f5e7b8b9ab5c4bcfcbaf7b3e9d177bc64519",
       "description": "Uninstall Sublime Text and Sublime Merge",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -621,12 +621,12 @@
       "file_name": "uninstall_vscode.sh",
       "relative_path": "uninstallers/uninstall_vscode.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_vscode.sh",
-      "checksum": "sha256:59d4b891be4e375dacaa51717eaab03b0b1b4c4b44094efb5e1a36bd0334f461",
+      "checksum": "sha256:7258a1102aed7b61c8bb1de20b949383127b06eebe41f1e6d46c20c1f735874c",
       "description": "Removes VS Code, optionally removes configuration and extensions.",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -637,12 +637,12 @@
       "file_name": "uninstall_wine.sh",
       "relative_path": "uninstallers/uninstall_wine.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_wine.sh",
-      "checksum": "sha256:1f2bff98b57ef8e07c92a3f351f3261f9b5638baa7fb8fb5017ebc1acacaffed",
+      "checksum": "sha256:442eb120bc459caac55f46638f270a5416335b0f99e706cca8dd8c5db6a44703",
       "description": "Uninstall Wine",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
 ,
     {
@@ -653,12 +653,12 @@
       "file_name": "uninstall_zerotier.sh",
       "relative_path": "uninstallers/uninstall_zerotier.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_zerotier.sh",
-      "checksum": "sha256:7535454fccbca2a21abd196ef87070dfefaba5ca61e4db51f006ac86f92f9693",
+      "checksum": "sha256:9d4ef6623d1905fd0d5593112c5e6bc6c529f287f52415b769b04db8a0da37ca",
       "description": "Uninstall ZeroTier VPN",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T23:44:01+00:00"
+      "last_modified": "2025-12-13T23:47:48+00:00"
     }
   ]
 }
