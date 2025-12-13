@@ -28,8 +28,5 @@ Thumbs.db
 README_OLD.md
 *.env
 
-# Generated files (managed by GitHub Actions)
+# Generated files (can be regenerated)
 manifest.json
-
-# Local development scripts
-update_manifest.sh

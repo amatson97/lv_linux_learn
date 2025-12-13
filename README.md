@@ -7,7 +7,7 @@
 ![Public](https://img.shields.io/badge/Status-Public-brightgreen)
 
 > **🎯 Target Environment:** Ubuntu Desktop 24.04.3 LTS  
-> **🔒 Security Scope:** Localhost development setup - not for production servers  
+> **🔒 Security Scope:** Personal machines and servers at your own risk - review scripts before execution  
 > **🌟 Public Repository:** Open source project welcoming contributions!
 
 ---

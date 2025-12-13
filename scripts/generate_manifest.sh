@@ -111,8 +111,8 @@ EOF
       
       local filename=$(basename "$script")
       
-      # Skip menu utility scripts (not actual uninstallers)
-      if [ "$filename" = "uninstall_menu.sh" ]; then
+      # Skip menu utility scripts and development tools
+      if [ "$filename" = "uninstall_menu.sh" ] || [ "$filename" = "generate_manifest.sh" ]; then
         continue
       fi
       
