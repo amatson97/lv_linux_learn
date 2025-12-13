@@ -27,6 +27,3 @@ Thumbs.db
 *_OLD.*
 README_OLD.md
 *.env
-
-# Generated files (can be regenerated)
-manifest.json
