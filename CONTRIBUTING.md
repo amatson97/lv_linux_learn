@@ -103,6 +103,48 @@ lv_linux_learn/
 - Network-exposed services without warnings
 - Breaking changes without discussion
 
+### 🆘 **Areas Where We Need Help**
+
+**High Priority - Infrastructure Improvements:**
+- [ ] **CI/CD Pipeline Setup** - GitHub Actions for automated testing
+  - Shellcheck validation for bash scripts
+  - Python syntax checking for menu.py and AI tools
+  - Documentation link validation
+  - Manifest.json validation
+- [ ] **Pre-commit Hooks** - Catch issues before commits
+  - Integration with shellcheck, pylint, markdownlint
+  - Secret scanning to prevent hardcoded credentials
+- [ ] **Issue Templates** - Better structured bug reporting
+  - Bug report template
+  - Feature request template
+  - Security issue template
+
+**Medium Priority - Testing & Quality:**
+- [ ] **Automated Testing Framework** - Replace manual VM testing
+  - Integration tests for menu systems
+  - Script execution validation
+  - Docker-based testing environment
+- [ ] **Code Quality Standards** - Consistent error handling
+  - Standardized exit codes across scripts
+  - Input validation helper functions
+  - Error message consistency
+- [ ] **Development Environment Guide** - Better contributor onboarding
+  - Local testing setup with Docker/VM
+  - Required tooling installation scripts
+  - Troubleshooting common development issues
+
+**Nice-to-Have - Community:**
+- [ ] **Contributor Recognition** - Acknowledge community efforts
+  - CONTRIBUTORS.md or all-contributors integration
+  - Skill-level based contribution guidelines
+  - Mentorship program for new contributors
+- [ ] **Advanced Features** - Menu and script enhancements
+  - Script search/filtering capabilities
+  - Better error recovery in menu systems
+  - Script dependency management
+
+**💡 Want to tackle any of these?** Comment on related issues or create a new issue to discuss your approach!
+
 ## 🔧 Development Workflow
 
 ### 1. Create a Branch
@@ -271,6 +313,8 @@ sudo apt install -y myapp
 
 ### Manual Testing Checklist
 
+**Current Process** (⚠️ **Help wanted: Let's automate this!**)
+
 - [ ] Script runs without errors on Ubuntu 24.04.3 LTS
 - [ ] Script appears in correct menu category
 - [ ] Description is clear and accurate
@@ -279,6 +323,14 @@ sudo apt install -y myapp
 - [ ] Uninstaller works (if applicable)
 - [ ] No hardcoded credentials
 - [ ] Error messages are helpful
+
+**💡 Automation Opportunities:**
+- **CI/CD Pipeline:** Could automate syntax checking, shellcheck validation
+- **Docker Testing:** Could spin up Ubuntu containers for testing
+- **Integration Tests:** Could automate menu navigation and script execution
+- **Security Scanning:** Could automatically detect hardcoded secrets
+
+**Want to help build these automations?** This would be a **major contribution** to the project!
 
 ### Test on Fresh VM
 
@@ -293,10 +345,46 @@ sudo apt install -y myapp
 
 ### Automated Tests
 
-Currently no automated test suite. Consider adding:
-- Shellcheck validation
-- Script syntax verification
-- Manifest generation tests
+**Current Status:** Manual testing only - **This is a key area where we need contributor help!**
+
+#### 🚀 **Automated Testing Opportunities (Contributors Welcome!)**
+
+**1. CI/CD Pipeline Setup** (High Impact)
+```yaml
+# Needed: .github/workflows/test.yml
+- Shellcheck for all *.sh files
+- Python syntax validation
+- Manifest.json schema validation
+- Documentation link checking
+- Security scanning (no hardcoded secrets)
+```
+
+**2. Pre-commit Hooks Integration**
+```yaml
+# Needed: .pre-commit-config.yaml
+- shellcheck-py for bash validation
+- python syntax checking
+- markdownlint for documentation
+- detect-secrets for credential scanning
+```
+
+**3. Integration Testing Framework**
+```bash
+# Ideas for implementation:
+- Docker-based Ubuntu testing environment
+- Menu navigation automation
+- Script execution validation
+- Cleanup verification (uninstallers)
+```
+
+**4. Current Manual Process** (What we want to automate)
+- Test each script on Ubuntu 24.04.3 LTS VM
+- Verify menu integration
+- Check idempotency (run twice safely)
+- Validate uninstallers
+- Confirm no hardcoded secrets
+
+**Want to help improve our testing?** Check existing issues tagged with `testing` or `ci-cd`, or create a new issue to discuss your approach!
 
 ## 📖 Documentation
 
@@ -443,11 +531,35 @@ Menu screenshot showing new script.
 - Both menus fetch updated list from GitHub
 - Users get update within 1 hour (cache TTL)
 
+## 🌟 Contributor Recognition
+
+We believe in recognizing all contributors! Here's how we celebrate your contributions:
+
+- **First-time contributors** get a warm welcome and guidance
+- **Regular contributors** may be invited as collaborators
+- **Significant improvements** (like CI/CD setup) will be highlighted in releases
+- **All contributions** are tracked in git history and GitHub insights
+
+### 📊 **Repository Contributor Readiness: 7/10**
+
+**What This Means:**
+- ✅ **Strong foundation** - Good documentation, security practices, code organization
+- ⚠️ **Missing pieces** - Automated testing, streamlined onboarding, quality checks
+- 🚀 **Your help can improve this score!** - CI/CD, testing, and process improvements needed
+
+**Most Impactful Contributions Right Now:**
+1. **GitHub Actions CI/CD setup** - Would dramatically improve code quality
+2. **Pre-commit hooks integration** - Prevents issues before they're committed
+3. **Testing framework** - Reduces manual validation burden
+4. **Issue templates** - Improves bug reporting quality
+5. **Development environment documentation** - Better contributor onboarding
+
 ## ❓ Questions?
 
-- **Issues:** Open a [GitHub issue](https://github.com/amatson97/lv_linux_learn/issues)
-- **Discussions:** Use [GitHub Discussions](https://github.com/amatson97/lv_linux_learn/discussions)
-- **Security:** See [SECURITY.md](SECURITY.md)
+- **General Questions:** Open a [GitHub issue](https://github.com/amatson97/lv_linux_learn/issues)
+- **Feature Discussions:** Use [GitHub Discussions](https://github.com/amatson97/lv_linux_learn/discussions)
+- **Security Issues:** See [SECURITY.md](SECURITY.md)
+- **Want to Help with Infrastructure?** Look for issues tagged `help-wanted`, `good-first-issue`, or `infrastructure`
 
 ## 🎓 Learning Resources
 
