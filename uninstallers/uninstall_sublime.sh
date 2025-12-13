@@ -118,65 +118,65 @@ else
   # Enhanced detection - check all possible locations
   merge_found=0
 
-# Check for smerge binary
-if command -v smerge &>/dev/null; then
-  green_echo "[*] Found smerge binary at: $(which smerge)"
-  merge_found=1
-fi
-
-# Check dpkg
-if dpkg -l sublime-merge 2>/dev/null | grep -q "^ii"; then
-  green_echo "[*] Found sublime-merge package (apt/dpkg)"
-  merge_found=1
-fi
-
-# Check snap
-if snap list sublime-merge &>/dev/null; then
-  green_echo "[*] Found sublime-merge snap package"
-  merge_found=1
-fi
-
-# Check flatpak with exact ID
-if command -v flatpak &>/dev/null; then
-  if flatpak list --app | grep -qi "sublime"; then
-    green_echo "[*] Found Sublime Merge in flatpak:"
-    flatpak list --app | grep -i "sublime"
+  # Check for smerge binary
+  if command -v smerge &>/dev/null; then
+    green_echo "[*] Found smerge binary at: $(which smerge)"
     merge_found=1
   fi
-fi
 
-# Check common installation directories
-for dir in /opt/sublime_merge /usr/share/sublime_merge /usr/local/sublime_merge "$HOME/.local/share/sublime_merge"; do
-  if [ -d "$dir" ]; then
-    green_echo "[*] Found Sublime Merge directory: $dir"
+  # Check dpkg
+  if dpkg -l sublime-merge 2>/dev/null | grep -q "^ii"; then
+    green_echo "[*] Found sublime-merge package (apt/dpkg)"
     merge_found=1
   fi
-done
 
-# Check desktop files
-for desktop_file in /usr/share/applications/sublime_merge.desktop "$HOME/.local/share/applications/sublime_merge.desktop"; do
-  if [ -f "$desktop_file" ]; then
-    green_echo "[*] Found desktop file: $desktop_file"
+  # Check snap
+  if snap list sublime-merge &>/dev/null; then
+    green_echo "[*] Found sublime-merge snap package"
     merge_found=1
   fi
-done
 
-if [ "$merge_found" -eq 1 ]; then
-  echo
-  green_echo "[*] Attempting removal..."
-  
-  # Try standard package removal
-  remove_package "sublime-merge"
-  
-  # Check for alternative package names in dpkg
-  if dpkg -l 2>/dev/null | grep -qi "sublime.*merge"; then
-    green_echo "[*] Found alternative Sublime Merge package..."
-    dpkg -l | grep -i "sublime.*merge" | awk '{print $2}' | while read -r pkg; do
-      green_echo "[*] Removing package: $pkg"
-      sudo apt remove --purge -y "$pkg"
-    done
-    sudo apt autoremove -y
+  # Check flatpak with exact ID
+  if command -v flatpak &>/dev/null; then
+    if flatpak list --app | grep -qi "sublime"; then
+      green_echo "[*] Found Sublime Merge in flatpak:"
+      flatpak list --app | grep -i "sublime"
+      merge_found=1
+    fi
   fi
+
+  # Check common installation directories
+  for dir in /opt/sublime_merge /usr/share/sublime_merge /usr/local/sublime_merge "$HOME/.local/share/sublime_merge"; do
+    if [ -d "$dir" ]; then
+      green_echo "[*] Found Sublime Merge directory: $dir"
+      merge_found=1
+    fi
+  done
+
+  # Check desktop files
+  for desktop_file in /usr/share/applications/sublime_merge.desktop "$HOME/.local/share/applications/sublime_merge.desktop"; do
+    if [ -f "$desktop_file" ]; then
+      green_echo "[*] Found desktop file: $desktop_file"
+      merge_found=1
+    fi
+  done
+
+  if [ "$merge_found" -eq 1 ]; then
+    echo
+    green_echo "[*] Attempting removal..."
+    
+    # Try standard package removal
+    remove_package "sublime-merge"
+    
+    # Check for alternative package names in dpkg
+    if dpkg -l 2>/dev/null | grep -qi "sublime.*merge"; then
+      green_echo "[*] Found alternative Sublime Merge package..."
+      dpkg -l | grep -i "sublime.*merge" | awk '{print $2}' | while read -r pkg; do
+        green_echo "[*] Removing package: $pkg"
+        sudo apt remove --purge -y "$pkg"
+      done
+      sudo apt autoremove -y
+    fi
   
   # Remove flatpak with exact match
   if command -v flatpak &>/dev/null; then
@@ -233,6 +233,7 @@ if [ "$merge_found" -eq 1 ]; then
   fi
   
   green_echo "[+] Sublime Merge removal complete"
+  fi
 fi
 
 # Update package list
