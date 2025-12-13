@@ -73,26 +73,26 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 - `scripts/`, `tools/`, `ai_fun/`, `uninstallers/` — examples of patterns and how installers/uninstallers are implemented.
 
 11) Menu system architecture (menu.sh)
-- **Hierarchical navigation**: 5 main categories (Install, Tools, Exercises, Uninstall, Custom Scripts) with drill-down functionality.
-- **SCRIPTS array index ranges** (critical when adding new scripts):
-  - Install: 0-8 (9 scripts)
-  - Tools: 10-20 (11 scripts)
-  - Exercises: 22-29 (8 scripts)
-  - Uninstall: 31-41 (11 scripts)
-  - Custom: 43+ (dynamic, loaded from JSON)
-- **Important**: When adding scripts to SCRIPTS/DESCRIPTIONS arrays, update the index ranges in `show_menu()` function's case statement.
-- **Display-to-index mapping**: `DISPLAY_TO_INDEX` array maps displayed numbers (1,2,3...) to actual array indices in category views.
+- **GitHub-hosted manifest**: Scripts loaded from public repository manifest.json with 1-hour caching
+- **Dynamic loading**: No hardcoded script arrays - all loaded from cached manifest
+- **Hierarchical navigation**: 5 main categories (Install, Tools, Exercises, Uninstall, Custom Scripts) with drill-down functionality
+- **Script counts**: Install (10), Tools (11), Exercises (10), Uninstall (12), Custom (user-defined)
+- **Display-to-index mapping**: `DISPLAY_TO_INDEX` array maps displayed numbers (1,2,3...) to actual array indices in category views
+- **Fetch mechanism**: `fetch_manifest()` downloads from GitHub with curl/wget fallback
 
-12) Custom script system
-- **Storage**: `~/.lv_linux_learn/custom_scripts.json` (shared between GUI and CLI)
+12) GitHub-hosted architecture (v2.0.0+)
+- **Manifest source**: https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json
+- **Local cache**: ~/.lv_linux_learn/manifest.json with 1-hour TTL
+- **Update workflow**: Developer runs `./update_manifest.sh` to regenerate and push updates
+- **Both menus fetch**: menu.sh and menu.py both use fetch_manifest() functions
+- **Custom script system**: `~/.lv_linux_learn/custom_scripts.json` (shared between GUI and CLI)
 - **Key functions** in menu.sh:
-  - `load_custom_scripts()` - Appends custom scripts from JSON to SCRIPTS/DESCRIPTIONS arrays
-  - `reload_custom_scripts()` - Truncates arrays at index 42, then reloads (for instant updates)
-  - `add_custom_script()` - Interactive CLI for adding scripts (supports cancel at any prompt)
-  - `edit_custom_script()` - Edit existing custom scripts (GUI has right-click, CLI has 'e' command)
-  - `delete_custom_script()` - Delete custom scripts with confirmation (GUI has right-click, CLI has 'd' command)
-- **Pattern**: Always call `reload_custom_scripts()` after add/edit/delete operations for instant menu updates (no restart needed).
-- Custom scripts display with 📝 emoji prefix in both interfaces.
+  - `fetch_manifest()` - Downloads from GitHub with caching
+  - `load_scripts_from_manifest()` - Loads from cached manifest.json
+  - `add_custom_script()` - Interactive CLI for adding scripts
+  - `edit_custom_script()` - Edit existing custom scripts  
+  - `delete_custom_script()` - Delete custom scripts with confirmation
+- Custom scripts display with 📝 emoji prefix in both interfaces
 
 13) Documentation strategy
 - **Main README.md**: Keep under 250 lines, focus on quick start, link to detailed docs

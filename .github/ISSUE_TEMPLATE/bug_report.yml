@@ -1,0 +1,82 @@
+name: Bug Report
+description: File a bug report to help us improve
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 🐛
+        
+  - type: input
+    id: script-name
+    attributes:
+      label: Script Name
+      description: Which script is causing the issue?
+      placeholder: e.g., chrome_install.sh, menu.py
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: ubuntu-version
+    attributes:
+      label: Ubuntu Version
+      description: Which Ubuntu version are you using?
+      options:
+        - Ubuntu 24.04.3 LTS (recommended)
+        - Ubuntu 22.04 LTS
+        - Ubuntu 20.04 LTS
+        - Other (specify in description)
+    validations:
+      required: true
+      
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of what the bug is
+      placeholder: Tell us what went wrong!
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+      
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Run ./menu.sh
+        2. Select option X
+        3. See error...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Copy and paste any error messages or output
+      render: bash
+      
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please verify the following
+      options:
+        - label: I have read the [Contributing Guidelines](https://github.com/amatson97/lv_linux_learn/blob/main/CONTRIBUTING.md)
+          required: true
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I am using Ubuntu Desktop (not server)
+          required: true
+        - label: I ran the script with appropriate permissions (sudo if required)
+          required: false

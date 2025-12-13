@@ -1,0 +1,74 @@
+name: Security Issue
+description: Report a security vulnerability (for non-critical issues only)
+title: "[SECURITY] "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **IMPORTANT:** For critical security issues, please use [GitHub Security Advisories](https://github.com/amatson97/lv_linux_learn/security/advisories/new) instead of this public issue.
+        
+        Use this template for:
+        - Non-critical security improvements
+        - Security documentation issues
+        - General security discussions
+        
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      description: How would you rate this security concern?
+      options:
+        - Low (minor improvement suggestion)
+        - Medium (potential security issue)
+        - "High (use Security Advisory instead)"
+        - "Critical (use Security Advisory instead)"
+    validations:
+      required: true
+      
+  - type: input
+    id: affected-files
+    attributes:
+      label: Affected Files
+      description: Which files or scripts are affected?
+      placeholder: e.g., scripts/docker_install.sh, includes/main.sh
+    validations:
+      required: true
+      
+  - type: textarea
+    id: security-concern
+    attributes:
+      label: Security Concern
+      description: Describe the security issue or improvement
+      placeholder: What security concern did you identify?
+    validations:
+      required: true
+      
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could happen if this issue is exploited?
+      placeholder: Describe the potential security impact
+    validations:
+      required: true
+      
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Fix
+      description: Do you have suggestions for addressing this?
+      placeholder: How could this be improved or fixed?
+      
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      description: Please confirm the following
+      options:
+        - label: This is NOT a critical vulnerability (I would use Security Advisory for those)
+          required: true
+        - label: I have not included sensitive information in this public issue
+          required: true
+        - label: I have reviewed the [Security Policy](https://github.com/amatson97/lv_linux_learn/blob/main/SECURITY.md)
+          required: true

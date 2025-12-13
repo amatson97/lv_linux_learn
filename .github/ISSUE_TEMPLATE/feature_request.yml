@@ -1,0 +1,75 @@
+name: Feature Request
+description: Suggest a new script or feature
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! 🚀
+        
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New Installation Script
+        - New Utility Tool
+        - Menu Enhancement
+        - Documentation Improvement
+        - Learning Exercise
+        - Other
+    validations:
+      required: true
+      
+  - type: input
+    id: software-name
+    attributes:
+      label: Software/Tool Name
+      description: If requesting an installer, what software?
+      placeholder: e.g., Firefox, Postman, IntelliJ IDEA
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear description of what you want to happen
+      placeholder: Describe the feature you'd like to see...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why would this feature be useful?
+      placeholder: How would this benefit Ubuntu Desktop users?
+    validations:
+      required: true
+      
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Ideas
+      description: Do you have ideas on how this could be implemented?
+      placeholder: |
+        Optional: Suggest implementation approaches
+        - Package manager (apt, snap, flatpak)
+        - Download from official source
+        - Configuration steps needed
+        
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Requirements
+      description: Please verify this feature fits the project scope
+      options:
+        - label: This is for Ubuntu Desktop (not server or other distros)
+          required: true
+        - label: This is for localhost development (not production servers)
+          required: true
+        - label: I have checked this doesn't already exist
+          required: true
+        - label: This follows security best practices (no hardcoded credentials)
+          required: true

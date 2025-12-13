@@ -6,7 +6,7 @@ The Script Repository System provides automated script distribution, updates, an
 
 **Version:** 2.0.0  
 **Status:** Production Ready  
-**Architecture:** GitHub-based with local caching
+**Architecture:** GitHub-hosted manifest with 1-hour caching
 
 ## Features
 
@@ -19,7 +19,7 @@ The Script Repository System provides automated script distribution, updates, an
 - **Dual Interface**: Full support in both CLI (menu.sh) and GUI (menu.py)
 
 ### Automation
-- **GitHub Actions**: Auto-generates manifest every 30 minutes
+- **Manual Updates**: Manifest updated via update_manifest.sh script
 - **Background Checks**: Periodic update checking based on interval
 - **Bulk Operations**: Download or update all scripts at once
 
@@ -36,7 +36,7 @@ lv_linux_learn/
 ├── menu.sh                          # CLI with repository integration
 ├── menu.py                          # GUI with repository integration
 └── .github/workflows/
-    └── generate-manifest.yml        # Auto-manifest generation
+    └── generate-manifest.yml        # Manual-trigger workflow (disabled)
 
 ~/.lv_linux_learn/
 ├── config.json                      # Repository configuration
@@ -53,7 +53,7 @@ lv_linux_learn/
 
 ### Data Flow
 
-1. **GitHub Actions** runs `generate_manifest.sh` every 30 minutes
+1. **Manual Updates** via `update_manifest.sh` script (workflow disabled)
 2. Manifest committed to repository automatically
 3. **menu.sh/menu.py** checks for updates on startup (if enabled)
 4. **fetch_remote_manifest()** downloads latest manifest from GitHub
@@ -252,7 +252,7 @@ git push
 ```
 
 **Automatic**:
-- GitHub Action runs every 30 minutes
+- Manual updates pushed to GitHub
 - Triggers on push to `scripts/`, `tools/`, `bash_exercises/`, `uninstallers/`
 - Manual trigger via GitHub Actions tab
 

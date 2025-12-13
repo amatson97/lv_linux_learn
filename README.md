@@ -3,10 +3,12 @@
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04.3%20LTS-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
+![Scripts](https://img.shields.io/badge/Scripts-44-blue)
+![Public](https://img.shields.io/badge/Status-Public-brightgreen)
 
-> **Target Environment:** Ubuntu Desktop 24.04.3 LTS  
-> **Scope:** Localhost environment setup - not for publicly exposed services  
-> **Prepared for:** Individuals known to me and is not to be shared beyond me and that individual
+> **🎯 Target Environment:** Ubuntu Desktop 24.04.3 LTS  
+> **🔒 Security Scope:** Localhost development setup - not for production servers  
+> **🌟 Public Repository:** Open source project welcoming contributions!
 
 ---
 
@@ -39,14 +41,15 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 ## 📚 What's Inside
 
 ### 🎯 Core Features
-- **Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
-- **Remote Repository** — Auto-updating script distribution from GitHub (v2.0.0+)
-- **Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
-- **Custom Scripts** — Add your own scripts without editing code
-- **Learning Exercises** — 8 interactive bash tutorials
-- **Utility Tools** — File conversion, extraction, and system utilities
-- **AI Integration** — Perplexity CLI with streaming and context support
-- **Network Tools** — ZeroTier VPN monitoring and management
+- **🖥️ Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
+- **☁️ GitHub Integration** — Auto-updating script distribution from public repository
+- **📦 Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
+- **🔧 Custom Scripts** — Add your own scripts without editing code
+- **🎓 Learning Exercises** — Interactive bash tutorials for beginners
+- **🛠️ Utility Tools** — File conversion, extraction, and system utilities
+- **🤖 AI Integration** — Perplexity CLI with streaming and context support
+- **🌐 Network Tools** — ZeroTier VPN monitoring and management
+- **🔒 Security Focused** — Best practices for localhost development environments
 
 ### 📦 Installation Scripts
 Install common tools with one command:
@@ -234,6 +237,47 @@ Edit settings via menu or directly:
 MIT License - see [LICENSE](LICENSE) file for details
 
 ---
+
+## 🤝 Contributing
+
+This is a **public open-source project** welcoming contributions! 
+
+### Quick Contribute
+```bash
+# Fork repository
+gh repo fork amatson97/lv_linux_learn --clone
+
+# Create feature branch  
+git checkout -b feature/my-script
+
+# Add your script to appropriate directory
+# Follow the guidelines in CONTRIBUTING.md
+
+# Test and submit PR
+```
+
+### What We Need
+- 📦 **New installers** for popular Ubuntu software
+- 🛠️ **Utility scripts** for common tasks  
+- 🎓 **Learning exercises** for bash beginners
+- 📖 **Documentation** improvements
+- 🐛 **Bug fixes** and testing
+
+See [**CONTRIBUTING.md**](CONTRIBUTING.md) for detailed guidelines.
+
+## 📋 Project Policies
+
+- **🔒 [Security Policy](SECURITY.md)** — Vulnerability reporting & best practices
+- **🤝 [Contributing Guide](CONTRIBUTING.md)** — How to add scripts & features  
+- **📜 [Code of Conduct](CODE_OF_CONDUCT.md)** — Community standards
+
+## 🐛 Issues & Support
+
+- **🐛 Bug Reports:** [GitHub Issues](https://github.com/amatson97/lv_linux_learn/issues/new?template=bug_report.yml)
+- **✨ Feature Requests:** [GitHub Issues](https://github.com/amatson97/lv_linux_learn/issues/new?template=feature_request.yml)  
+- **🔒 Security Issues:** [Security Advisories](https://github.com/amatson97/lv_linux_learn/security/advisories/new)
+- **💬 Discussions:** [GitHub Discussions](https://github.com/amatson97/lv_linux_learn/discussions)
+- **📖 Troubleshooting:** [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## 🙏 Credits
 
