@@ -28,103 +28,69 @@ REPO_UPDATES_AVAILABLE=0
 # Search filter
 SEARCH_FILTER=""
 
-SCRIPTS=(
-  # Installation Scripts
-  "scripts/new_vpn.sh"
-  "scripts/chrome_install.sh"
-  "scripts/docker_install.sh"
-  "scripts/git_setup.sh"
-  "scripts/install_flatpak.sh"
-  "scripts/sublime_install.sh"
-  "scripts/vscode_install.sh"
-  "scripts/install_wine.sh"
-  "scripts/nextcloud_client.sh"
-  ""  # Separator
-  # Utility Tools
-  "tools/git_pull.sh"
-  "tools/git_push_changes.sh"
-  "tools/7z_extractor.sh"
-  "tools/7z_extractor_ram_disk.sh"
-  "tools/check_power_on_hours.sh"
-  "tools/convert_7z_to_xiso.sh"
-  "tools/extract_rar.sh"
-  "tools/flac_to_mp3.sh"
-  "tools/plex-batch-remux.sh"
-  "tools/ubuntu_NetworkManager.sh"
-  "tools/zip_extractor_ram_disk.sh"
-  ""  # Separator
-  # Bash Exercises
-  "bash_exercises/hello_world.sh"
-  "bash_exercises/show_date.sh"
-  "bash_exercises/list_files.sh"
-  "bash_exercises/make_directory.sh"
-  "bash_exercises/print_numbers.sh"
-  "bash_exercises/simple_calculator.sh"
-  "bash_exercises/find_word.sh"
-  "bash_exercises/count_lines.sh"
-  ""  # Separator
-  # Uninstall Options
-  "uninstallers/uninstall_zerotier.sh"
-  "uninstallers/uninstall_chrome.sh"
-  "uninstallers/uninstall_docker.sh"
-  "uninstallers/uninstall_flatpak.sh"
-  "uninstallers/uninstall_sublime.sh"
-  "uninstallers/uninstall_vscode.sh"
-  "uninstallers/uninstall_wine.sh"
-  "uninstallers/uninstall_nextcloud.sh"
-  "uninstallers/uninstall_nordvpn.sh"
-  "uninstallers/uninstall_all_vpn.sh"
-  "uninstallers/clean_desktop_launchers.sh"
-)
+# Dynamic arrays loaded from manifest
+SCRIPTS=()
+DESCRIPTIONS=()
 
-DESCRIPTIONS=(
-  # Installation Scripts
-  "Installs ZeroTier VPN, joins Linux Learn Network, and removes conflicting VPNs."
-  "Installs Google Chrome web browser for fast, secure internet browsing."
-  "Installs Docker including engine, CLI, containerd, and plugins for container management."
-  "Sets up Git and GitHub CLI with configuration and authentication for source control."
-  "Installs Flatpak and Flathub repository for easy access to universal Linux apps."
-  "Installs Sublime Text and Sublime Merge editors for code editing and version control."
-  "Installs Visual Studio Code editor with IntelliSense, debugging, and extension support."
-  "Installs Wine/Winetricks and Microsoft Visual C++ 4.2 MFC runtime library (mfc42.dll)"
-  "Install Nextcloud Desktop client, via flatpak."
-  "── Utility Tools ──"
-  # Utility Tools
-  "Allows you to pull all changes down from the GitHub repository"
-  "Allows you to add, commit and push all your changes to GitHub repository"
-  "Extract all 7z archives in the current directory"
-  "Extract 7z archives to a RAM disk for faster processing"
-  "Check SMART power-on hours for drives in the system"
-  "Convert 7z compressed Xbox ISO images to XISO format"
-  "Extract all RAR archives in the current directory"
-  "Convert FLAC audio files to MP3 format"
-  "Batch remux video files for Plex compatibility"
-  "Configure NetworkManager on Ubuntu"
-  "Extract ZIP archives to a RAM disk"
-  "── Bash Exercises ──"
-  # Bash Exercises
-  "Classic first program with formatted output and educational explanations"
-  "Displays date/time in 5+ formats (ISO 8601, Unix timestamp, 12-hour, etc.)"
-  "Lists files with multiple ls options (basic, -lh, -lha) and hidden files"
-  "Creates directory with input validation and existence checking"
-  "Prints numbers 1-10 with loop examples (brace expansion, seq, C-style)"
-  "Performs all basic math (+, -, ×, ÷) with input validation and error handling"
-  "Searches files with grep, shows match count, lists available files first"
-  "Counts lines/words/characters/bytes, demonstrates all wc command options"
-  "── Uninstall ──"
-  # Uninstall Options
-  "Remove ZeroTier VPN (leaves networks first, removes service and configuration)"
-  "Remove Google Chrome (optional: remove user data and configuration)"
-  "⚠️  Remove Docker (warns about data loss, removes engine, CLI, and containers)"
-  "Remove Flatpak (optional: remove installed apps and Flathub repository)"
-  "Remove Sublime Text and Sublime Merge (optional: remove configuration)"
-  "Remove Visual Studio Code (optional: remove extensions and configuration)"
-  "Remove Wine and Winetricks (optional: remove Wine prefix and installed apps)"
-  "Remove Nextcloud Desktop Client (optional: remove sync configuration)"
-  "Remove NordVPN (disconnects, removes service, and group membership)"
-  "⚠️  Remove ALL VPN tools at once (ZeroTier, NordVPN, Hamachi)"
-  "Clean desktop launchers only (removes .lv_connect scripts and desktop icons)"
-)
+# Load scripts from manifest.json
+load_scripts_from_manifest() {
+  local manifest_path="$script_dir/manifest.json"
+  
+  # Use cached manifest if local doesn't exist
+  if [ ! -f "$manifest_path" ] && [ -f "$MANIFEST_FILE" ]; then
+    manifest_path="$MANIFEST_FILE"
+  fi
+  
+  if [ ! -f "$manifest_path" ]; then
+    green_echo "[!] Warning: No manifest.json found. Using empty script list."
+    return 1
+  fi
+  
+  # Check if jq is available
+  if ! command -v jq &> /dev/null; then
+    green_echo "[!] Warning: 'jq' not installed. Cannot load scripts from manifest."
+    return 1
+  fi
+  
+  # Clear arrays
+  SCRIPTS=()
+  DESCRIPTIONS=()
+  
+  # Load each category in order: install, tools, exercises, uninstall
+  local categories=("install" "tools" "exercises" "uninstall")
+  
+  for category in "${categories[@]}"; do
+    # Get scripts for this category
+    local category_scripts
+    category_scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .relative_path" "$manifest_path" 2>/dev/null)
+    
+    if [ -n "$category_scripts" ]; then
+      # Add scripts from this category
+      while IFS= read -r script_path; do
+        SCRIPTS+=("$script_path")
+        
+        # Get description for this script
+        local desc
+        desc=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .description" "$manifest_path" 2>/dev/null)
+        DESCRIPTIONS+=("$desc")
+      done <<< "$category_scripts"
+      
+      # Add separator after each category (except last)
+      if [ "$category" != "uninstall" ]; then
+        SCRIPTS+=("")
+        local separator_name
+        case "$category" in
+          install) separator_name="Utility Tools" ;;
+          tools) separator_name="Bash Exercises" ;;
+          exercises) separator_name="Uninstall" ;;
+        esac
+        DESCRIPTIONS+=("── $separator_name ──")
+      fi
+    fi
+  done
+  
+  return 0
+}
 
 # Load custom scripts from JSON and append to arrays
 load_custom_scripts() {
@@ -164,16 +130,17 @@ load_custom_scripts() {
 
 # Reload custom scripts (removes old custom scripts and reloads from JSON)
 reload_custom_scripts() {
-  # Remove all entries after index 41 (the last uninstaller)
-  # This removes the separator and all custom scripts
-  SCRIPTS=("${SCRIPTS[@]:0:42}")
-  DESCRIPTIONS=("${DESCRIPTIONS[@]:0:42}")
+  # Reload entire script list from manifest
+  load_scripts_from_manifest
   
-  # Reload custom scripts
+  # Then append custom scripts
   load_custom_scripts
 }
 
-# Initialize: load custom scripts
+# Initialize: load scripts from manifest
+load_scripts_from_manifest
+
+# Then append custom scripts
 load_custom_scripts
 
 # Initialize repository system
@@ -196,12 +163,23 @@ show_main_menu() {
   echo "╚════════════════════════════════════════════════════════════════════════════════╝"
   echo
   
-  # Count scripts in each category
+  # Count scripts in each category dynamically
   local install_count tools_count exercises_count uninstall_count custom_count
-  install_count=9
-  tools_count=11
-  exercises_count=8
-  uninstall_count=11
+  
+  # Count from manifest if available
+  if [ -f "$script_dir/manifest.json" ]; then
+    install_count=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
+    tools_count=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
+    exercises_count=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
+    uninstall_count=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
+  else
+    # Fallback to hardcoded counts if manifest not available
+    install_count=9
+    tools_count=11
+    exercises_count=10
+    uninstall_count=11
+  fi
+  
   custom_count=$(jq '.scripts | length' "$CUSTOM_SCRIPTS_JSON" 2>/dev/null || echo "0")
   
   echo "  Select a category:"
