@@ -151,415 +151,71 @@ REQUIRED_PACKAGES = ["bash", "zenity", "sudo"]
 OPTIONAL_PACKAGES = ["bat", "pygmentize", "highlight"]  # For syntax highlighting in View Script
 OPTIONAL_COMMANDS = ["batcat", "pygmentize", "highlight"]  # Actual commands to check for
 
-SCRIPTS = [
-    "scripts/new_vpn.sh",
-    "scripts/chrome_install.sh",
-    "scripts/docker_install.sh",
-    "scripts/git_setup.sh",
-    "scripts/install_flatpak.sh",
-    "scripts/sublime_install.sh",
-    "scripts/vscode_install.sh",
-    "scripts/install_wine.sh",
-    "scripts/nextcloud_client.sh",
-]
 
-SCRIPT_NAMES = [
-    "ZeroTier VPN",
-    "Google Chrome",
-    "Docker",
-    "Git & GitHub CLI",
-    "Flatpak & Flathub",
-    "Sublime Text & Merge",
-    "Visual Studio Code",
-    "Wine & Winetricks",
-    "Nextcloud Client",
-]
+def load_scripts_from_manifest():
+    """
+    Load scripts dynamically from manifest.json
+    Returns: tuple of (scripts_dict, names_dict, descriptions_dict)
+    Each dict has keys: 'install', 'tools', 'exercises', 'uninstall'
+    """
+    manifest_path = Path(__file__).parent / 'manifest.json'
+    
+    # Initialize empty structures
+    scripts = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
+    names = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
+    descriptions = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
+    
+    if not manifest_path.exists():
+        print(f"Warning: manifest.json not found at {manifest_path}")
+        return scripts, names, descriptions
+    
+    try:
+        with open(manifest_path, 'r') as f:
+            manifest = json.load(f)
+        
+        # Group scripts by category
+        for script in manifest.get('scripts', []):
+            category = script.get('category', 'tools')
+            if category not in scripts:
+                continue
+            
+            scripts[category].append(script.get('relative_path', ''))
+            names[category].append(script.get('name', ''))
+            
+            # Build description markup
+            desc = f"<b>{script.get('name', 'Unknown')}</b>\n"
+            desc += f"Script: <tt>{script.get('relative_path', '')}</tt>\n\n"
+            desc += script.get('description', 'No description available')
+            descriptions[category].append(desc)
+        
+        return scripts, names, descriptions
+        
+    except Exception as e:
+        print(f"Error loading manifest.json: {e}")
+        return scripts, names, descriptions
 
-TOOLS_SCRIPTS = [
-    "tools/git_pull.sh",
-    "tools/git_push_changes.sh",
-    "tools/7z_extractor.sh",
-    "tools/7z_extractor_ram_disk.sh",
-    "tools/check_power_on_hours.sh",
-    "tools/convert_7z_to_xiso.sh",
-    "tools/extract_rar.sh",
-    "tools/flac_to_mp3.sh",
-    "tools/plex-batch-remux.sh",
-    "tools/ubuntu_NetworkManager.sh",
-    "tools/zip_extractor_ram_disk.sh",
-]
 
-TOOLS_NAMES = [
-    "Git Pull Changes",
-    "Git Push Changes",
-    "Extract 7z Archives",
-    "Extract 7z to RAM Disk",
-    "Check Drive Power-On Hours",
-    "Convert 7z to XISO",
-    "Extract RAR Archives",
-    "Convert FLAC to MP3",
-    "Plex Batch Remux",
-    "NetworkManager Setup",
-    "Extract ZIP to RAM Disk",
-]
+# Load scripts from manifest.json (single source of truth)
+_SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest()
 
-EXERCISES_SCRIPTS = [
-    "bash_exercises/hello_world.sh",
-    "bash_exercises/show_date.sh",
-    "bash_exercises/list_files.sh",
-    "bash_exercises/make_directory.sh",
-    "bash_exercises/print_numbers.sh",
-    "bash_exercises/simple_calculator.sh",
-    "bash_exercises/find_word.sh",
-    "bash_exercises/count_lines.sh",
-]
+# Create flat arrays for backward compatibility
+SCRIPTS = _SCRIPTS_DICT.get('install', [])
+SCRIPT_NAMES = _NAMES_DICT.get('install', [])
 
-EXERCISES_NAMES = [
-    "Hello World",
-    "Show Date",
-    "List Files",
-    "Make Directory",
-    "Print Numbers",
-    "Simple Calculator",
-    "Find Word",
-    "Count Lines",
-]
+TOOLS_SCRIPTS = _SCRIPTS_DICT.get('tools', [])
+TOOLS_NAMES = _NAMES_DICT.get('tools', [])
 
-UNINSTALL_SCRIPTS = [
-    "uninstallers/uninstall_zerotier.sh",
-    "uninstallers/uninstall_nordvpn.sh",
-    "uninstallers/uninstall_docker.sh",
-    "uninstallers/uninstall_chrome.sh",
-    "uninstallers/uninstall_sublime.sh",
-    "uninstallers/uninstall_vscode.sh",
-    "uninstallers/uninstall_flatpak.sh",
-    "uninstallers/uninstall_wine.sh",
-    "uninstallers/uninstall_nextcloud.sh",
-    "uninstallers/remove_all_vpn.sh",
-    "uninstallers/uninstall_all_vpn.sh",
-    "uninstallers/clean_desktop_launchers.sh",
-]
+EXERCISES_SCRIPTS = _SCRIPTS_DICT.get('exercises', [])
+EXERCISES_NAMES = _NAMES_DICT.get('exercises', [])
 
-UNINSTALL_NAMES = [
-    "ZeroTier VPN",
-    "NordVPN",
-    "Docker",
-    "Google Chrome",
-    "Sublime Text",
-    "Visual Studio Code",
-    "Flatpak",
-    "Wine",
-    "Nextcloud Client",
-    "All VPN Clients (Legacy)",
-    "All VPN Tools",
-    "Desktop Launchers Only",
-]
+UNINSTALL_SCRIPTS = _SCRIPTS_DICT.get('uninstall', [])
+UNINSTALL_NAMES = _NAMES_DICT.get('uninstall', [])
 
-DESCRIPTIONS = [
-    "<b>Install ZeroTier VPN</b>\n"
-    "Script: <tt>scripts/new_vpn.sh</tt>\n\n"
-    "• Joins the Linux Learn Network using ZeroTier, a flexible virtual network.\n"
-    "• Removes conflicting VPN clients automatically.\n"
-    "• Provides secure peer-to-peer virtual networking.\n\n"
-    "More info:\n"
-    "  • <a href='https://www.zerotier.com/'>ZeroTier Official Site</a>\n",
-
-    "<b>Install Google Chrome</b>\n"
-    "Script: <tt>scripts/chrome_install.sh</tt>\n\n"
-    "• Adds official Google repository and keys to install stable Chrome.\n"
-    "• Ensures latest browser improvements and security.\n\n"
-    "Visit:\n"
-    "  • <a href='https://www.google.com/chrome/'>Google Chrome Official</a>",
-
-    "<b>Install Docker</b>\n"
-    "Script: <tt>scripts/docker_install.sh</tt>\n\n"
-    "• Installs Docker Engine, CLI, containerd, and plugins on Ubuntu.\n"
-    "• Supports container management and orchestration.\n\n"
-    "Docs:\n"
-    "  • <a href='https://docs.docker.com/engine/install/ubuntu/'>Official Docker Install Guide</a>",
-
-    "<b>Setup Git &amp; GitHub CLI</b>\n"
-    "Script: <tt>scripts/git_setup.sh</tt>\n\n"
-    "• Configures Git with user details.\n"
-    "• Authenticates GitHub CLI for repository management.\n\n"
-    "Learn more:\n"
-    "  • <a href='https://cli.github.com/manual/'>GitHub CLI Manual</a>\n"
-    "  • <a href='https://git-scm.com/doc'>Git Official Docs</a>",
-
-    "<b>Install Flatpak &amp; Flathub</b>\n"
-    "Script: <tt>scripts/install_flatpak.sh</tt>\n\n"
-    "• Sets up Flatpak package manager.\n"
-    "• Adds Flathub repository for universal Linux apps.\n\n"
-    "Find out:\n"
-    "  • <a href='https://flatpak.org/'>Flatpak Official Site</a>",
-
-    "<b>Install Sublime Text &amp; Merge</b>\n"
-    "Script: <tt>scripts/sublime_install.sh</tt>\n\n"
-    "• Installs Sublime Text editor and Sublime Merge Git client.\n"
-    "• Features GPU rendering, context-aware autocomplete, refreshed UI.\n\n"
-    "Explore:\n"
-    "  • <a href='https://www.sublimetext.com/'>Sublime Text</a>\n"
-    "  • <a href='https://www.sublimemerge.com/'>Sublime Merge</a>",
-
-    "<b>Install Visual Studio Code</b>\n"
-    "Script: <tt>scripts/vscode_install.sh</tt>\n\n"
-    "• Installs Microsoft Visual Studio Code editor.\n"
-    "• Features IntelliSense, debugging, Git integration, extensions.\n"
-    "• Optionally installs recommended extensions.\n\n"
-    "Learn more:\n"
-    "  • <a href='https://code.visualstudio.com/'>VS Code Official Site</a>\n"
-    "  • <a href='https://code.visualstudio.com/docs'>VS Code Documentation</a>",
-
-    "<b>Install Wine &amp; Winetricks</b>\n"
-    "Script: <tt>scripts/install_wine.sh</tt>\n\n"
-    "• Installs Wine compatibility layer and Winetricks scripts.\n"
-    "• Includes Microsoft Visual C++ 4.2 runtime setup.\n\n"
-    "More info:\n"
-    "  • <a href='https://wiki.winehq.org/Winetricks'>Winetricks Wiki</a>\n"
-    "  • <a href='https://www.winehq.org/'>WineHQ</a>",
-
-    "<b>Install Nextcloud Desktop Client</b>\n"
-    "Script: <tt>scripts/nextcloud_client.sh</tt>\n\n"
-    "• Installs Nextcloud sync client via Flatpak.\n"
-    "• Supports personal and enterprise Nextcloud servers.\n\n"
-    "More reading:\n"
-    "  • <a href='https://nextcloud.com/install/#install-clients'>Nextcloud Install Clients</a>\n"
-    "  • <a href='https://docs.nextcloud.com/'>Nextcloud Documentation</a>",
-]
-
-TOOLS_DESCRIPTIONS = [
-    "<b>Git Pull Changes</b>\n"
-    "Script: <tt>tools/git_pull.sh</tt>\n\n"
-    "• Pulls latest changes from remote repositories.\n"
-    "• Updates your local repository with changes from GitHub.\n\n"
-    "Details:\n"
-    "  • <a href='https://git-scm.com/docs/git-pull'>Git Pull Documentation</a>",
-
-    "<b>Git Push Changes</b>\n"
-    "Script: <tt>tools/git_push_changes.sh</tt>\n\n"
-    "• Stages, commits, and pushes local changes to remote repo.\n"
-    "• Interactive workflow for committing your work.\n\n"
-    "Learn:\n"
-    "  • <a href='https://git-scm.com/docs/git-push'>Git Push Documentation</a>",
-
-    "<b>Extract 7z Archives</b>\n"
-    "Script: <tt>tools/7z_extractor.sh</tt>\n\n"
-    "• Extracts all .7z files in the current directory.\n"
-    "• Removes original archives after successful extraction.\n"
-    "• <b>⚠️ Change directory first:</b> Use 'Go to Directory' button to navigate to your files.\n"
-    "• Works on files in current directory only.\n"
-    "• Requires: p7zip-full package.",
-
-    "<b>Extract 7z to RAM Disk</b>\n"
-    "Script: <tt>tools/7z_extractor_ram_disk.sh</tt>\n\n"
-    "• Extracts 7z archives using /dev/shm RAM disk for faster processing.\n"
-    "• <b>⚠️ Change directory first:</b> Use 'Go to Directory' button to navigate to your files.\n"
-    "• Accepts optional directory argument or uses current directory.\n"
-    "• Monitor RAM usage - uses system memory for extraction.\n"
-    "• Removes original archives after successful extraction.\n"
-    "• Requires: p7zip-full package.",
-
-    "<b>Check Drive Power-On Hours</b>\n"
-    "Script: <tt>tools/check_power_on_hours.sh</tt>\n\n"
-    "• Interactive SMART data viewer for system drives.\n"
-    "• Lists all available drives and lets you select which to check.\n"
-    "• Reports power-on hours, health status, and temperatures.\n"
-    "• Supports --debug flag for troubleshooting.\n"
-    "• Auto-installs smartmontools if missing.\n"
-    "• No directory change needed - works system-wide.",
-
-    "<b>Convert 7z to XISO</b>\n"
-    "Script: <tt>tools/convert_7z_to_xiso.sh</tt>\n\n"
-    "• Converts 7z compressed Xbox ROMs to ISO format.\n"
-    "• <b>⚠️ Requires configuration:</b> Edit source_dir and destination_dir paths in script.\n"
-    "• Uses extract-xiso binary (included in tools/extract-xiso/).\n"
-    "• Removes temporary extracted folders after conversion.\n"
-    "• Requires: p7zip-full package.\n"
-    "• Specialized tool for Xbox game preservation.",
-
-    "<b>Extract RAR Archives</b>\n"
-    "Script: <tt>tools/extract_rar.sh</tt>\n\n"
-    "• Recursively finds and extracts all .rar files.\n"
-    "• Accepts directory argument or uses current directory.\n"
-    "• <b>⚠️ Change directory first:</b> Use 'Go to Directory' button for current dir usage.\n"
-    "• Handles multi-part RAR archives automatically.\n"
-    "• Keeps original archives (does NOT delete them).\n"
-    "• Requires: unrar package.",
-
-    "<b>Convert FLAC to MP3</b>\n"
-    "Script: <tt>tools/flac_to_mp3.sh</tt>\n\n"
-    "• Converts all .flac files to .mp3 format.\n"
-    "• Accepts directory argument or uses current directory.\n"
-    "• <b>⚠️ Change directory first:</b> Use 'Go to Directory' button for current dir usage.\n"
-    "• Uses ffmpeg with 192k bitrate (adjustable in script).\n"
-    "• Preserves metadata (ID3v2.3 tags).\n"
-    "• Auto-installs ffmpeg if missing.\n"
-    "• MP3 files created alongside originals.",
-
-    "<b>Plex Batch Remux</b>\n"
-    "Script: <tt>tools/plex-batch-remux.sh</tt>\n\n"
-    "• Remuxes .mkv files to .mp4 for Plex NVENC hardware transcoding.\n"
-    "• <b>Usage:</b> Requires directory path argument (not current dir).\n"
-    "• Example: bash plex-batch-remux.sh /path/to/mkv/folder\n"
-    "• Optimized for NVIDIA Quadro M2000 GPU transcoding.\n"
-    "• Copies video/audio streams, converts subs to mov_text.\n"
-    "• Skips existing .mp4 files automatically.\n"
-    "• Requires: ffmpeg, nvidia-driver-550, nvidia-utils-550.",
-
-    "<b>NetworkManager Setup</b>\n"
-    "Script: <tt>tools/ubuntu_NetworkManager.sh</tt>\n\n"
-    "• Configures NetworkManager on Ubuntu systems.\n"
-    "• Fixes network configuration and connectivity issues.\n"
-    "• Useful for troubleshooting network problems.\n"
-    "• No directory change needed - system configuration tool.",
-
-    "<b>Extract ZIP to RAM Disk</b>\n"
-    "Script: <tt>tools/zip_extractor_ram_disk.sh</tt>\n\n"
-    "• Extracts all .zip files using /dev/shm RAM disk.\n"
-    "• <b>⚠️ Change directory first:</b> Use 'Go to Directory' button to navigate to your files.\n"
-    "• Creates temporary directory in /dev/shm for faster processing.\n"
-    "• Removes original archives after successful extraction.\n"
-    "• <b>Monitor RAM usage</b> - extracts to system memory.\n"
-    "• Requires: unzip package.",
-]
-
-EXERCISES_DESCRIPTIONS = [
-    "<b>Hello World</b>\n"
-    "Script: <tt>bash_exercises/hello_world.sh</tt>\n\n"
-    "• Classic first program with formatted output and explanations.\n"
-    "• Demonstrates basic bash script structure (shebang, echo).\n"
-    "• Explains what the script teaches as it runs.\n"
-    "• Perfect starting point for learning bash scripting.",
-
-    "<b>Show Date</b>\n"
-    "Script: <tt>bash_exercises/show_date.sh</tt>\n\n"
-    "• Displays current date and time in multiple formats.\n"
-    "• Shows 5+ different date format examples.\n"
-    "• Demonstrates ISO 8601, Unix timestamp, 12-hour, and custom formats.\n"
-    "• Learn date command options and formatting.",
-
-    "<b>List Files</b>\n"
-    "Script: <tt>bash_exercises/list_files.sh</tt>\n\n"
-    "• Lists files in current directory with multiple ls options.\n"
-    "• Demonstrates basic ls, ls -lh, and ls -lha.\n"
-    "• Shows working directory and file permissions.\n"
-    "• Practice working with directory listings and hidden files.",
-
-    "<b>Make Directory</b>\n"
-    "Script: <tt>bash_exercises/make_directory.sh</tt>\n\n"
-    "• Creates a new directory with interactive input.\n"
-    "• Shows user input validation and error handling.\n"
-    "• Checks if directory exists before creating.\n"
-    "• Verifies creation with ls -ld output.\n"
-    "• Learn directory creation and conditional logic.",
-
-    "<b>Print Numbers</b>\n"
-    "Script: <tt>bash_exercises/print_numbers.sh</tt>\n\n"
-    "• Prints numbers from 1 to 10 with formatted output.\n"
-    "• Demonstrates for loop using brace expansion {1..10}.\n"
-    "• Shows alternative loop syntax (seq, C-style).\n"
-    "• Practice basic iteration and loop variables in bash.",
-
-    "<b>Simple Calculator</b>\n"
-    "Script: <tt>bash_exercises/simple_calculator.sh</tt>\n\n"
-    "• Performs all basic math operations (+, -, ×, ÷).\n"
-    "• Validates numeric input with regex patterns.\n"
-    "• Handles division by zero gracefully.\n"
-    "• Demonstrates arithmetic expansion $(( )).\n"
-    "• Learn user input validation and mathematical operations.",
-
-    "<b>Find Word</b>\n"
-    "Script: <tt>bash_exercises/find_word.sh</tt>\n\n"
-    "• Searches for words in files using grep.\n"
-    "• Lists available text files before searching.\n"
-    "• Shows line numbers and match count.\n"
-    "• Case-insensitive searching with -i flag.\n"
-    "• File existence validation and error handling.\n"
-    "• Practice text searching and pattern matching.",
-
-    "<b>Count Lines</b>\n"
-    "Script: <tt>bash_exercises/count_lines.sh</tt>\n\n"
-    "• Counts lines, words, characters, and bytes in files.\n"
-    "• Lists available files before prompting for selection.\n"
-    "• Demonstrates all wc command options (-l, -w, -m, -c).\n"
-    "• File existence checking and validation.\n"
-    "• Learn conditional logic and file operations.",
-]
-
-UNINSTALL_DESCRIPTIONS = [
-    "<b>⚠️ Uninstall ZeroTier VPN</b>\n"
-    "Script: <tt>uninstallers/uninstall_zerotier.sh</tt>\n\n"
-    "• Leaves all ZeroTier networks before removal.\n"
-    "• Removes ZeroTier package and configurations.\n"
-    "• Cleans up sudoers file and desktop icons.",
-
-    "<b>⚠️ Uninstall NordVPN</b>\n"
-    "Script: <tt>uninstallers/uninstall_nordvpn.sh</tt>\n\n"
-    "• Disconnects active VPN connection.\n"
-    "• Disables Meshnet and logs out.\n"
-    "• Removes user from nordvpn group.\n"
-    "• Cleans up repository and desktop icons.",
-
-    "<b>⚠️ Uninstall Docker</b>\n"
-    "Script: <tt>uninstallers/uninstall_docker.sh</tt>\n\n"
-    "• <b>WARNING:</b> Removes all containers, images, volumes, and networks.\n"
-    "• Stops Docker service and removes packages.\n"
-    "• Cleans up Docker data directories.\n"
-    "• Removes user from docker group.",
-
-    "<b>⚠️ Uninstall Google Chrome</b>\n"
-    "Script: <tt>uninstallers/uninstall_chrome.sh</tt>\n\n"
-    "• Removes Chrome package and repository.\n"
-    "• Optionally removes user data and cache.\n"
-    "• Prompts before deleting personal data.",
-
-    "<b>⚠️ Uninstall Sublime Text</b>\n"
-    "Script: <tt>uninstallers/uninstall_sublime.sh</tt>\n\n"
-    "• Removes Sublime Text and Sublime Merge.\n"
-    "• Optionally removes user configuration.\n"
-    "• Cleans up repository and GPG keys.",
-
-    "<b>⚠️ Uninstall Visual Studio Code</b>\n"
-    "Script: <tt>uninstallers/uninstall_vscode.sh</tt>\n\n"
-    "• Removes VS Code package and repository.\n"
-    "• Optionally removes extensions and settings.\n"
-    "• Cleans up user data directories.",
-
-    "<b>⚠️ Uninstall Flatpak</b>\n"
-    "Script: <tt>uninstallers/uninstall_flatpak.sh</tt>\n\n"
-    "• Lists all installed Flatpak applications.\n"
-    "• Optionally removes all Flatpak apps.\n"
-    "• Removes Flatpak package and data directories.",
-
-    "<b>⚠️ Uninstall Wine</b>\n"
-    "Script: <tt>uninstallers/uninstall_wine.sh</tt>\n\n"
-    "• Removes Wine and Winetricks packages.\n"
-    "• Optionally removes Wine prefix (~/.wine).\n"
-    "• Cleans up Wine repository configurations.",
-
-    "<b>⚠️ Uninstall Nextcloud Client</b>\n"
-    "Script: <tt>uninstallers/uninstall_nextcloud.sh</tt>\n\n"
-    "• Removes Nextcloud Desktop client.\n"
-    "• Optionally removes user configuration.\n"
-    "• Cleans up sync data and cache.",
-
-    "<b>⚠️ Remove All VPN Clients (Legacy)</b>\n"
-    "Script: <tt>uninstallers/remove_all_vpn.sh</tt>\n\n"
-    "• Original script to remove ZeroTier, NordVPN, and Hamachi.\n"
-    "• Use 'Uninstall All VPN Tools' for newer implementation.",
-
-    "<b>⚠️ Uninstall All VPN Tools</b>\n"
-    "Script: <tt>uninstallers/uninstall_all_vpn.sh</tt>\n\n"
-    "• Removes ZeroTier, NordVPN, and LogMeIn Hamachi.\n"
-    "• Comprehensive cleanup of all VPN configurations.\n"
-    "• Recommended over legacy script.",
-
-    "<b>⚠️ Clean Desktop Launchers</b>\n"
-    "Script: <tt>uninstallers/clean_desktop_launchers.sh</tt>\n\n"
-    "• Removes all desktop icons created by install scripts.\n"
-    "• Cleans up ~/.lv_connect helper scripts.\n"
-    "• Does NOT uninstall applications, only launchers.",
-]
+# Create flat descriptions arrays for backward compatibility
+DESCRIPTIONS = _DESCRIPTIONS_DICT.get('install', [])
+TOOLS_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('tools', [])
+EXERCISES_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('exercises', [])
+UNINSTALL_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('uninstall', [])
 
 DARK_CSS = b"""
 /* Modern Light Theme */
