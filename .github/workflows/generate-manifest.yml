@@ -47,4 +47,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add manifest.json
           git commit -m "Auto-update manifest.json [skip ci]"
+          
+          # Pull latest changes and rebase our commit
+          git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git main || {
+            echo "Failed to pull, attempting force push..."
+          }
+          
+          # Push the changes
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
