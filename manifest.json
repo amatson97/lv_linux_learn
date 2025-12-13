@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.0.0",
-  "last_updated": "2025-12-13T18:15:42+00:00",
+  "last_updated": "2025-12-13T18:27:21+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:42+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:42+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -45,12 +45,12 @@
       "file_name": "generate_manifest.sh",
       "relative_path": "scripts/generate_manifest.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/generate_manifest.sh",
-      "checksum": "sha256:ba4e830ad2791c5c4c1874ebcd2c66de5af267b5e77f64c15f09b0d1c9c11b0d",
+      "checksum": "sha256:ef33ccc7cbb5f9124e79c2828dbbca67cf183ed919cffd955c782a7689668d88",
       "description": "Generate manifest.json from current scripts",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -114,7 +114,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -162,7 +162,23 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
+    }
+,
+    {
+      "id": "7z-extractor-ram-disk",
+      "name": "7z Extractor Ram Disk",
+      "category": "tools",
+      "version": "1.0.0",
+      "file_name": "7z_extractor_ram_disk.sh",
+      "relative_path": "tools/7z_extractor_ram_disk.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/7z_extractor_ram_disk.sh",
+      "checksum": "sha256:aee6e85f42d650afdf88ac4de4a6420801972421cbbf4928da59c487a2d0889e",
+      "description": "Extract 7z archives using RAM disk (/dev/shm) for improved performance",
+      "requires_sudo": false,
+      "dependencies": [],
+      "tags": [],
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -178,23 +194,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
-    }
-,
-    {
-      "id": "7z-extractor-ram-disk",
-      "name": "7z Extractor Ram Disk",
-      "category": "tools",
-      "version": "1.0.0",
-      "file_name": "7z_extractor_ram_disk.sh",
-      "relative_path": "tools/7z_extractor_ram_disk.sh",
-      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/7z_extractor_ram_disk.sh",
-      "checksum": "sha256:4bd705423f1ac4c07fbfeb6e143afb0fb227738fb4cd36a0c95c36d39d459c11",
-      "description": "filepath: /home/adam/lv_linux_learn/tools/7z_extractor_ram_disk.sh",
-      "requires_sudo": false,
-      "dependencies": [],
-      "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -253,12 +253,12 @@
       "file_name": "flac_to_mp3.sh",
       "relative_path": "tools/flac_to_mp3.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/flac_to_mp3.sh",
-      "checksum": "sha256:d87dc12859b3434887f57d30bfb917ed57fd061a7291cf94545e42a04363d089",
-      "description": "Requires ",
+      "checksum": "sha256:94af3340c2fdde49d9e135f5b314bb695781b413a8f625cb4db4c34301334f09",
+      "description": "Convert FLAC audio files to MP3 format using ffmpeg",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -317,12 +317,12 @@
       "file_name": "ubuntu_NetworkManager.sh",
       "relative_path": "tools/ubuntu_NetworkManager.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/ubuntu_NetworkManager.sh",
-      "checksum": "sha256:6aab24d854e59e7608ba6bf3f9c5820e643833b2a59bfac3315aafbb711eb626",
-      "description": "Step 1: Install NetworkManager if not present",
+      "checksum": "sha256:8d76b337c776c584a131772f4ea0927247bd64607191d29a92693ac6ee7a996f",
+      "description": "Migrate Ubuntu from netplan to NetworkManager for network configuration",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -338,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -354,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -370,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -386,7 +386,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -402,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -418,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -434,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -450,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -466,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -482,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -498,7 +498,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -514,7 +514,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -530,7 +530,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:43+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -546,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -562,7 +562,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -578,7 +578,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -594,7 +594,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:21+00:00"
     }
 ,
     {
@@ -610,7 +610,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
 ,
     {
@@ -626,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
 ,
     {
@@ -642,7 +642,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
 ,
     {
@@ -658,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
 ,
     {
@@ -674,7 +674,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
 ,
     {
@@ -690,7 +690,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T18:15:44+00:00"
+      "last_modified": "2025-12-13T18:27:22+00:00"
     }
   ]
 }

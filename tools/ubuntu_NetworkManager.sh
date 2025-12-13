@@ -1,4 +1,5 @@
 #!/bin/bash
+# Description: Migrate Ubuntu from netplan to NetworkManager for network configuration
 
 echo "Migrating netplan to NetworkManager..."
 

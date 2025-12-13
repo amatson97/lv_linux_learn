@@ -1,5 +1,6 @@
 #!/bin/bash
-# Requires 
+# Description: Convert FLAC audio files to MP3 format using ffmpeg
+# Requires: ffmpeg
 
 # Directory containing FLAC files; default to current directory if not specified
 DIR="${1:-.}"

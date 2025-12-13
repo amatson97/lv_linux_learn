@@ -26,15 +26,19 @@ get_description() {
   local script="$1"
   local desc=""
   
-  # Try multiple comment patterns
+  # Try "# Description:" pattern first
   desc=$(grep -m1 '^# Description:' "$script" 2>/dev/null | sed 's/^# Description: //' || echo "")
   
+  # If empty, try to find descriptive comment (skip common headers)
   if [ -z "$desc" ]; then
-    desc=$(grep -m1 '^# ' "$script" | head -1 | sed 's/^# //' || echo "")
+    desc=$(grep '^# ' "$script" | grep -v -E '^# (Author:|Version:|Date:|License:|Usage:|Requires:|filepath:|Step [0-9]+:)' | head -1 | sed 's/^# //' || echo "")
   fi
   
+  # Generate friendly description from filename if still empty
   if [ -z "$desc" ]; then
-    desc="Script: $(basename "$script" .sh)"
+    local name=$(basename "$script" .sh)
+    # Convert underscores to spaces and capitalize words
+    desc=$(echo "$name" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
   fi
   
   # Escape quotes for JSON

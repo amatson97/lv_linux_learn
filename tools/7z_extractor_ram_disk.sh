@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: /home/adam/lv_linux_learn/tools/7z_extractor_ram_disk.sh
+# Description: Extract 7z archives using RAM disk (/dev/shm) for improved performance
 # This script will extract all 7z files in a directory utilizing the /dev/shm ram disk.
 # Better performance for larger operations, just watch your RAM usage.
 
