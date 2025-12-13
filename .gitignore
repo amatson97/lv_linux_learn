@@ -27,3 +27,6 @@ Thumbs.db
 *_OLD.*
 README_OLD.md
 *.env
+
+# Generated files (managed by GitHub Actions)
+manifest.json
