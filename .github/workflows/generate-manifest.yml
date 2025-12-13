@@ -13,6 +13,9 @@ on:
     # Run every 30 minutes
     - cron: '*/30 * * * *'
 
+permissions:
+  contents: write
+
 jobs:
   generate:
     runs-on: ubuntu-latest
