@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.0.0",
-  "last_updated": "2025-12-13T16:36:37+00:00",
+  "last_updated": "2025-12-13T17:05:02+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -50,7 +50,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -109,12 +109,12 @@
       "file_name": "new_vpn.sh",
       "relative_path": "scripts/new_vpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/new_vpn.sh",
-      "checksum": "sha256:1a2980b3e1bb3cf6617713b4663f48f69f5a0768661153b9ffc4238e0dd5ffe5",
+      "checksum": "sha256:39094d854e5256720d8cd48fe4f9314643212f80aba0c3c29aad79180fb68a5d",
       "description": "Installs ZeroTier and joins the Linux Learn Network.",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -162,7 +162,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -194,7 +194,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -258,7 +258,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -322,7 +322,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -338,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -354,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -370,7 +370,23 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
+    }
+,
+    {
+      "id": "hello-test",
+      "name": "Hello Test",
+      "category": "exercises",
+      "version": "1.0.0",
+      "file_name": "hello_test.sh",
+      "relative_path": "bash_exercises/hello_test.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/hello_test.sh",
+      "checksum": "sha256:535482dd6372ae02bb8ec128fed8e4ef2aca518f973c00c7f95b4c1fba3f1ff2",
+      "description": "Simple test script for custom script addition",
+      "requires_sudo": false,
+      "dependencies": [],
+      "tags": [],
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -386,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -402,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -418,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:37+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -434,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -450,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -466,7 +482,23 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
+    }
+,
+    {
+      "id": "test-custom-script",
+      "name": "Test Custom Script",
+      "category": "exercises",
+      "version": "1.0.0",
+      "file_name": "test_custom_script.sh",
+      "relative_path": "bash_exercises/test_custom_script.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/test_custom_script.sh",
+      "checksum": "sha256:d6ef0a9d630b34a2c21e41588a5738e066ddf49681fba7edf3ac15190b342697",
+      "description": "Test custom script for demonstrating the Custom Script Addition feature",
+      "requires_sudo": false,
+      "dependencies": [],
+      "tags": [],
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -482,7 +514,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:02+00:00"
     }
 ,
     {
@@ -498,7 +530,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -514,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -530,7 +562,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -546,7 +578,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -562,7 +594,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -578,7 +610,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -594,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -610,7 +642,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -626,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -642,7 +674,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -658,7 +690,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
 ,
     {
@@ -674,7 +706,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T16:36:38+00:00"
+      "last_modified": "2025-12-13T17:05:03+00:00"
     }
   ]
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simple test script for custom script addition
-# Location: /home/adam/lv_linux_learn/examples/hello_test.sh
+# Location: /home/adam/lv_linux_learn/bash_exercises/hello_test.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../includes/main.sh"

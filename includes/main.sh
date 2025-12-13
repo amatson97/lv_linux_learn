@@ -39,7 +39,21 @@ set_permissions_zerotier_cli(){
 install_nord() {
   source ../includes/main.sh
   set -e
-  NORDVPN_TOKEN="e9f2ab08980aa661ca66f5dd8c36ec865c809b28a2fef24646c9741e20c1cf81"
+  
+  # Prompt user for NordVPN token if not set via environment
+  # Get your token at: https://my.nordaccount.com/dashboard/nordvpn/access-tokens/
+  if [ -z "${NORDVPN_TOKEN:-}" ]; then
+    green_echo "[*] NordVPN token required. Get yours at: https://my.nordaccount.com/dashboard/nordvpn/access-tokens/"
+    read -sp "Enter your NordVPN token: " NORDVPN_TOKEN
+    echo
+    
+    if [ -z "$NORDVPN_TOKEN" ]; then
+      green_echo "[!] Error: No token provided."
+      green_echo "Usage: Set NORDVPN_TOKEN environment variable or enter when prompted"
+      exit 1
+    fi
+  fi
+  
   VNC_PORT="3389"
   DESKTOP_LAUNCHER="$HOME/Desktop/ShowMeshnetInfo.desktop"
 

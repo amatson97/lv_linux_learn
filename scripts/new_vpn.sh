@@ -13,7 +13,17 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 source "$repo_root/includes/main.sh"
 
 # Constants
-readonly ZEROTIER_NETWORK=8bd5124fd60a971f
+# Set your ZeroTier Network ID here or via ZEROTIER_NETWORK_ID environment variable
+# Get your network ID from: https://my.zerotier.com/
+readonly ZEROTIER_NETWORK="${ZEROTIER_NETWORK_ID:-REPLACE_WITH_YOUR_NETWORK_ID}"
+
+# Validate network ID is configured
+if [ "$ZEROTIER_NETWORK" = "REPLACE_WITH_YOUR_NETWORK_ID" ]; then
+  green_echo "[!] Error: ZeroTier network ID not configured"
+  green_echo "[*] Set ZEROTIER_NETWORK_ID environment variable or edit this script (line 18)"
+  green_echo "[*] Get your network ID from: https://my.zerotier.com/"
+  exit 1
+fi
 
 # Main execution
 main() {

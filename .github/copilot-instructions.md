@@ -9,7 +9,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 2) Entry points & important paths
 - Run interactive menu: `./launcher.sh` (auto-detects GUI vs CLI), `./menu.sh` (bash CLI), or `./menu.py` (Python GUI). These are the most common developer/test entry points.
 - Shared shell functions: `includes/main.sh` — prefer adding global helpers here and `source` it from scripts.
-- Main script directories: `scripts/`, `tools/`, `zerotier_tools/`, `docker-compose/`, `ai_fun/`, `bash_exercises/`, `uninstallers/`, `examples/`.
+- Main script directories: `scripts/`, `tools/`, `zerotier_tools/`, `docker-compose/`, `ai_fun/`, `bash_exercises/`, `uninstallers/`.
 - Documentation: `docs/` contains topic-specific guides (INSTALLATION.md, DOCKER.md, TROUBLESHOOTING.md, etc.). Main README.md is streamlined to <250 lines.
 - Custom scripts: `~/.lv_linux_learn/custom_scripts.json` stores user-added scripts (shared between menu.py and menu.sh).
 

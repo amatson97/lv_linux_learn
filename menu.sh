@@ -937,7 +937,7 @@ show_help() {
   green_echo "DOCUMENTATION"
   echo "  • Quick Start: $script_dir/README.md"
   echo "  • Custom Scripts: $script_dir/docs/CUSTOM_SCRIPTS.md"
-  echo "  • Examples: $script_dir/examples/"
+  echo "  • Bash Exercises: $script_dir/bash_exercises/"
   echo
   green_echo "SUPPORT"
   echo "  • GitHub Issues: https://github.com/amatson97/lv_linux_learn/issues"

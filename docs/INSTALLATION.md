@@ -230,7 +230,7 @@ Your script must be:
 Try adding this test script to get started:
 ```bash
 # Use the included example
-/home/adam/lv_linux_learn/examples/test_custom_script.sh
+/home/adam/lv_linux_learn/bash_exercises/test_custom_script.sh
 ```
 
 **📖 Full Documentation:** [CUSTOM_SCRIPTS.md](CUSTOM_SCRIPTS.md)
