@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "repository_version": "2.0.0",
-  "last_updated": "2025-12-13T20:03:01+00:00",
+  "repository_version": "2.1.0",
+  "last_updated": "2025-12-13T23:13:39+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -50,7 +50,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -114,7 +114,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -162,7 +162,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:01+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -194,7 +194,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -258,7 +258,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -285,28 +285,12 @@
       "file_name": "plex-batch-remux.sh",
       "relative_path": "tools/plex-batch-remux.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/plex-batch-remux.sh",
-      "checksum": "sha256:62451118d8e77bb086caef517d30740d1bf17d38750f698310574914c17b3c3c",
-      "description": "Batch remux .mkv files (dual audio/soft subs) to MP4 for Plex NVIDIA Quadro M2000 NVENC hardware transcoding [web:34][web:60]",
+      "checksum": "sha256:e80d54489fee8ee7193283b4fa62ac3095b5513aa9148a3f840182ce21c106eb",
+      "description": "Batch remux .mkv files (dual audio/soft subs) to MP4 for Plex NVIDIA Quadro M2000 NVENC hardware transcoding",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
-    }
-,
-    {
-      "id": "test2",
-      "name": "Test2",
-      "category": "tools",
-      "version": "1.0.0",
-      "file_name": "test2.sh",
-      "relative_path": "tools/test2.sh",
-      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/test2.sh",
-      "checksum": "sha256:5341564a6d3db2da309e2444b6d74cbe7f0fa819545f53013b310ace75636804",
-      "description": "Interactive greeting script that displays custom messages based on user input",
-      "requires_sudo": false,
-      "dependencies": [],
-      "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -322,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -338,7 +322,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -354,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -370,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -386,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -402,7 +386,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -418,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:39+00:00"
     }
 ,
     {
@@ -434,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -450,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -466,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -482,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -498,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -514,7 +498,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -530,7 +514,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -546,7 +530,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -562,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -578,7 +562,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -594,7 +578,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -610,7 +594,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -626,7 +610,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -642,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -658,7 +642,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -674,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
 ,
     {
@@ -690,7 +674,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T20:03:02+00:00"
+      "last_modified": "2025-12-13T23:13:40+00:00"
     }
   ]
 }
