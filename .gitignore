@@ -30,3 +30,6 @@ README_OLD.md
 
 # Generated files (managed by GitHub Actions)
 manifest.json
+
+# Local development scripts
+update_manifest.sh
