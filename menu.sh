@@ -20,6 +20,10 @@ fi
 # Custom scripts configuration
 CUSTOM_SCRIPTS_DIR="$HOME/.lv_linux_learn"
 CUSTOM_SCRIPTS_JSON="$CUSTOM_SCRIPTS_DIR/custom_scripts.json"
+MANIFEST_CACHE="$CUSTOM_SCRIPTS_DIR/manifest.json"
+
+# Manifest URL
+MANIFEST_URL="https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
 
 # Repository system variables
 REPO_ENABLED=false
@@ -32,17 +36,52 @@ SEARCH_FILTER=""
 SCRIPTS=()
 DESCRIPTIONS=()
 
-# Load scripts from manifest.json
-load_scripts_from_manifest() {
-  local manifest_path="$script_dir/manifest.json"
+# Ensure cache directory exists
+mkdir -p "$CUSTOM_SCRIPTS_DIR"
+
+# Download manifest from GitHub if not cached or older than 1 hour
+fetch_manifest() {
+  local cache_age=0
   
-  # Use cached manifest if local doesn't exist
-  if [ ! -f "$manifest_path" ] && [ -f "$MANIFEST_FILE" ]; then
-    manifest_path="$MANIFEST_FILE"
+  if [ -f "$MANIFEST_CACHE" ]; then
+    cache_age=$(( $(date +%s) - $(stat -c %Y "$MANIFEST_CACHE" 2>/dev/null || echo 0) ))
   fi
   
+  # Fetch if cache doesn't exist or is older than 1 hour (3600 seconds)
+  if [ ! -f "$MANIFEST_CACHE" ] || [ $cache_age -gt 3600 ]; then
+    green_echo "[*] Fetching latest manifest from GitHub..."
+    if command -v curl &> /dev/null; then
+      curl -sS -f -o "$MANIFEST_CACHE" "$MANIFEST_URL" || {
+        green_echo "[!] Failed to fetch manifest from GitHub"
+        return 1
+      }
+    elif command -v wget &> /dev/null; then
+      wget -q -O "$MANIFEST_CACHE" "$MANIFEST_URL" || {
+        green_echo "[!] Failed to fetch manifest from GitHub"
+        return 1
+      }
+    else
+      green_echo "[!] Error: Neither curl nor wget is installed"
+      return 1
+    fi
+    green_echo "[+] Manifest updated successfully"
+  fi
+  
+  return 0
+}
+
+# Load scripts from manifest.json
+load_scripts_from_manifest() {
+  # Fetch latest manifest
+  fetch_manifest || {
+    green_echo "[!] Warning: Could not fetch manifest. Using cached version if available."
+  }
+  
+  local manifest_path="$MANIFEST_CACHE"
+  
   if [ ! -f "$manifest_path" ]; then
-    green_echo "[!] Warning: No manifest.json found. Using empty script list."
+    green_echo "[!] Error: No manifest file available (cached or downloaded)"
+    green_echo "[!] Please check your internet connection and try again"
     return 1
   fi
   
@@ -167,11 +206,11 @@ show_main_menu() {
   local install_count tools_count exercises_count uninstall_count custom_count
   
   # Count from manifest if available
-  if [ -f "$script_dir/manifest.json" ]; then
-    install_count=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
-    tools_count=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
-    exercises_count=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
-    uninstall_count=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$script_dir/manifest.json" 2>/dev/null || echo "0")
+  if [ -f "$MANIFEST_CACHE" ]; then
+    install_count=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    tools_count=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    exercises_count=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    uninstall_count=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
   else
     # Fallback to hardcoded counts if manifest not available
     install_count=9

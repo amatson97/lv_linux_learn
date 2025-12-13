@@ -29,6 +29,8 @@ import subprocess
 import webbrowser
 import shlex
 import json
+import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime
 import uuid
@@ -151,25 +153,69 @@ REQUIRED_PACKAGES = ["bash", "zenity", "sudo"]
 OPTIONAL_PACKAGES = ["bat", "pygmentize", "highlight"]  # For syntax highlighting in View Script
 OPTIONAL_COMMANDS = ["batcat", "pygmentize", "highlight"]  # Actual commands to check for
 
+# Manifest configuration
+MANIFEST_URL = "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+MANIFEST_CACHE_DIR = Path.home() / '.lv_linux_learn'
+MANIFEST_CACHE_FILE = MANIFEST_CACHE_DIR / 'manifest.json'
+MANIFEST_CACHE_MAX_AGE = 3600  # 1 hour in seconds
+
+
+def fetch_manifest():
+    """
+    Fetch manifest.json from GitHub repository
+    Returns Path to manifest file (cached)
+    """
+    # Ensure cache directory exists
+    MANIFEST_CACHE_DIR.mkdir(exist_ok=True)
+    
+    # Check if cache exists and is recent
+    if MANIFEST_CACHE_FILE.exists():
+        cache_age = (datetime.now().timestamp() - MANIFEST_CACHE_FILE.stat().st_mtime)
+        if cache_age < MANIFEST_CACHE_MAX_AGE:
+            return MANIFEST_CACHE_FILE
+    
+    # Fetch from GitHub
+    print(f"[*] Fetching latest manifest from GitHub...")
+    try:
+        with urllib.request.urlopen(MANIFEST_URL, timeout=10) as response:
+            manifest_data = response.read()
+        
+        # Save to cache
+        with open(MANIFEST_CACHE_FILE, 'wb') as f:
+            f.write(manifest_data)
+        
+        print(f"[+] Manifest updated successfully")
+        return MANIFEST_CACHE_FILE
+        
+    except urllib.error.URLError as e:
+        print(f"[!] Failed to fetch manifest from GitHub: {e}")
+        if MANIFEST_CACHE_FILE.exists():
+            print(f"[*] Using cached manifest")
+            return MANIFEST_CACHE_FILE
+        raise Exception("No manifest available (cannot fetch and no cache exists)")
+    except Exception as e:
+        print(f"[!] Error fetching manifest: {e}")
+        if MANIFEST_CACHE_FILE.exists():
+            print(f"[*] Using cached manifest")
+            return MANIFEST_CACHE_FILE
+        raise
+
 
 def load_scripts_from_manifest():
     """
-    Load scripts dynamically from manifest.json
+    Load scripts dynamically from manifest.json (fetched from GitHub)
     Returns: tuple of (scripts_dict, names_dict, descriptions_dict)
     Each dict has keys: 'install', 'tools', 'exercises', 'uninstall'
     """
-    manifest_path = Path(__file__).parent / 'manifest.json'
-    
     # Initialize empty structures
     scripts = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
     names = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
     descriptions = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
     
-    if not manifest_path.exists():
-        print(f"Warning: manifest.json not found at {manifest_path}")
-        return scripts, names, descriptions
-    
     try:
+        # Fetch manifest from GitHub (uses cache if recent)
+        manifest_path = fetch_manifest()
+        
         with open(manifest_path, 'r') as f:
             manifest = json.load(f)
         
