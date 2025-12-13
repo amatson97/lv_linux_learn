@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.0.0",
-  "last_updated": "2025-12-13T17:56:23+00:00",
+  "last_updated": "2025-12-13T18:15:21+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:23+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:23+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -45,12 +45,12 @@
       "file_name": "generate_manifest.sh",
       "relative_path": "scripts/generate_manifest.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/generate_manifest.sh",
-      "checksum": "sha256:b254dc53d06a9b9e95bacc9954bdd7c45c2c888cfa4bcb026f6c206d4b47eaeb",
+      "checksum": "sha256:ba4e830ad2791c5c4c1874ebcd2c66de5af267b5e77f64c15f09b0d1c9c11b0d",
       "description": "Generate manifest.json from current scripts",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:23+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -114,7 +114,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -162,7 +162,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -194,7 +194,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -258,7 +258,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -322,7 +322,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -338,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -354,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -370,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -386,7 +386,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -402,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:21+00:00"
     }
 ,
     {
@@ -418,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -434,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -450,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -466,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -482,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -498,7 +498,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -514,7 +514,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -530,7 +530,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -546,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -562,7 +562,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -578,7 +578,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -594,23 +594,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
-    }
-,
-    {
-      "id": "uninstall-menu",
-      "name": "Uninstall Menu",
-      "category": "uninstall",
-      "version": "1.0.0",
-      "file_name": "uninstall_menu.sh",
-      "relative_path": "uninstallers/uninstall_menu.sh",
-      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_menu.sh",
-      "checksum": "sha256:8f8d5e54f588e601f4dd95f8c7f218955cd600759fcf1e5ba93708b79c578478",
-      "description": "Interactive menu to uninstall tools installed by lv_linux_learn",
-      "requires_sudo": false,
-      "dependencies": [],
-      "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -626,7 +610,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -642,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -653,12 +637,12 @@
       "file_name": "uninstall_sublime.sh",
       "relative_path": "uninstallers/uninstall_sublime.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_sublime.sh",
-      "checksum": "sha256:9a2fc144facc28357316fec7959ad043ebee0ab3cc80996eaecc786b87a08d41",
+      "checksum": "sha256:0cdb1476cc25d7428bf7649f679292c6c70d382a64663d8e9dbdc7ff16b9f485",
       "description": "Uninstall Sublime Text and Sublime Merge",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -674,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -690,7 +674,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
 ,
     {
@@ -706,7 +690,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-13T17:56:24+00:00"
+      "last_modified": "2025-12-13T18:15:22+00:00"
     }
   ]
 }

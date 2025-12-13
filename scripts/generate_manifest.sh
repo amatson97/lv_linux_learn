@@ -106,6 +106,12 @@ EOF
       [ -f "$script" ] || continue
       
       local filename=$(basename "$script")
+      
+      # Skip menu utility scripts (not actual uninstallers)
+      if [ "$filename" = "uninstall_menu.sh" ]; then
+        continue
+      fi
+      
       local relative_path="${script#$REPO_ROOT/}"
       local checksum=$(sha256sum "$script" | awk '{print $1}')
       local script_id=$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-')
