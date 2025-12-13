@@ -9,6 +9,78 @@ user_in_nordvpn_group() {
   id -nG "$USER" | grep -qw "nordvpn"
 }
 
+# Prompt user for ZeroTier API token with instructions
+prompt_zerotier_token() {
+  local token="${ZEROTIER_API_TOKEN:-}"
+  
+  if [ -z "$token" ]; then
+    echo
+    green_echo "=== ZeroTier API Token Required ==="
+    echo
+    echo "To use this tool, you need a ZeroTier API token."
+    echo
+    echo "How to get your token:"
+    echo "  1. Log in to ZeroTier Central: https://my.zerotier.com/"
+    echo "  2. Click your profile icon (top-right)"
+    echo "  3. Go to 'Account' → 'API Access Tokens'"
+    echo "  4. Click 'Generate New Token'"
+    echo "  5. Give it a name (e.g., 'LV Tools') and click 'Generate'"
+    echo "  6. Copy the token (you'll only see it once!)"
+    echo
+    echo "Alternatively, set ZEROTIER_API_TOKEN environment variable:"
+    echo "  export ZEROTIER_API_TOKEN=\"your_token_here\""
+    echo
+    read -sp "Enter your ZeroTier API token: " token
+    echo
+    
+    if [ -z "$token" ]; then
+      green_echo "[!] Error: No token provided"
+      return 1
+    fi
+  fi
+  
+  echo "$token"
+  return 0
+}
+
+# Prompt user for ZeroTier Network ID with instructions
+prompt_zerotier_network() {
+  local network_id="${ZEROTIER_NETWORK_ID:-}"
+  
+  if [ -z "$network_id" ]; then
+    echo
+    green_echo "=== ZeroTier Network ID Required ==="
+    echo
+    echo "To use this tool, you need your ZeroTier Network ID."
+    echo
+    echo "How to find your Network ID:"
+    echo "  1. Log in to ZeroTier Central: https://my.zerotier.com/"
+    echo "  2. Select your network from the list"
+    echo "  3. The Network ID is at the top (16-character hex string)"
+    echo "     Example: 8bd5124fd60a971f"
+    echo
+    echo "Alternatively, set ZEROTIER_NETWORK_ID environment variable:"
+    echo "  export ZEROTIER_NETWORK_ID=\"your_network_id\""
+    echo
+    read -p "Enter your ZeroTier Network ID: " network_id
+    echo
+    
+    if [ -z "$network_id" ]; then
+      green_echo "[!] Error: No network ID provided"
+      return 1
+    fi
+    
+    # Validate format (16 hex characters)
+    if ! [[ "$network_id" =~ ^[0-9a-fA-F]{16}$ ]]; then
+      green_echo "[!] Error: Invalid network ID format (should be 16 hex characters)"
+      return 1
+    fi
+  fi
+  
+  echo "$network_id"
+  return 0
+}
+
 install_zerotier(){
 
   # Install dependecnies

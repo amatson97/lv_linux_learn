@@ -76,6 +76,7 @@ docs/
 ├── TOOLS.md                 # Utilities & bash exercises
 ├── AI_TOOLS.md              # Perplexity CLI & desktop apps
 ├── ADVANCED.md              # Traefik, Nextcloud, GitHub
+├── TOKEN_GUIDE.md           # API tokens & credentials
 ├── CUSTOM_SCRIPTS.md        # Custom script addition guide
 ├── CUSTOM_SCRIPTS_QUICKSTART.md
 └── CUSTOM_SCRIPTS_IMPLEMENTATION.md
@@ -89,6 +90,7 @@ docs/
 - **[Installation Guide](docs/INSTALLATION.md)** — Menu interfaces, scripts, custom script addition
 - **[Docker Guide](docs/DOCKER.md)** — Containers, compose, Portainer, Plex
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** — Diagnostics and problem solving
+- **[API Tokens & Credentials](docs/TOKEN_GUIDE.md)** — NordVPN, ZeroTier, and other API tokens
 - **[Package Manager (apt)](#-package-manager-apt)** — Essential apt commands
 
 ### Specialized Topics

@@ -1,15 +1,36 @@
 #!/bin/bash
-# Usage: ./html_ip.sh <api_token> <network_id>
-# This script will then output a html file.
+# ZeroTier Network HTML Report Generator
+# Description: Generates an HTML page showing all ZeroTier network members with IPs and status
+#
+# Usage: ./html_ip.sh [API_TOKEN] [NETWORK_ID] [output_file]
+#   If tokens not provided as arguments, you'll be prompted interactively
+#   Or set environment variables: ZEROTIER_API_TOKEN and ZEROTIER_NETWORK_ID
+#   Output file defaults to: zerotier_members.html
 
-API_TOKEN="$1"
-NETWORK_ID="$2"
+set -euo pipefail
+
+# Includes
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
+
 HTML_FILE="${3:-zerotier_members.html}"
 
-if [[ -z "$API_TOKEN" || -z "$NETWORK_ID" ]]; then
-  echo "Usage: $0 <API_TOKEN> <NETWORK_ID> [output_html_file]"
-  exit 1
+# Get credentials (from args, env vars, or prompts)
+if [ -n "${1:-}" ]; then
+  API_TOKEN="$1"
+else
+  API_TOKEN=$(prompt_zerotier_token) || exit 1
 fi
+
+if [ -n "${2:-}" ]; then
+  NETWORK_ID="$2"
+else
+  NETWORK_ID=$(prompt_zerotier_network) || exit 1
+fi
+
+green_echo "[*] Generating HTML report for network: $NETWORK_ID"
 
 # Fetch JSON from ZeroTier API
 response=$(curl -s -H "Authorization: token $API_TOKEN" \

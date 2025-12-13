@@ -1,16 +1,37 @@
 #!/bin/bash
-# Usage: ./zt_notifications.sh API_TOKEN NETWORK_ID
+# ZeroTier Network Notifications - Monitor network for joins/leaves and online/offline status
+# Description: Monitors ZeroTier network members and sends desktop notifications for status changes
+#
+# Usage: ./zt_notifications.sh [API_TOKEN] [NETWORK_ID]
+#   If tokens not provided as arguments, you'll be prompted interactively
+#   Or set environment variables: ZEROTIER_API_TOKEN and ZEROTIER_NETWORK_ID
 
-API_TOKEN="$1"
-NETWORK_ID="$2"
+set -euo pipefail
+
+# Includes
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+# shellcheck source=/dev/null
+source "$repo_root/includes/main.sh"
+
 KNOWN_NODES_FILE="$HOME/.zerotier_known_nodes"
 KNOWN_ONLINE_FILE="$HOME/.zerotier_known_online_nodes"
 ONLINE_THRESHOLD_MS=300000  # 5 minutes in milliseconds
 
-if [[ -z "$API_TOKEN" || -z "$NETWORK_ID" ]]; then
-  echo "Usage: $0 API_TOKEN NETWORK_ID"
-  exit 1
+# Get credentials (from args, env vars, or prompts)
+if [ -n "${1:-}" ]; then
+  API_TOKEN="$1"
+else
+  API_TOKEN=$(prompt_zerotier_token) || exit 1
 fi
+
+if [ -n "${2:-}" ]; then
+  NETWORK_ID="$2"
+else
+  NETWORK_ID=$(prompt_zerotier_network) || exit 1
+fi
+
+green_echo "[*] Monitoring ZeroTier network: $NETWORK_ID"
 
 # Fetch network members
 response=$(curl -s -H "Authorization: token $API_TOKEN" \
