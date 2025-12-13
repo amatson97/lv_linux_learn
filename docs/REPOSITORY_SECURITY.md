@@ -32,6 +32,8 @@ Protection rules:
 
 Navigate to **Settings** → **Security & analysis**:
 
+> **Status Update (2025-12-13):** ✅ Dependabot security updates and GitHub code scanning are now **ACTIVE** on this repository.
+
 ```yaml
 Private vulnerability reporting:
 ✅ Enable (allows private security advisories)
@@ -43,10 +45,10 @@ Dependabot alerts:
 ✅ Enable (security vulnerability notifications)
 
 Dependabot security updates:
-✅ Enable (automatic security patches)
+✅ **ENABLED** - Automatic security patches active
 
 Code scanning alerts:
-✅ Enable CodeQL analysis
+✅ **ENABLED** - CodeQL analysis monitoring for vulnerabilities
 ```
 
 ### Repository Access

@@ -249,6 +249,64 @@ NORDVPN_TOKEN="your_token" install_nord
 
 ---
 
+## 🤖 Perplexity API Key
+
+**Required by:**
+- `ai_fun/perplex_cli_v1.1.sh` - Enhanced CLI with multi-turn conversations
+- `ai_fun/perplex.sh` - Legacy CLI script
+- `ai_fun/python/perplexity_desktop_v1.*.py` - Desktop GUI applications
+
+### How to Get Your API Key
+
+1. **Sign Up for Perplexity Pro**
+   - Visit: https://www.perplexity.ai/
+   - Create account and subscribe to Pro plan
+   - API access requires Pro subscription
+
+2. **Access API Settings**
+   - Go to: https://www.perplexity.ai/settings/api
+   - Click **Generate New API Key**
+   - Copy the key immediately (shown only once)
+
+3. **API Key Format**
+   - Format: `pplx-` followed by alphanumeric characters
+   - Example: `pplx-1234567890abcdef1234567890abcdef`
+
+### How to Use
+
+**Method 1: Interactive Prompt (Recommended)**
+```bash
+./ai_fun/perplex_cli_v1.1.sh
+# You'll be prompted for API key on first run
+```
+
+**Method 2: Environment Variable**
+```bash
+export PERPLEXITY_API_KEY="pplx-your_key_here"
+./ai_fun/perplex_cli_v1.1.sh
+```
+
+**Method 3: GUI Application**
+```bash
+cd ai_fun/python/
+python3 perplexity_desktop_v1.4.py
+# Enter API key in GUI and check "Save API Key"
+```
+
+### Security Features
+- 🔐 **Encrypted Storage**: API keys are encrypted using Fernet (AES 128) encryption
+- 🔑 **Key Derivation**: Uses PBKDF2 with 100,000 iterations for strong key generation
+- 🛡️ **System-Specific**: Encryption keys derived from machine/user data
+- 📁 **File Permissions**: Key files created with 600 permissions (owner only)
+- 🔄 **Backward Compatible**: Handles plain text keys gracefully during migration
+
+### Storage Location
+- **File**: `~/.perplexity_api_key`
+- **Format**: Encrypted binary data (not readable as plain text)
+- **Permissions**: 600 (readable/writable by owner only)
+
+---
+
 ## 🔧 Automation Example
 
 Create a secure credential loader script:

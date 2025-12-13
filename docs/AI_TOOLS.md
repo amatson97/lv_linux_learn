@@ -34,12 +34,13 @@ chmod +x perplex_cli_v1.1.sh
 # Run with API key (or set PERPLEXITY_API_KEY env var)
 ./perplex_cli_v1.1.sh <Your_API_Key>
 
-# API key will be saved to ~/.perplexity_api_key on first run
+# API key will be encrypted and saved to ~/.perplexity_api_key on first run
 ```
 
 ### Requirements
 
 - Perplexity API key (get from https://www.perplexity.ai/)
+- **Security:** API keys are encrypted before storage using Fernet (AES 128) encryption
 - **Recommended:** `jq`, `bat`, `fzf` for enhanced functionality
   ```bash
   sudo apt install -y jq bat fzf

@@ -12,6 +12,12 @@ This repository contains Ubuntu Desktop setup and utility scripts. While designe
 - **Not hardened for public-facing services**
 - Scripts assume trusted local network environment
 
+**Usage Disclaimer:**
+- Scripts can be used on personal machines and servers **at your own risk**
+- All source code is publicly viewable - **we encourage users to review scripts before execution**
+- No warranties provided - use appropriate caution in your environment
+- Test in non-production environments first
+
 **Out of Scope:**
 - Production server deployments
 - Internet-facing services
@@ -119,12 +125,28 @@ Before public release:
 - [x] Test installers on clean VM
 - [x] Verify .gitignore excludes sensitive files
 - [x] Check GitHub Actions workflow permissions
-- [ ] Enable Dependabot security updates
-- [ ] Enable GitHub code scanning
+- [x] Enable Dependabot security updates
+- [x] Enable GitHub code scanning
 - [ ] Set up branch protection rules
 - [ ] Configure required reviewers for PRs
 
-## 🔍 Known Security Considerations
+## � Automated Security Monitoring
+
+### GitHub Security Features
+- **Dependabot Security Updates**: Automatically monitors dependencies for known vulnerabilities and creates pull requests for security updates
+- **GitHub Code Scanning**: Uses CodeQL to analyze source code for security vulnerabilities, including:
+  - Hardcoded credentials and API keys
+  - Command injection vulnerabilities
+  - SQL injection patterns
+  - Cross-site scripting (XSS)
+  - Other common security anti-patterns
+
+### Security Alerts
+- Security alerts are automatically created for detected vulnerabilities
+- Critical and high-severity alerts are prioritized for immediate attention
+- All security fixes are tested before merging
+
+## �🔍 Known Security Considerations
 
 ### Docker Installations
 - Adds user to `docker` group (equivalent to root access)
@@ -142,8 +164,10 @@ Before public release:
 - Localhost-only by default (not exposed to internet)
 
 ### AI Integration
-- Perplexity API key stored in `~/.perplexity_api_key`
-- Key file should be chmod 600
+- Perplexity API keys are encrypted before storage in `~/.perplexity_api_key`
+- Uses Fernet encryption (AES 128) with PBKDF2 key derivation
+- Key file permissions set to 600 (owner read/write only)
+- System-specific encryption keys prevent cross-machine key access
 - No API key validation before use
 
 ## 📚 Additional Resources
@@ -158,8 +182,9 @@ Before public release:
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-12-13 | 1.0.0 | Initial security policy for public repository |
+| 2025-12-13 | 1.1.0 | Added Dependabot and code scanning, usage disclaimer, encrypted API storage |
 
 ---
 
 **Last Updated:** December 13, 2025  
-**Policy Version:** 1.0.0
+**Policy Version:** 1.1.0
