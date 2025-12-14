@@ -39,9 +39,20 @@ main() {
     # Brief pause to ensure clean removal
     sleep 3
     
-    # Install and configure ZeroTier
+    # Install ZeroTier
     green_echo "[*] Installing ZeroTier..."
-    install_zerotier "$ZEROTIER_NETWORK"
+    sudo apt install curl -y
+    curl -s https://install.zerotier.com | sudo bash
+    
+    # Wait for services to start up
+    green_echo "[*] Waiting for ZeroTier service to initialize..."
+    sleep 5
+    
+    # Join the network directly
+    green_echo "[*] Joining ZeroTier network: $ZEROTIER_NETWORK"
+    sudo zerotier-cli join "$ZEROTIER_NETWORK"
+    
+    green_echo "[✔] Successfully joined network: $ZEROTIER_NETWORK"
     
     green_echo "[*] Setting permissions for ZeroTier CLI..."
     set_permissions_zerotier_cli

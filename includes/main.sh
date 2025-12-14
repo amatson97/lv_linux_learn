@@ -48,31 +48,31 @@ prompt_zerotier_network() {
   local network_id="${ZEROTIER_NETWORK_ID:-}"
   
   if [ -z "$network_id" ]; then
-    echo
-    green_echo "=== ZeroTier Network ID Required ==="
-    echo
-    echo "To use this tool, you need your ZeroTier Network ID."
-    echo
-    echo "How to find your Network ID:"
-    echo "  1. Log in to ZeroTier Central: https://my.zerotier.com/"
-    echo "  2. Select your network from the list"
-    echo "  3. The Network ID is at the top (16-character hex string)"
-    echo "     Example: 8bd5124fd60a971f"
-    echo
-    echo "Alternatively, set ZEROTIER_NETWORK_ID environment variable:"
-    echo "  export ZEROTIER_NETWORK_ID=\"your_network_id\""
-    echo
+    echo >&2
+    green_echo "=== ZeroTier Network ID Required ===" >&2
+    echo >&2
+    echo "To use this tool, you need your ZeroTier Network ID." >&2
+    echo >&2
+    echo "How to find your Network ID:" >&2
+    echo "  1. Log in to ZeroTier Central: https://my.zerotier.com/" >&2
+    echo "  2. Select your network from the list" >&2
+    echo "  3. The Network ID is at the top (16-character hex string)" >&2
+    echo "     Example: 8bd5124fd60a971f" >&2
+    echo >&2
+    echo "Alternatively, set ZEROTIER_NETWORK_ID environment variable:" >&2
+    echo "  export ZEROTIER_NETWORK_ID=\"your_network_id\"" >&2
+    echo >&2
     read -p "Enter your ZeroTier Network ID: " network_id
-    echo
+    echo >&2
     
     if [ -z "$network_id" ]; then
-      green_echo "[!] Error: No network ID provided"
+      green_echo "[!] Error: No network ID provided" >&2
       return 1
     fi
     
     # Validate format (16 hex characters)
     if ! [[ "$network_id" =~ ^[0-9a-fA-F]{16}$ ]]; then
-      green_echo "[!] Error: Invalid network ID format (should be 16 hex characters)"
+      green_echo "[!] Error: Invalid network ID format (should be 16 hex characters)" >&2
       return 1
     fi
   fi
