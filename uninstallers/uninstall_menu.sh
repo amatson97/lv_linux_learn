@@ -5,9 +5,18 @@
 set -euo pipefail
 
 # Includes
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-source "$script_dir/includes/main.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INCLUDES_DIR="$SCRIPT_DIR/../includes"
+if [ -f "$INCLUDES_DIR/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$INCLUDES_DIR/main.sh"
+elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$HOME/lv_linux_learn/includes/main.sh"
+else
+    echo "Error: Could not find includes/main.sh"
+    exit 1
+fi
 
 UNINSTALL_SCRIPTS=(
   "uninstallers/uninstall_zerotier.sh"

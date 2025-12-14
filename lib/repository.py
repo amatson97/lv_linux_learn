@@ -404,6 +404,145 @@ class ScriptRepository:
         
         logging.info("Cache cleared by user")
         return True
+        
+    def get_repository_url(self):
+        """Get the repository URL from the current manifest"""
+        try:
+            manifest = self.load_local_manifest()
+            if manifest and 'repository_url' in manifest:
+                return manifest['repository_url']
+            return self.repo_url  # fallback to default
+        except Exception:
+            return self.repo_url
+
+    def ensure_includes_available(self):
+        """Ensure includes are available for the current repository"""
+        manifest = self.load_local_manifest()
+        if not manifest:
+            return False
+            
+        repo_url = manifest.get('repository_url', self.repo_url)
+        return self._download_repository_includes(repo_url)
+    
+    def _download_repository_includes(self, repo_url):
+        """Download includes directory from the specified repository URL"""
+        try:
+            includes_cache_dir = self.script_cache_dir / "includes"
+            
+            # Check if includes are already fresh for this repository
+            if self._are_includes_fresh(repo_url, includes_cache_dir):
+                return True
+                
+            # Create includes cache directory
+            includes_cache_dir.mkdir(parents=True, exist_ok=True)
+            
+            logging.info(f"Downloading includes from {repo_url}")
+            
+            # Get includes files list from manifest (if available)
+            includes_files = self._get_includes_files_list()
+            
+            # Always try to download main.sh (required)
+            success = False
+            main_url = f"{repo_url}/includes/main.sh"
+            main_file = includes_cache_dir / "main.sh"
+            
+            try:
+                with urllib.request.urlopen(main_url, timeout=30) as response:
+                    content = response.read()
+                    
+                with open(main_file, 'wb') as f:
+                    f.write(content)
+                main_file.chmod(0o644)
+                success = True
+                logging.info("Downloaded main.sh successfully")
+            except Exception as e:
+                logging.error(f"Failed to download main.sh: {e}")
+                return False
+            
+            # Download additional includes files
+            for filename in includes_files:
+                if filename == "main.sh":
+                    continue  # Already downloaded
+                    
+                try:
+                    file_url = f"{repo_url}/includes/{filename}"
+                    file_path = includes_cache_dir / filename
+                    
+                    with urllib.request.urlopen(file_url, timeout=30) as response:
+                        content = response.read()
+                        
+                    with open(file_path, 'wb') as f:
+                        f.write(content)
+                    file_path.chmod(0o644)
+                    logging.info(f"Downloaded {filename} successfully")
+                except Exception as e:
+                    logging.warning(f"Optional file {filename} not available: {e}")
+            
+            # Mark the includes as fresh for this repository
+            self._mark_includes_fresh(repo_url, includes_cache_dir)
+            
+            logging.info(f"Successfully downloaded includes from {repo_url}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Failed to download includes from {repo_url}: {e}")
+            return False
+            
+    def _get_includes_files_list(self):
+        """Get list of includes files to download (from manifest or defaults)"""
+        try:
+            manifest = self.load_local_manifest()
+            if manifest and 'includes_files' in manifest:
+                return manifest['includes_files']
+        except Exception:
+            pass
+            
+        # Default includes files to try
+        return ["main.sh", "repository.sh"]
+    
+    def _are_includes_fresh(self, repo_url, includes_dir):
+        """Check if cached includes are fresh for the specified repository"""
+        if not includes_dir.exists():
+            return False
+            
+        origin_file = includes_dir / ".origin"
+        timestamp_file = includes_dir / ".timestamp"
+        
+        if not (origin_file.exists() and timestamp_file.exists()):
+            return False
+            
+        try:
+            # Check if origin matches current repository
+            with open(origin_file, 'r') as f:
+                cached_origin = f.read().strip()
+            if cached_origin != repo_url:
+                return False
+                
+            # Check if timestamp is less than 24 hours old
+            with open(timestamp_file, 'r') as f:
+                cache_time = int(f.read().strip())
+            current_time = int(time.time())
+            
+            # 24 hour cache
+            return (current_time - cache_time) < 86400
+            
+        except Exception:
+            return False
+    
+    def _mark_includes_fresh(self, repo_url, includes_dir):
+        """Mark includes as fresh for the specified repository"""
+        try:
+            origin_file = includes_dir / ".origin"
+            timestamp_file = includes_dir / ".timestamp"
+            
+            with open(origin_file, 'w') as f:
+                f.write(repo_url)
+                
+            with open(timestamp_file, 'w') as f:
+                f.write(str(int(time.time())))
+                
+        except Exception as e:
+            logging.error(f"Failed to mark includes as fresh: {e}")
     
     def count_cached_scripts(self):
         """Count number of cached scripts"""

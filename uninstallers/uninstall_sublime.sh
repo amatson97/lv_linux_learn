@@ -3,13 +3,17 @@
 set -euo pipefail
 
 # Includes
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "$script_dir/.." && pwd)"
-if [ -f "$repo_root/includes/main.sh" ]; then
-  # shellcheck source=/dev/null
-  source "$repo_root/includes/main.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INCLUDES_DIR="$SCRIPT_DIR/../includes"
+if [ -f "$INCLUDES_DIR/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$INCLUDES_DIR/main.sh"
+elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$HOME/lv_linux_learn/includes/main.sh"
 else
-  green_echo() { printf '\033[1;32m%s\033[0m\n' "$*"; }
+    echo "Error: Could not find includes/main.sh"
+    exit 1
 fi
 
 # Function to check and remove a package

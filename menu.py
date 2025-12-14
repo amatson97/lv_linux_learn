@@ -2282,12 +2282,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             return False
 
     def _ensure_includes_available(self):
-        """Ensure includes directory is available in cache (symlink preferred, copy as fallback)"""
+        """Ensure includes directory is available in cache (repository-aware)"""
+        if not self.repository:
+            return False
+            
+        # Try repository-aware includes download first
+        if self.repository.ensure_includes_available():
+            return True
+            
+        # Fall back to local methods if repository method fails
         # Check if we already have fresh includes
         if self._check_includes_freshness():
             return True
             
-        # Try symlink first
+        # Try symlink first (for local development)
         if self._ensure_cache_includes_symlink():
             return True
             
@@ -2296,7 +2304,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         if self._fallback_copy_includes():
             return True
             
-        print("[ERROR] Both symlink and copy methods failed - cached scripts may not work properly")
+        print("[ERROR] All includes methods failed - cached scripts may not work properly")
         return False
 
     def _repopulate_tab_stores(self):

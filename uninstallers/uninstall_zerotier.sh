@@ -2,10 +2,18 @@
 # Uninstall ZeroTier VPN
 set -euo pipefail
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "$script_dir/.." && pwd)"
-# shellcheck source=/dev/null
-source "$repo_root/includes/main.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INCLUDES_DIR="$SCRIPT_DIR/../includes"
+if [ -f "$INCLUDES_DIR/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$INCLUDES_DIR/main.sh"
+elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$HOME/lv_linux_learn/includes/main.sh"
+else
+    echo "Error: Could not find includes/main.sh"
+    exit 1
+fi
 
 main() {
     green_echo "[*] Uninstalling ZeroTier VPN..."

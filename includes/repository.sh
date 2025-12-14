@@ -704,3 +704,112 @@ download_all_scripts() {
   green_echo "[+] Download complete: $downloaded downloaded, $failed failed"
   log_repo_activity "Initial download: $downloaded scripts downloaded"
 }
+
+# ============================================================================
+# Includes Management
+# ============================================================================
+
+get_repository_url() {
+  # Get repository URL from manifest if available, otherwise use default
+  if [ -f "$MANIFEST_FILE" ]; then
+    local manifest_repo_url=$(jq -r '.repository_url // empty' "$MANIFEST_FILE" 2>/dev/null)
+    if [ -n "$manifest_repo_url" ] && [ "$manifest_repo_url" != "null" ]; then
+      echo "$manifest_repo_url"
+      return 0
+    fi
+  fi
+  
+  # Fallback to config file or default
+  if [ -f "$CONFIG_FILE" ]; then
+    local config_repo_url=$(jq -r '.repository_url // empty' "$CONFIG_FILE" 2>/dev/null)
+    if [ -n "$config_repo_url" ] && [ "$config_repo_url" != "null" ]; then
+      echo "$config_repo_url"
+      return 0
+    fi
+  fi
+  
+  echo "$REPO_URL"
+}
+
+ensure_includes_available() {
+  local repo_url=$(get_repository_url)
+  download_repository_includes "$repo_url"
+}
+
+download_repository_includes() {
+  local repo_url="$1"
+  local includes_cache_dir="$SCRIPT_CACHE_DIR/includes"
+  
+  # Check if includes are already fresh for this repository
+  if are_includes_fresh "$repo_url" "$includes_cache_dir"; then
+    return 0
+  fi
+  
+  log_repo_activity "Downloading includes from $repo_url"
+  
+  # Create includes cache directory
+  mkdir -p "$includes_cache_dir"
+  
+  # Download main.sh (required file)
+  local main_url="$repo_url/includes/main.sh"
+  local main_file="$includes_cache_dir/main.sh"
+  
+  if curl -sS -f -m 30 "$main_url" -o "$main_file" 2>/dev/null; then
+    chmod 644 "$main_file"
+    log_repo_activity "Downloaded main.sh successfully"
+  else
+    log_repo_activity "ERROR: Failed to download main.sh from $repo_url"
+    return 1
+  fi
+  
+  # Try to download repository.sh (optional for some repositories)
+  local repo_sh_url="$repo_url/includes/repository.sh"
+  local repo_sh_file="$includes_cache_dir/repository.sh"
+  
+  if curl -sS -f -m 30 "$repo_sh_url" -o "$repo_sh_file" 2>/dev/null; then
+    chmod 644 "$repo_sh_file"
+    log_repo_activity "Downloaded repository.sh successfully"
+  else
+    # repository.sh is optional, don't fail on this
+    log_repo_activity "NOTE: repository.sh not available (optional)"
+  fi
+  
+  # Mark the includes as fresh for this repository
+  mark_includes_fresh "$repo_url" "$includes_cache_dir"
+  
+  log_repo_activity "Successfully downloaded includes from $repo_url"
+  return 0
+}
+
+are_includes_fresh() {
+  local repo_url="$1"
+  local includes_dir="$2"
+  
+  [ -d "$includes_dir" ] || return 1
+  
+  local origin_file="$includes_dir/.origin"
+  local timestamp_file="$includes_dir/.timestamp"
+  
+  [ -f "$origin_file" ] && [ -f "$timestamp_file" ] || return 1
+  
+  # Check if origin matches current repository
+  local cached_origin
+  cached_origin=$(cat "$origin_file" 2>/dev/null)
+  [ "$cached_origin" = "$repo_url" ] || return 1
+  
+  # Check if timestamp is less than 24 hours old
+  local cache_time current_time
+  cache_time=$(cat "$timestamp_file" 2>/dev/null)
+  current_time=$(date +%s)
+  
+  # 24 hour cache (86400 seconds)
+  [ -n "$cache_time" ] && [ "$((current_time - cache_time))" -lt 86400 ]
+}
+
+mark_includes_fresh() {
+  local repo_url="$1"
+  local includes_dir="$2"
+  
+  echo "$repo_url" > "$includes_dir/.origin" 2>/dev/null || true
+  date +%s > "$includes_dir/.timestamp" 2>/dev/null || true
+}
