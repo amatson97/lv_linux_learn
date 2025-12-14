@@ -26,6 +26,9 @@ MANIFEST_CACHE="$CUSTOM_SCRIPTS_DIR/manifest.json"
 DEFAULT_MANIFEST_URL="https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
 MANIFEST_URL="${CUSTOM_MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
 
+# Store original URL for reference
+ORIGINAL_MANIFEST_URL="$MANIFEST_URL"
+
 # Repository system variables
 REPO_ENABLED=false
 REPO_UPDATES_AVAILABLE=0
@@ -41,9 +44,14 @@ declare -a MENU_SCRIPT_IDS=()
 # Ensure cache directory exists
 mkdir -p "$CUSTOM_SCRIPTS_DIR"
 
-# Download manifest from GitHub if not cached or older than 1 hour
+# Download manifest from configured URL if not cached or older than 1 hour
 fetch_manifest() {
   local cache_age=0
+  
+  # Update MANIFEST_URL if custom URL is set
+  if [ -n "${CUSTOM_MANIFEST_URL:-}" ]; then
+    MANIFEST_URL="$CUSTOM_MANIFEST_URL"
+  fi
   
   if [ -f "$MANIFEST_CACHE" ]; then
     cache_age=$(( $(date +%s) - $(stat -c %Y "$MANIFEST_CACHE" 2>/dev/null || echo 0) ))
@@ -51,7 +59,7 @@ fetch_manifest() {
   
   # Fetch if cache doesn't exist or is older than 1 hour (3600 seconds)
   if [ ! -f "$MANIFEST_CACHE" ] || [ $cache_age -gt 3600 ]; then
-    green_echo "[*] Fetching latest manifest from GitHub..."
+    green_echo "[*] Fetching latest manifest..."
     green_echo "[*] Connecting to: $MANIFEST_URL"
     
     local download_success=false
@@ -230,11 +238,31 @@ reload_custom_scripts() {
   load_custom_scripts
 }
 
+# Function to refresh script counts for main menu
+refresh_script_counts() {
+  if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
+    CACHED_INSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    CACHED_TOOLS_COUNT=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    CACHED_EXERCISES_COUNT=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    CACHED_UNINSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+  fi
+}
+
+# Initialize: Update manifest URL if custom URL is set
+if [ -n "${CUSTOM_MANIFEST_URL:-}" ]; then
+  MANIFEST_URL="$CUSTOM_MANIFEST_URL"
+  # Clear cached manifest to force download from new URL
+  rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+fi
+
 # Initialize: load scripts from manifest
 load_scripts_from_manifest
 
 # Then append custom scripts
 load_custom_scripts
+
+# Cache the script counts for main menu display
+refresh_script_counts
 
 # ============================================================================
 # Path Resolution for Cached Scripts
@@ -518,6 +546,9 @@ if type -t init_repo_config &>/dev/null; then
   if [ "$(get_config_value 'auto_check_updates' 'true')" = "true" ]; then
     check_for_updates &>/dev/null || true
   fi
+else
+  # Enable basic repository functionality even without full repository.sh
+  REPO_ENABLED=true
 fi
 
 # Repository Management Functions
@@ -804,6 +835,7 @@ show_repo_settings() {
     local auto_check=$(get_config_value "auto_check_updates" "true")
     local auto_install=$(get_config_value "auto_install_updates" "true")
     local interval=$(get_config_value "update_check_interval_minutes" "30")
+    local verify_checksums=$(get_config_value "verify_checksums" "true")
     
     local current_manifest_url="${MANIFEST_URL}"
     
@@ -812,13 +844,15 @@ show_repo_settings() {
     echo "  2) Auto-check Updates:      $auto_check"
     echo "  3) Auto-install Updates:    $auto_install"
     echo "  4) Check Interval:          $interval minutes"
-    echo "  5) Manifest URL:            $current_manifest_url"
+    echo "  5) Verify Checksums:        $verify_checksums"
+    echo "  6) Manifest URL:            $current_manifest_url"
     echo
     echo "  Options:"
     echo "   r) Toggle remote scripts"
     echo "   c) Toggle auto-check updates"
     echo "   i) Toggle auto-install updates"
     echo "   t) Change check interval"
+    echo "   s) Toggle checksum verification"
     echo "   m) Change manifest URL"
     echo "   v) View repository info"
     echo
@@ -856,6 +890,17 @@ show_repo_settings() {
         else
           set_config_value "auto_install_updates" "true"
           green_echo "[*] Auto-install updates enabled"
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      s|S)
+        if [ "$verify_checksums" = "true" ]; then
+          set_config_value "verify_checksums" "false"
+          green_echo "[*] Checksum verification disabled"
+          green_echo "[!] Warning: This reduces security. Only disable for custom repositories with incorrect checksums."
+        else
+          set_config_value "verify_checksums" "true"
+          green_echo "[*] Checksum verification enabled (recommended)"
         fi
         read -rp "Press Enter to continue..."
         ;;
@@ -909,6 +954,13 @@ show_repo_settings() {
             set_config_value "custom_manifest_url" ""
           fi
           green_echo "[*] Manifest URL reset to default: $MANIFEST_URL"
+          green_echo "[*] Clearing manifest cache to force reload..."
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          green_echo "[*] Reloading scripts from default repository..."
+          load_scripts_from_manifest
+          green_echo "[*] Refreshing script counts for main menu..."
+          refresh_script_counts
+          green_echo "[+] Repository reset to default successfully!"
         else
           # Validate URL format
           if [[ "$new_manifest_url" =~ ^https?:// ]]; then
@@ -920,8 +972,13 @@ show_repo_settings() {
             fi
             green_echo "[*] Manifest URL updated to: $MANIFEST_URL"
             echo
-            green_echo "[*] Note: Clear script cache to download from new repository"
-            green_echo "        Includes will be automatically updated on next script run"
+            green_echo "[*] Clearing manifest cache to force reload..."
+            rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+            green_echo "[*] Reloading scripts from new repository..."
+            load_scripts_from_manifest
+            green_echo "[*] Refreshing script counts for main menu..."
+            refresh_script_counts
+            green_echo "[+] Repository switched successfully!"
           else
             green_echo "[!] Invalid URL format. Please use http:// or https://"
           fi
@@ -953,21 +1010,21 @@ show_main_menu() {
   echo "╚════════════════════════════════════════════════════════════════════════════════╝"
   echo
   
-  # Count scripts in each category dynamically
-  local install_count tools_count exercises_count uninstall_count custom_count
+  # Use cached script counts or calculate fresh ones
+  local install_count="${CACHED_INSTALL_COUNT:-0}"
+  local tools_count="${CACHED_TOOLS_COUNT:-0}" 
+  local exercises_count="${CACHED_EXERCISES_COUNT:-0}"
+  local uninstall_count="${CACHED_UNINSTALL_COUNT:-0}"
+  local custom_count
   
-  # Count from manifest if available
-  if [ -f "$MANIFEST_CACHE" ]; then
-    install_count=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    tools_count=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    exercises_count=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    uninstall_count=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-  else
-    # Fallback to hardcoded counts if manifest not available
-    install_count=9
-    tools_count=11
-    exercises_count=10
-    uninstall_count=11
+  # If cached counts are not available, calculate fresh
+  if [ "$install_count" -eq 0 ] && [ "$tools_count" -eq 0 ] && [ "$exercises_count" -eq 0 ] && [ "$uninstall_count" -eq 0 ]; then
+    if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
+      install_count=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+      tools_count=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0") 
+      exercises_count=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+      uninstall_count=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    fi
   fi
   
   custom_count=$(jq '.scripts | length' "$CUSTOM_SCRIPTS_JSON" 2>/dev/null || echo "0")
@@ -1605,93 +1662,7 @@ show_repository_menu() {
   done
 }
 
-show_repo_settings() {
-  while true; do
-    clear
-    echo "╔════════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                       Repository Settings                                      ║"
-    echo "╚════════════════════════════════════════════════════════════════════════════════╝"
-    echo
-    
-    local use_remote=$(get_config_value "use_remote_scripts" "true")
-    local auto_check=$(get_config_value "auto_check_updates" "true")
-    local auto_install=$(get_config_value "auto_install_updates" "true")
-    local interval=$(get_config_value "update_check_interval_minutes" "30")
-    
-    echo "  Current Settings:"
-    echo "  1) Use Remote Scripts:      $use_remote"
-    echo "  2) Auto-check Updates:      $auto_check"
-    echo "  3) Auto-install Updates:    $auto_install"
-    echo "  4) Check Interval:          $interval minutes"
-    echo
-    echo "  Options:"
-    echo "  r) Toggle remote scripts"
-    echo "  c) Toggle auto-check"
-    echo "  i) Toggle auto-install"
-    echo "  t) Change interval"
-    echo "  d) Reset to defaults"
-    echo "  b) Back"
-    echo
-    
-    read -rp "Enter your choice: " settings_choice
-    
-    case "$settings_choice" in
-      r|R)
-        if [ "$use_remote" = "true" ]; then
-          set_config_value "use_remote_scripts" "false"
-          green_echo "[*] Remote scripts disabled"
-        else
-          set_config_value "use_remote_scripts" "true"
-          green_echo "[*] Remote scripts enabled"
-        fi
-        sleep 1
-        ;;
-      c|C)
-        if [ "$auto_check" = "true" ]; then
-          set_config_value "auto_check_updates" "false"
-          green_echo "[*] Auto-check disabled"
-        else
-          set_config_value "auto_check_updates" "true"
-          green_echo "[*] Auto-check enabled"
-        fi
-        sleep 1
-        ;;
-      i|I)
-        if [ "$auto_install" = "true" ]; then
-          set_config_value "auto_install_updates" "false"
-          green_echo "[*] Auto-install disabled"
-        else
-          set_config_value "auto_install_updates" "true"
-          green_echo "[*] Auto-install enabled"
-        fi
-        sleep 1
-        ;;
-      t|T)
-        read -rp "Enter interval in minutes [30]: " new_interval
-        if [[ "$new_interval" =~ ^[0-9]+$ ]]; then
-          set_config_value "update_check_interval_minutes" "$new_interval"
-          green_echo "[*] Interval updated to $new_interval minutes"
-        else
-          green_echo "[!] Invalid number"
-        fi
-        sleep 1
-        ;;
-      d|D)
-        green_echo "[*] Resetting to defaults..."
-        init_repo_config
-        green_echo "[+] Settings reset"
-        sleep 1
-        ;;
-      b|B)
-        return 0
-        ;;
-      *)
-        green_echo "[!] Invalid choice"
-        sleep 1
-        ;;
-    esac
-  done
-}
+
 
 show_help() {
   clear

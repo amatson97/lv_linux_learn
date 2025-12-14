@@ -2,6 +2,7 @@
 
 import json
 import hashlib
+import os
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -16,7 +17,7 @@ class ScriptRepository:
     """Manages remote script repository, caching, and updates"""
     
     def __init__(self):
-        self.repo_url = "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main"
+        self.default_repo_url = "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main"
         self.config_dir = Path.home() / ".lv_linux_learn"
         self.config_file = self.config_dir / "config.json"
         self.manifest_file = self.config_dir / "manifest.json"
@@ -29,12 +30,76 @@ class ScriptRepository:
         self._init_config()
         self.config = self.load_config()
         
+        # Set repo_url based on configuration (custom or default)
+        self.repo_url = self.get_effective_repository_url()
+        
         # Set up logging
         logging.basicConfig(
             filename=str(self.log_file),
             level=logging.INFO,
             format='[%(asctime)s] %(message)s'
         )
+    
+    def get_effective_repository_url(self):
+        """Get the effective repository URL (custom or default)"""
+        # Check environment variable first
+        custom_url = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
+        if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
+            # Extract base URL from manifest URL
+            if custom_url.endswith('/manifest.json'):
+                return custom_url[:-len('/manifest.json')]
+            return custom_url
+        
+        # Check configuration file
+        if hasattr(self, 'config'):
+            custom_url = self.config.get('custom_manifest_url', '').strip()
+            if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
+                # Extract base URL from manifest URL
+                if custom_url.endswith('/manifest.json'):
+                    return custom_url[:-len('/manifest.json')]
+                return custom_url
+        
+        # Default fallback
+        return self.default_repo_url
+    
+    def get_manifest_url(self):
+        """Get the manifest URL (custom or default)"""
+        # Check environment variable first
+        custom_url = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
+        if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
+            return custom_url
+        
+        # Check configuration file
+        if hasattr(self, 'config'):
+            custom_url = self.config.get('custom_manifest_url', '').strip()
+            if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
+                return custom_url
+        
+        # Default fallback
+        return f"{self.default_repo_url}/manifest.json"
+    
+    def refresh_repository_url(self):
+        """Refresh the repository URL from current configuration"""
+        self.config = self.load_config()
+        self.repo_url = self.get_effective_repository_url()
+    
+    def calculate_script_checksum(self, script_id):
+        """Download a script and calculate its checksum (for manifest generation)"""
+        script = self.get_script_by_id(script_id)
+        if not script:
+            return None
+        
+        download_url = script.get('download_url')
+        if not download_url:
+            return None
+        
+        try:
+            with urllib.request.urlopen(download_url, timeout=30) as response:
+                content = response.read()
+            return hashlib.sha256(content).hexdigest()
+        except Exception as e:
+            logging.error(f"Failed to calculate checksum for {script_id}: {e}")
+            return None
         
     def _ensure_directories(self):
         """Create necessary directories"""
@@ -51,7 +116,7 @@ class ScriptRepository:
         if not self.config_file.exists():
             default_config = {
                 "version": "1.0.0",
-                "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
+                "repository_url": self.default_repo_url,
                 "use_remote_scripts": True,
                 "fallback_to_bundled": False,
                 "auto_check_updates": True,
@@ -104,7 +169,7 @@ class ScriptRepository:
     
     def fetch_remote_manifest(self):
         """Download the latest manifest from repository"""
-        manifest_url = f"{self.repo_url}/manifest.json"
+        manifest_url = self.get_manifest_url()
         logging.info(f"Fetching manifest from {manifest_url}")
         
         try:
@@ -268,11 +333,14 @@ class ScriptRepository:
                 content = response.read()
             
             # Verify checksum
-            if self.get_config_value("verify_checksums", True):
+            if self.get_config_value("verify_checksums", True) and checksum:
                 actual_checksum = hashlib.sha256(content).hexdigest()
                 if actual_checksum != checksum:
                     logging.error(f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}")
+                    logging.info(f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification")
                     raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
+            elif not checksum:
+                logging.warning(f"No checksum provided for {script_id}, skipping verification")
             
             # Save script
             dest_path.parent.mkdir(parents=True, exist_ok=True)

@@ -509,7 +509,7 @@
       "file_name": "uninstall_all_vpn.sh",
       "relative_path": "uninstallers/uninstall_all_vpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_all_vpn.sh",
-      "checksum": "sha256:fbeaf4311c41c6293a8ca044c0a3e4154afa434a92c6a63d89685d1c69320ecb",
+      "checksum": "sha256:2bedf1f4037073c7b48a362c5a5642384a6b10396274f602fe520449c905bcb2",
       "description": "Uninstall All VPN Tools",
       "requires_sudo": true,
       "dependencies": [],

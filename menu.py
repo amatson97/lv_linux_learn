@@ -164,14 +164,35 @@ MANIFEST_CACHE_FILE = MANIFEST_CACHE_DIR / 'manifest.json'
 MANIFEST_CACHE_MAX_AGE = 3600  # 1 hour in seconds
 
 
-def fetch_manifest(terminal_widget=None):
+def fetch_manifest(terminal_widget=None, repository=None):
     """
-    Fetch manifest.json from GitHub repository
+    Fetch manifest.json from configured repository
     Returns Path to manifest file (cached)
     
     Args:
         terminal_widget: Optional terminal widget to send output to
+        repository: Optional repository instance for custom configuration
     """
+    # Determine manifest URL - prioritize repository config, then global, then default
+    manifest_url = DEFAULT_MANIFEST_URL  # Final fallback
+    
+    # Check repository config first (most authoritative)
+    if repository:
+        try:
+            config = repository.load_config()
+            custom_url = config.get('custom_manifest_url', '').strip()
+            if custom_url:
+                manifest_url = custom_url
+            else:
+                # No custom URL in config, use global MANIFEST_URL
+                manifest_url = MANIFEST_URL
+        except Exception:
+            # Config reading failed, use global MANIFEST_URL
+            manifest_url = MANIFEST_URL
+    else:
+        # No repository instance, use global MANIFEST_URL
+        manifest_url = MANIFEST_URL
+    
     # Ensure cache directory exists
     MANIFEST_CACHE_DIR.mkdir(exist_ok=True)
     
@@ -188,11 +209,11 @@ def fetch_manifest(terminal_widget=None):
         else:
             print(msg)
     
-    # Fetch from GitHub
-    terminal_output("[*] Fetching latest manifest from GitHub...")
-    terminal_output(f"[*] Connecting to: {MANIFEST_URL}")
+    # Fetch from configured repository
+    terminal_output("[*] Fetching latest manifest from repository...")
+    terminal_output(f"[*] Connecting to: {manifest_url}")
     try:
-        with urllib.request.urlopen(MANIFEST_URL, timeout=10) as response:
+        with urllib.request.urlopen(manifest_url, timeout=10) as response:
             terminal_output(f"[*] Connection successful (HTTP {response.getcode()})")
             manifest_data = response.read()
             terminal_output(f"[*] Downloaded {len(manifest_data)} bytes")
@@ -206,7 +227,7 @@ def fetch_manifest(terminal_widget=None):
         return MANIFEST_CACHE_FILE
         
     except urllib.error.URLError as e:
-        terminal_output(f"[!] Failed to fetch manifest from GitHub: {e}")
+        terminal_output(f"[!] Failed to fetch manifest from repository: {e}")
         if MANIFEST_CACHE_FILE.exists():
             terminal_output("[*] Using cached manifest")
             return MANIFEST_CACHE_FILE
@@ -219,14 +240,15 @@ def fetch_manifest(terminal_widget=None):
         raise
 
 
-def load_scripts_from_manifest(terminal_widget=None):
+def load_scripts_from_manifest(terminal_widget=None, repository=None):
     """
-    Load scripts dynamically from manifest.json (fetched from GitHub)
+    Load scripts dynamically from manifest.json (fetched from repository)
     Returns: tuple of (scripts_dict, names_dict, descriptions_dict)
     Each dict has keys: 'install', 'tools', 'exercises', 'uninstall'
     
     Args:
         terminal_widget: Optional terminal widget to send output to
+        repository: Optional repository instance for custom configuration
     """
     # Initialize empty structures
     scripts = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
@@ -241,8 +263,8 @@ def load_scripts_from_manifest(terminal_widget=None):
             print(msg)
     
     try:
-        # Fetch manifest from GitHub (uses cache if recent)
-        manifest_path = fetch_manifest(terminal_widget)
+        # Fetch manifest from configured repository (uses cache if recent)
+        manifest_path = fetch_manifest(terminal_widget, repository)
         
         with open(manifest_path, 'r') as f:
             manifest = json.load(f)
@@ -322,7 +344,14 @@ def load_scripts_from_manifest(terminal_widget=None):
 
 # Load scripts from manifest.json (single source of truth)
 # Note: Global loading doesn't use terminal widget (goes to stdout)
-_SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest()
+# Try to initialize with repository for custom configuration
+try:
+    from lib.repository import ScriptRepository
+    _temp_repo = ScriptRepository()
+    _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest(repository=_temp_repo)
+except Exception:
+    # Fallback to default loading if repository initialization fails
+    _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest()
 
 # Create flat arrays for backward compatibility
 SCRIPTS = _SCRIPTS_DICT.get('install', [])
@@ -539,6 +568,7 @@ paned > separator:hover {
 
 class ScriptMenuGTK(Gtk.ApplicationWindow):
     def __init__(self, app):
+        global MANIFEST_URL
         # Use ApplicationWindow so GNOME/WM can associate the window with the Gtk.Application.
         Gtk.ApplicationWindow.__init__(self, application=app, title="LV Script Manager")
         self.set_default_size(1150, 1165)
@@ -1565,6 +1595,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     
     def _on_repo_settings(self, button):
         """Show repository settings dialog"""
+        global MANIFEST_URL
         # Initialize repository if not already done
         if not self.repository:
             try:
@@ -1614,6 +1645,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         auto_install.set_active(self.repo_config.get('auto_install_updates', True))
         content.pack_start(auto_install, False, False, 0)
         
+        # Security settings section
+        security_separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        content.pack_start(security_separator, False, False, 5)
+        
+        security_label = Gtk.Label()
+        security_label.set_markup("<b>Security Settings</b>")
+        security_label.set_xalign(0)
+        content.pack_start(security_label, False, False, 0)
+        
+        verify_checksums = Gtk.CheckButton(label="Verify script checksums (recommended)")
+        verify_checksums.set_active(self.repo_config.get('verify_checksums', True))
+        verify_checksums.set_tooltip_text("Verify downloaded scripts match expected checksums for security. Disable only for custom repositories with incorrect checksums.")
+        content.pack_start(verify_checksums, False, False, 0)
+        
         interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         interval_label = Gtk.Label(label="Check interval (minutes):")
         interval_spin = Gtk.SpinButton()
@@ -1629,7 +1674,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         manifest_label = Gtk.Label(label="Manifest URL:")
         manifest_label.set_xalign(0)
         manifest_entry = Gtk.Entry()
-        current_manifest_url = self.repo_config.get('custom_manifest_url', '') or DEFAULT_MANIFEST_URL
+        # Show the currently active manifest URL (could be custom or default)
+        current_manifest_url = self.repo_config.get('custom_manifest_url', '').strip()
+        if not current_manifest_url:
+            current_manifest_url = DEFAULT_MANIFEST_URL
         manifest_entry.set_text(current_manifest_url)
         manifest_entry.set_placeholder_text("Enter custom manifest URL or leave for default")
         manifest_box.pack_start(manifest_label, False, False, 0)
@@ -1656,18 +1704,28 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.repo_config['auto_check_updates'] = auto_check.get_active()
             self.repo_config['auto_install_updates'] = auto_install.get_active()
             self.repo_config['update_check_interval_minutes'] = int(interval_spin.get_value())
+            self.repo_config['verify_checksums'] = verify_checksums.get_active()
             
             # Handle manifest URL
             new_manifest_url = manifest_entry.get_text().strip()
+            # Get the currently active manifest URL
+            current_custom_url = self.repo_config.get('custom_manifest_url', '').strip()
+            old_manifest_url = current_custom_url or DEFAULT_MANIFEST_URL
+            manifest_url_changed = False
+            
             if new_manifest_url == DEFAULT_MANIFEST_URL:
                 # Reset to default, remove custom setting
+                if old_manifest_url != DEFAULT_MANIFEST_URL:
+                    manifest_url_changed = True
                 self.repo_config['custom_manifest_url'] = ''
                 os.environ.pop('CUSTOM_MANIFEST_URL', None)
+                MANIFEST_URL = DEFAULT_MANIFEST_URL
             elif new_manifest_url and (new_manifest_url.startswith('http://') or new_manifest_url.startswith('https://')):
                 # Valid custom URL
+                if old_manifest_url != new_manifest_url:
+                    manifest_url_changed = True
                 self.repo_config['custom_manifest_url'] = new_manifest_url
                 os.environ['CUSTOM_MANIFEST_URL'] = new_manifest_url
-                global MANIFEST_URL
                 MANIFEST_URL = new_manifest_url
             else:
                 # Invalid URL, show error
@@ -1685,17 +1743,35 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             
             self.repository.save_config(self.repo_config)
             
+            # Update repository URL if manifest URL changed
+            if manifest_url_changed and self.repository:
+                # Refresh the repository's effective URL
+                self.repository.repo_url = self.repository.get_effective_repository_url()
+            
             # Update repo_enabled and refresh UI if setting changed
             self.repo_enabled = new_repo_enabled
             if old_repo_enabled != new_repo_enabled:
                 self._refresh_ui_for_repo_setting()
             
+            # Clear manifest cache if URL changed to force fresh download
+            if manifest_url_changed:
+                try:
+                    if MANIFEST_CACHE_FILE.exists():
+                        MANIFEST_CACHE_FILE.unlink()
+                        self.terminal.feed("\x1b[33m[*] Cleared manifest cache for new repository\x1b[0m\r\n".encode())
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[31m[!] Error clearing cache: {e}\x1b[0m\r\n".encode())
+            
             if self.repo_config.get('custom_manifest_url'):
                 self.terminal.feed("\x1b[2J\x1b[H\x1b[32m[*] Repository settings saved\x1b[0m\r\n".encode())
-                self.terminal.feed("\x1b[33m[*] Note: Clear script cache to use new repository\x1b[0m\r\n".encode())
-                self.terminal.feed("\x1b[33m[*] Includes will be updated automatically on next script run\x1b[0m\r\n".encode())
+                self.terminal.feed(f"\x1b[33m[*] Switching to custom repository: {new_manifest_url}\x1b[0m\r\n".encode())
+                # Refresh all script data to load from new repository
+                self._refresh_all_script_data()
             else:
                 self.terminal.feed("\x1b[2J\x1b[H\x1b[32m[*] Repository settings saved\x1b[0m\r\n".encode())
+                self.terminal.feed(f"\x1b[33m[*] Switching to default repository: {DEFAULT_MANIFEST_URL}\x1b[0m\r\n".encode())
+                # Refresh to use default repository
+                self._refresh_all_script_data()
             
             # Auto-complete after short delay
             GLib.timeout_add(1500, self._complete_terminal_operation)
@@ -1890,8 +1966,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
             
-            # Reload from manifest (this will show cache status in terminal)
-            _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=self.terminal)
+            # Reload from manifest with repository configuration (this will show cache status in terminal)
+            _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
             
             # Update global arrays with slice assignment to maintain references
             SCRIPTS[:] = _scripts.get('install', [])
@@ -1928,8 +2004,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
             
-            # Reload from manifest silently (pass None for terminal_widget to suppress output)
-            _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=None)
+            # Reload from manifest silently with repository configuration (pass None for terminal_widget to suppress output)
+            _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=None, repository=self.repository)
             
             # Update global arrays with slice assignment to maintain references
             SCRIPTS[:] = _scripts.get('install', [])
@@ -2472,97 +2548,83 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             return
         # model is filtered -> get full path from model column 1
         script_path = model[treeiter][1]
-        if not os.path.isfile(script_path):
-            self.show_error_dialog(f"Script not found:\n{script_path}")
-            return
+        script_name = os.path.basename(script_path)
         
-        # Convert to absolute path to work regardless of terminal's current directory
-        abs_path = os.path.abspath(script_path)
-        
-        # Check if this is a cached script that needs special handling
-        if '.lv_linux_learn/script_cache/' in abs_path:
-            # Cached script - ensure includes directory is available and execute from cache root
-            self._ensure_includes_available()
-            cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-            command = f"cd '{cache_root}' && bash '{abs_path}'\n"
-            self.terminal.feed(f"\x1b[33m[*] Executing cached script with symlinked includes\x1b[0m\r\n".encode())
-        else:
-            # Local script - check if user wants to download it first
-            if self.repository and self.repo_enabled:
-                script_name = os.path.basename(script_path)
-                dialog = Gtk.MessageDialog(
-                    transient_for=self,
-                    flags=0,
-                    message_type=Gtk.MessageType.QUESTION,
-                    buttons=Gtk.ButtonsType.YES_NO,
-                    text="Script Not Cached"
-                )
-                dialog.format_secondary_text(
-                    f"The script '{script_name}' is not in your local cache.\n\n"
-                    "Would you like to download it to the cache first?\n"
-                    "This will ensure optimal performance with includes support."
-                )
-                response = dialog.run()
-                dialog.destroy()
+        # Check if this is a repository script that needs to be cached
+        if self.repository and self.repo_enabled:
+            # Try to find the script in the manifest
+            manifest_script_id = self._get_manifest_script_id(script_name, script_path)
+            
+            if manifest_script_id:
+                # This is a repository script - check if it's cached
+                cached_path = self.repository.get_cached_script_path(manifest_script_id)
                 
-                if response == Gtk.ResponseType.YES:
-                    # Try to download the script first
-                    try:
-                        # Find the script in manifest and download it
-                        manifest = self.repository.parse_manifest()
-                        script_id = None
-                        for script in manifest:
-                            if script['relative_path'].endswith(script_name) or script['relative_path'] == script_path:
-                                script_id = script['id']
-                                break
-                        
-                        if script_id:
-                            self.terminal.feed(f"\r\n\x1b[32m[*] Downloading {script_name}...\x1b[0m\r\n".encode())
-                            try:
-                                success = self.repository.download_script(script_id)
-                                if success:
-                                    # Get the cached script path and run it
-                                    cached_path = self.repository.get_cached_script_path(script_id)
-                                    if cached_path and os.path.isfile(cached_path):
-                                        self._ensure_includes_available()
-                                        cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                                        command = f"cd '{cache_root}' && bash '{cached_path}'\n"
-                                        self.terminal.feed(f"\x1b[33m[*] Downloaded successfully! Executing cached script with includes support\x1b[0m\r\n".encode())
-                                        # Refresh UI to show updated cache status
-                                        GLib.timeout_add(500, self._refresh_ui_after_cache_change)
-                                    else:
-                                        # Fallback to local execution
-                                        command = f"bash '{abs_path}'\n"
-                                        self.terminal.feed(f"\x1b[31m[!] Cache issue, executing local script\x1b[0m\r\n".encode())
-                                else:
-                                    # Download failed, run local script
-                                    command = f"bash '{abs_path}'\n"
-                                    self.terminal.feed(f"\x1b[31m[!] Download failed, executing local script\x1b[0m\r\n".encode())
-                            except Exception as e:
-                                if "Checksum verification failed" in str(e):
-                                    self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed - script may have been updated\x1b[0m\r\n".encode())
-                                    self.terminal.feed(f"\x1b[33m[!] Try clearing cache and downloading again\x1b[0m\r\n".encode())
-                                else:
-                                    self.terminal.feed(f"\x1b[31m[✗] Download error: {e}\x1b[0m\r\n".encode())
-                                # Fallback to local execution
-                                command = f"bash '{abs_path}'\n"
-                                self.terminal.feed(f"\x1b[31m[!] Download failed, executing local script\x1b[0m\r\n".encode())
-                        else:
-                            # Script not found in manifest, run local script
-                            command = f"bash '{abs_path}'\n"
-                            self.terminal.feed(f"\x1b[31m[!] Script not found in manifest, executing local script\x1b[0m\r\n".encode())
-                    except Exception as e:
-                        # Error occurred, run local script
-                        command = f"bash '{abs_path}'\n"
-                        self.terminal.feed(f"\x1b[31m[!] Error downloading: {e}, executing local script\x1b[0m\r\n".encode())
+                if cached_path and os.path.isfile(cached_path):
+                    # Script is cached - execute from cache
+                    self._ensure_includes_available()
+                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
+                    command = f"cd '{cache_root}' && bash '{cached_path}'\n"
+                    self.terminal.feed(f"\x1b[33m[*] Executing cached script with includes support\x1b[0m\r\n".encode())
+                    self.terminal.feed_child(command.encode())
+                    return
                 else:
-                    # User chose not to download, run local script
-                    command = f"bash '{abs_path}'\n"
-            else:
-                # Repository not available, run local script
-                command = f"bash '{abs_path}'\n"
+                    # Script is not cached - prompt user to download
+                    dialog = Gtk.MessageDialog(
+                        transient_for=self,
+                        flags=0,
+                        message_type=Gtk.MessageType.QUESTION,
+                        buttons=Gtk.ButtonsType.YES_NO,
+                        text="☁️ Download Script?"
+                    )
+                    dialog.format_secondary_text(
+                        f"The script '{script_name}' needs to be downloaded to your cache.\n\n"
+                        "Download and run from cache? This provides better performance\n"
+                        "and includes support for repository scripts."
+                    )
+                    response = dialog.run()
+                    dialog.destroy()
+                    
+                    if response == Gtk.ResponseType.YES:
+                        # Download the script
+                        self.terminal.feed(f"\x1b[32m[*] Downloading ☁️ {script_name} to cache...\x1b[0m\r\n".encode())
+                        try:
+                            success = self.repository.download_script(manifest_script_id)
+                            if success:
+                                # Get the cached script path and run it
+                                cached_path = self.repository.get_cached_script_path(manifest_script_id)
+                                if cached_path and os.path.isfile(cached_path):
+                                    self._ensure_includes_available()
+                                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
+                                    command = f"cd '{cache_root}' && bash '{cached_path}'\n"
+                                    self.terminal.feed(f"\x1b[32m[✓] Downloaded successfully! Executing...\x1b[0m\r\n".encode())
+                                    # Refresh UI to show updated cache status
+                                    GLib.timeout_add(500, self._refresh_ui_after_cache_change)
+                                    self.terminal.feed_child(command.encode())
+                                    return
+                                else:
+                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script\x1b[0m\r\n".encode())
+                            else:
+                                self.terminal.feed(f"\x1b[31m[✗] Failed to download {script_name}\x1b[0m\r\n".encode())
+                        except Exception as e:
+                            if "Checksum verification failed" in str(e):
+                                self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed\x1b[0m\r\n".encode())
+                                self.terminal.feed(f"\x1b[33m[!] Try disabling checksum verification in Repository Settings\x1b[0m\r\n".encode())
+                            else:
+                                self.terminal.feed(f"\x1b[31m[✗] Download error: {e}\x1b[0m\r\n".encode())
+                        return
+                    else:
+                        # User chose not to download
+                        self.terminal.feed(f"\x1b[33m[!] Download cancelled by user\x1b[0m\r\n".encode())
+                        return
         
-        self.terminal.feed_child(command.encode())
+        # Fallback: try to execute as local script if it exists
+        if os.path.isfile(script_path):
+            abs_path = os.path.abspath(script_path)
+            command = f"bash '{abs_path}'\n"
+            self.terminal.feed(f"\x1b[33m[*] Executing local script\x1b[0m\r\n".encode())
+            self.terminal.feed_child(command.encode())
+        else:
+            self.show_error_dialog(f"Script not found:\n{script_path}")
 
     def on_cd_clicked(self, button):
         widgets = self.get_current_widgets()
@@ -2670,6 +2732,59 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         if treeiter is None:
             return
         script_path = model[treeiter][1]
+        script_name = os.path.basename(script_path)
+        
+        # Check if this is a repository script that needs to be cached first
+        if self.repository and self.repo_enabled:
+            manifest_script_id = self._get_manifest_script_id(script_name, script_path)
+            
+            if manifest_script_id:
+                cached_path = self.repository.get_cached_script_path(manifest_script_id)
+                
+                if cached_path and os.path.isfile(cached_path):
+                    # Use cached version
+                    script_path = cached_path
+                else:
+                    # Prompt to download first
+                    dialog = Gtk.MessageDialog(
+                        transient_for=self,
+                        flags=0,
+                        message_type=Gtk.MessageType.QUESTION,
+                        buttons=Gtk.ButtonsType.YES_NO,
+                        text="☁️ Download Script to View?"
+                    )
+                    dialog.format_secondary_text(
+                        f"The script '{script_name}' needs to be downloaded to view.\n\n"
+                        "Download to cache first?"
+                    )
+                    response = dialog.run()
+                    dialog.destroy()
+                    
+                    if response == Gtk.ResponseType.YES:
+                        try:
+                            success = self.repository.download_script(manifest_script_id)
+                            if success:
+                                cached_path = self.repository.get_cached_script_path(manifest_script_id)
+                                if cached_path and os.path.isfile(cached_path):
+                                    script_path = cached_path
+                                    # Refresh UI to show updated cache status
+                                    GLib.timeout_add(500, self._refresh_ui_after_cache_change)
+                                else:
+                                    self.show_error_dialog("Failed to locate downloaded script")
+                                    return
+                            else:
+                                self.show_error_dialog(f"Failed to download {script_name}")
+                                return
+                        except Exception as e:
+                            if "Checksum verification failed" in str(e):
+                                self.show_error_dialog(f"Checksum verification failed for {script_name}.\n\nTry disabling checksum verification in Repository Settings.")
+                            else:
+                                self.show_error_dialog(f"Download error: {e}")
+                            return
+                    else:
+                        return  # User cancelled
+        
+        # Check if file exists before viewing
         if not os.path.isfile(script_path):
             self.show_error_dialog(f"Script not found:\n{script_path}")
             return
@@ -3259,10 +3374,31 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Show progress in terminal
             self.terminal.feed(b"\r\n\x1b[33m[*] Refreshing script data...\x1b[0m\r\n")
             
-            # Refresh repository manifest if available
-            if self.repository:
-                self.terminal.feed(b"\x1b[33m[*] Updating repository manifest...\x1b[0m\r\n")
-                self.repository.fetch_remote_manifest()
+            # Reload scripts from manifest with repository configuration
+            global _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT
+            global SCRIPTS, SCRIPT_NAMES, TOOLS_SCRIPTS, TOOLS_NAMES
+            global EXERCISES_SCRIPTS, EXERCISES_NAMES, UNINSTALL_SCRIPTS, UNINSTALL_NAMES
+            global DESCRIPTIONS, TOOLS_DESCRIPTIONS, EXERCISES_DESCRIPTIONS, UNINSTALL_DESCRIPTIONS
+            
+            # Force refresh manifest and reload with repository configuration
+            _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest(self.terminal, self.repository)
+            
+            # Update global arrays
+            SCRIPTS[:] = _SCRIPTS_DICT.get('install', [])
+            SCRIPT_NAMES[:] = _NAMES_DICT.get('install', [])
+            DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('install', [])
+            
+            TOOLS_SCRIPTS[:] = _SCRIPTS_DICT.get('tools', [])
+            TOOLS_NAMES[:] = _NAMES_DICT.get('tools', [])
+            TOOLS_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('tools', [])
+            
+            EXERCISES_SCRIPTS[:] = _SCRIPTS_DICT.get('exercises', [])
+            EXERCISES_NAMES[:] = _NAMES_DICT.get('exercises', [])
+            EXERCISES_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('exercises', [])
+            
+            UNINSTALL_SCRIPTS[:] = _SCRIPTS_DICT.get('uninstall', [])
+            UNINSTALL_NAMES[:] = _NAMES_DICT.get('uninstall', [])
+            UNINSTALL_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('uninstall', [])
             
             # Refresh custom scripts (reload from disk)
             self.terminal.feed(b"\x1b[33m[*] Refreshing custom scripts...\x1b[0m\r\n")

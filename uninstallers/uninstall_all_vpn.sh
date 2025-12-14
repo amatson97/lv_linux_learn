@@ -34,14 +34,14 @@ main() {
     if command -v zerotier-cli &> /dev/null; then
         green_echo ""
         green_echo "[*] ========== Uninstalling ZeroTier =========="
-        bash "$script_dir/uninstall_zerotier.sh"
+        bash "$SCRIPT_DIR/uninstall_zerotier.sh"
     fi
     
     # Uninstall NordVPN
     if command -v nordvpn &> /dev/null; then
         green_echo ""
         green_echo "[*] ========== Uninstalling NordVPN =========="
-        bash "$script_dir/uninstall_nordvpn.sh"
+        bash "$SCRIPT_DIR/uninstall_nordvpn.sh"
     fi
     
     # Uninstall Hamachi
