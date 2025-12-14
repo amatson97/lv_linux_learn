@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.1.0",
-  "last_updated": "2025-12-14T02:07:52+00:00",
+  "last_updated": "2025-12-14T02:22:06+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -13,12 +13,12 @@
       "file_name": "chrome_install.sh",
       "relative_path": "scripts/chrome_install.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/chrome_install.sh",
-      "checksum": "sha256:1a9079b012db482bfcd1f0f3d21e3f2c6cfc2c0eba1e31f5ad69c9dbe23842b9",
-      "description": "Install Google Chrome (robust, idempotent)",
+      "checksum": "sha256:e2a3f2c67a81a2be7e713d9b1891c8713caace42ace239a32b65a627e8bbf6f9",
+      "description": "Install Google Chrome browser with automatic repository setup",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -29,12 +29,12 @@
       "file_name": "docker_install.sh",
       "relative_path": "scripts/docker_install.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/docker_install.sh",
-      "checksum": "sha256:cadee07951dfda4db5e7a0c939642c33806a5e6c04494c5b09d1b7357760ebe3",
-      "description": "Robust, idempotent Docker install for Ubuntu/Debian",
+      "checksum": "sha256:ee815c179a9e82b82d1297b4d2b39aae54939f72ef3d0466ad78d37668ff6de5",
+      "description": "Complete Docker Engine installation with user configuration",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -45,12 +45,12 @@
       "file_name": "git_setup.sh",
       "relative_path": "scripts/git_setup.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/git_setup.sh",
-      "checksum": "sha256:fd85c0341e9d2acd0c77e513860ef58d35bef8f37f02ab57ef6342da18730221",
-      "description": "Script to set up Ubuntu 22.04+ with git and gh (GitHub CLI)",
+      "checksum": "sha256:1958d0d252fd6b8db93aa15a4caaa8caef1d94e448f97aeac4060f7a120af0ed",
+      "description": "Complete Git and GitHub CLI setup with guided authentication",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -61,12 +61,12 @@
       "file_name": "install_flatpak.sh",
       "relative_path": "scripts/install_flatpak.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/install_flatpak.sh",
-      "checksum": "sha256:525202a3a08921abd65c8dc357dd2e994ea181da1ec31d109d17b713a2d3bfd2",
-      "description": "Install flatpak and gnome-software-plugin-flatpak, add flathub repo",
+      "checksum": "sha256:5a182888ef18437cc8c8208537bf4a381e05465baaa15738b04024dd4f26d9ed",
+      "description": "Install Flatpak universal package system with Flathub repository",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -77,12 +77,12 @@
       "file_name": "install_wine.sh",
       "relative_path": "scripts/install_wine.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/install_wine.sh",
-      "checksum": "sha256:26b96ec0ceeee2e4805001dec4c58e9d5c2746464f859af3295e3a2f5fb45b80",
-      "description": "Install Wine and Winetricks for running Windows apps on Ubuntu",
+      "checksum": "sha256:288954e272b6eaf35d499ff37872d1d2f7b4d48fe7f5756f0717e2eb8fbdc0c4",
+      "description": "Install Wine compatibility layer for running Windows applications",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -109,12 +109,12 @@
       "file_name": "nextcloud_client.sh",
       "relative_path": "scripts/nextcloud_client.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/nextcloud_client.sh",
-      "checksum": "sha256:196967d60d077fe54492ffac90386bed46b8f8e4e36049ec0efc47cd370de48f",
-      "description": "Install Nextcloud Desktop Client via Flatpak",
+      "checksum": "sha256:7d016ed65366b71d7e578e67b787adf3d5502ad611b578f4035e951f1699eda5",
+      "description": "Install Nextcloud Desktop Client for file synchronization",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -125,12 +125,12 @@
       "file_name": "sublime_install.sh",
       "relative_path": "scripts/sublime_install.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/sublime_install.sh",
-      "checksum": "sha256:0931b83dd236e11857fbef8cf3f20f053722f50b422dedf3b515a4d3ee340152",
-      "description": "Install Sublime Text and Sublime Merge",
+      "checksum": "sha256:720d47337e429771b6f3f680b3dc32786c29c2062fb694b373f401ef170db790",
+      "description": "Install Sublime Text editor and Sublime Merge git client",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -141,12 +141,12 @@
       "file_name": "vscode_install.sh",
       "relative_path": "scripts/vscode_install.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/vscode_install.sh",
-      "checksum": "sha256:9edcdab05bb038e49371a338d77ccdb59eda0f2e2ea419e8fe1a419175e49bbe",
-      "description": "Installs Microsoft Visual Studio Code editor with extensions support.",
+      "checksum": "sha256:4d756310792bee8410b11d8af556e1a41e0bb0754589332232d07837d9de22e1",
+      "description": "Install Visual Studio Code with development extensions",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -157,12 +157,12 @@
       "file_name": "7z_extractor_ram_disk.sh",
       "relative_path": "tools/7z_extractor_ram_disk.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/7z_extractor_ram_disk.sh",
-      "checksum": "sha256:aee6e85f42d650afdf88ac4de4a6420801972421cbbf4928da59c487a2d0889e",
-      "description": "Extract 7z archives using RAM disk (/dev/shm) for improved performance",
+      "checksum": "sha256:e3b8c2b77f25ea4b0c979b7c63a50dd815b0619f1b96f79a7d094e071b253de7",
+      "description": "High-performance 7-Zip extractor using RAM disk acceleration",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -173,12 +173,12 @@
       "file_name": "7z_extractor.sh",
       "relative_path": "tools/7z_extractor.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/7z_extractor.sh",
-      "checksum": "sha256:96632be89b55a759147a9ab3c0a2345b6ae818d9b75f1d1cc3ed815b2af0ef63",
-      "description": "This script will extract all 7z files in a directory and remove the original archive.",
+      "checksum": "sha256:432683823b7d8fba166f26ade3c4a4f8d45dd889308d077c4b430270719de8b5",
+      "description": "Batch 7-Zip archive extractor with automatic cleanup",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -189,12 +189,12 @@
       "file_name": "check_power_on_hours.sh",
       "relative_path": "tools/check_power_on_hours.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/check_power_on_hours.sh",
-      "checksum": "sha256:3382ec71a02879b4663bd96dd999e2ab4dda030e9842e039f1546ec82c0bd969",
-      "description": "Check power-on hours for selected drives",
+      "checksum": "sha256:413e66fd88d6b03a76033c6e055c925e0239e1ea0bd379967c2453aaec56bb58",
+      "description": "Check drive health and power-on hours using smartctl",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -205,12 +205,12 @@
       "file_name": "convert_7z_to_xiso.sh",
       "relative_path": "tools/convert_7z_to_xiso.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/convert_7z_to_xiso.sh",
-      "checksum": "sha256:5af211cf4d2b5564d1e54280bfdd120e35140678454c927c8ddddba3548230fc",
-      "description": "This script was prepared for extract xbox roms from 7zip then converting them from xiso to iso format",
+      "checksum": "sha256:35d6dd0f348df87608faa917c9d0485a6f7e49667ce12be5e8ef7c62f56fd7ee",
+      "description": "Xbox ROM extraction and XISO to ISO conversion utility",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -221,12 +221,12 @@
       "file_name": "extract_rar.sh",
       "relative_path": "tools/extract_rar.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/extract_rar.sh",
-      "checksum": "sha256:724f0e515e802776ace1812e5ad0c1fbd872f852bfa1cddd77910373582b8df6",
-      "description": "This script will extract all rar files in a directory to their respective folders.",
+      "checksum": "sha256:2eee2b7f585d9c941558b2ceb42cac984f26bfb33931d33460d1295ca8f4f033",
+      "description": "Batch RAR archive extractor with organized output",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -237,12 +237,12 @@
       "file_name": "flac_to_mp3.sh",
       "relative_path": "tools/flac_to_mp3.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/flac_to_mp3.sh",
-      "checksum": "sha256:94af3340c2fdde49d9e135f5b314bb695781b413a8f625cb4db4c34301334f09",
-      "description": "Convert FLAC audio files to MP3 format using ffmpeg",
+      "checksum": "sha256:f0d093f89865e1b51f35f3f8e6507f3c83e84d4b097ba7efc49c38aade378591",
+      "description": "Batch FLAC to MP3 audio converter with quality control",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -253,12 +253,12 @@
       "file_name": "git_pull.sh",
       "relative_path": "tools/git_pull.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/git_pull.sh",
-      "checksum": "sha256:a79c68608f6a101b2d1cf5e6c992dfa7ce258434da671c260b3502f0de0c90af",
-      "description": "Pull latest changes from git remote",
+      "checksum": "sha256:c5a10213ee7bbd556c3cfc7461fdd4cb59b809355515fea94c91ea53673c0e5d",
+      "description": "Safe Git repository update tool with conflict detection",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -269,12 +269,12 @@
       "file_name": "git_push_changes.sh",
       "relative_path": "tools/git_push_changes.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/git_push_changes.sh",
-      "checksum": "sha256:152dd7f788d6d79ee303a9976cc5d7f2858d8b0b9635ba8a606a4eedfea7f5e7",
-      "description": "Script to commit changes to GitHub",
+      "checksum": "sha256:aa8477f541dbee9f20553db5f2941578fc4be004fc175949ef9f7a4c0cbbafc8",
+      "description": "Interactive Git commit and push tool for quick code updates",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -285,12 +285,12 @@
       "file_name": "plex-batch-remux.sh",
       "relative_path": "tools/plex-batch-remux.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/plex-batch-remux.sh",
-      "checksum": "sha256:e80d54489fee8ee7193283b4fa62ac3095b5513aa9148a3f840182ce21c106eb",
-      "description": "Batch remux .mkv files (dual audio/soft subs) to MP4 for Plex NVIDIA Quadro M2000 NVENC hardware transcoding",
-      "requires_sudo": true,
+      "checksum": "sha256:77ceb8e26a601ed560e5176237b62291daffedbbe26195fb3fc12df691dec6b7",
+      "description": "Batch MKV to MP4 converter optimized for Plex NVENC transcoding",
+      "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -301,12 +301,12 @@
       "file_name": "ubuntu_NetworkManager.sh",
       "relative_path": "tools/ubuntu_NetworkManager.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/ubuntu_NetworkManager.sh",
-      "checksum": "sha256:8d76b337c776c584a131772f4ea0927247bd64607191d29a92693ac6ee7a996f",
-      "description": "Migrate Ubuntu from netplan to NetworkManager for network configuration",
+      "checksum": "sha256:46b3944dade5d6b44f98bc4fa35df539962176ecfc2d0c63d0dbf7a350e3f43f",
+      "description": "Migrate Ubuntu networking from netplan to NetworkManager",
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -317,12 +317,12 @@
       "file_name": "zip_extractor_ram_disk.sh",
       "relative_path": "tools/zip_extractor_ram_disk.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/tools/zip_extractor_ram_disk.sh",
-      "checksum": "sha256:677fc186c1233dbf23ce1c92e0e7a8e9e8f49ab181fa82fdc0da8858989d629c",
-      "description": "This script will extract all zip files in a directory utalising /dev/shm RAM disk.",
+      "checksum": "sha256:295698f82ec44c27997642564f1c6d3a5668061755ffe535d14507e1eb616dbb",
+      "description": "High-speed ZIP extraction using RAM disk for better performance",
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -333,12 +333,12 @@
       "file_name": "count_lines.sh",
       "relative_path": "bash_exercises/count_lines.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/count_lines.sh",
-      "checksum": "sha256:d5a4d1326a84fc36d7cfd83c8d4c2320bfdd93b7575374f47c5bffff9451465d",
-      "description": "This script prompts the user for a filename, then counts and displays the number of lines.",
+      "checksum": "sha256:fa03621984a5a211cd8c771318ead7eeadb8a4df72032ea4ffc0db4f6006c989",
+      "description": "File analysis tutorial - Learn 'wc' command and file operations",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -349,12 +349,12 @@
       "file_name": "find_word.sh",
       "relative_path": "bash_exercises/find_word.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/find_word.sh",
-      "checksum": "sha256:85a7349173a1a7ef4374e4c527da32b3c9c6ed5e292e82fd5b2baec22afbd1a7",
-      "description": "This script prompts for a filename and a word, then shows all lines containing that word.",
+      "checksum": "sha256:a817bd32f4c6f2c802f586fd5ccb8cc66a7ed7ae5e23b164078859f59fb4061b",
+      "description": "Text search tutorial - Learn 'grep' command and pattern matching",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -365,12 +365,12 @@
       "file_name": "hello_test.sh",
       "relative_path": "bash_exercises/hello_test.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/hello_test.sh",
-      "checksum": "sha256:535482dd6372ae02bb8ec128fed8e4ef2aca518f973c00c7f95b4c1fba3f1ff2",
-      "description": "Simple test script for custom script addition",
+      "checksum": "sha256:25bad4af9b5cb7b9cc784109d68de1872db7b908c3867beb8a11509f5a66cca3",
+      "description": "Basic script testing - Verify script execution environment",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -381,12 +381,12 @@
       "file_name": "hello_world.sh",
       "relative_path": "bash_exercises/hello_world.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/hello_world.sh",
-      "checksum": "sha256:b8aaa80039b2a60beb3b3909ff5c202efd7079720cc0db1a3f297e5270e8e964",
-      "description": "This script prints \"Hello, World!\" to the terminal.",
-      "requires_sudo": false,
+      "checksum": "sha256:30e7b9d9013c8259c57a49f32ff21c1a3f94bd7e61053a75092edb722fb379ad",
+      "description": "Hello World tutorial - Your first bash script",
+      "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -397,12 +397,12 @@
       "file_name": "list_files.sh",
       "relative_path": "bash_exercises/list_files.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/list_files.sh",
-      "checksum": "sha256:7c075129d44641ea420216c04546409784bcc8dd464b7caea8c1d62f1236c723",
-      "description": "This script lists all files in the current directory.",
+      "checksum": "sha256:68b55872beb8270d83bec46bcfde02069bd54800188975caa09f3b668332080c",
+      "description": "File listing tutorial - Learn 'ls' command and options",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -413,12 +413,12 @@
       "file_name": "make_directory.sh",
       "relative_path": "bash_exercises/make_directory.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/make_directory.sh",
-      "checksum": "sha256:064c4f357a68d0561cd9882bf07157cb9be927266ab0acb02e2c06e102d4f8a0",
-      "description": "This script prompts the user to enter a directory name and creates it.",
+      "checksum": "sha256:8f5075047a6d1e1bbcbaa1d30549ef6e24f30169e991151056d97cf838a6a4f1",
+      "description": "Directory creation tutorial - Learn 'mkdir' and user input",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -429,12 +429,12 @@
       "file_name": "print_numbers.sh",
       "relative_path": "bash_exercises/print_numbers.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/print_numbers.sh",
-      "checksum": "sha256:a057dfaee9a64f0c1ee2c7f9f0872ed2b14d649aac2b9dffa6f4308089248ed0",
-      "description": "This script prints numbers from 1 to 10 using a loop.",
+      "checksum": "sha256:7990e6aeeafabad79a9bbe258debb4b3806d58c0d5974379fcd4f4c4e12e8830",
+      "description": "Loop tutorial - Learn 'for' loops and iteration concepts",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -445,12 +445,12 @@
       "file_name": "show_date.sh",
       "relative_path": "bash_exercises/show_date.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/show_date.sh",
-      "checksum": "sha256:5936c8c6421263f9cd433d9fdf8480bf84404f65fa183d7d9aaaa1b0ba7c8c4a",
-      "description": "This script displays the current date and time.",
+      "checksum": "sha256:1f32a66fdf281eac041a79025a4489e2fa51f1ef565c0f2eb8544fcd0c95e928",
+      "description": "Date and time tutorial - Learn 'date' command formatting",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -461,12 +461,12 @@
       "file_name": "simple_calculator.sh",
       "relative_path": "bash_exercises/simple_calculator.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/simple_calculator.sh",
-      "checksum": "sha256:6a85a4cf5d3f1aac3a9b0e22b860b3590df6279a1bfe06a5935554e87715f2c9",
-      "description": "This script prompts the user to enter two numbers and outputs their sum.",
+      "checksum": "sha256:07eb1a962793d3461b7ac8a64cfbc8628659a91492da48345d946d1012091e1b",
+      "description": "Interactive calculator - Learn arithmetic and input validation",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -477,12 +477,12 @@
       "file_name": "test_custom_script.sh",
       "relative_path": "bash_exercises/test_custom_script.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/bash_exercises/test_custom_script.sh",
-      "checksum": "sha256:d6ef0a9d630b34a2c21e41588a5738e066ddf49681fba7edf3ac15190b342697",
-      "description": "Test custom script for demonstrating the Custom Script Addition feature",
+      "checksum": "sha256:86d93112958469bc3dacde78624e7ad30559a976aa07dc9ca1ee6ec6de616b04",
+      "description": "Custom script demo - Learn script integration and path handling",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -493,12 +493,12 @@
       "file_name": "clean_desktop_launchers.sh",
       "relative_path": "uninstallers/clean_desktop_launchers.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/clean_desktop_launchers.sh",
-      "checksum": "sha256:ae0e236b9c742b2c477c598621693c8305511d375aa083efbc95cadd56e5f887",
-      "description": "Clean Desktop Launchers and Helper Scripts",
+      "checksum": "sha256:2cdc16e9f8a248a3124735ce1425a0e58827b65f65e9e8bd1a7b20be3593b1b3",
+      "description": "Remove desktop launchers and helper scripts created by lv_linux_learn",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -509,12 +509,12 @@
       "file_name": "uninstall_all_vpn.sh",
       "relative_path": "uninstallers/uninstall_all_vpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_all_vpn.sh",
-      "checksum": "sha256:b96bbe1fa5bde4665b29a365ae11410bfd102e53387cc0c052f57876a0d55b59",
-      "description": "Uninstall All VPN Tools",
+      "checksum": "sha256:ec3f11959210575fc279f30e48bce2257a961bd55dce68a16de69ce97a67dd01",
+      "description": "Remove all VPN software and restore network defaults",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -525,12 +525,12 @@
       "file_name": "uninstall_chrome.sh",
       "relative_path": "uninstallers/uninstall_chrome.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_chrome.sh",
-      "checksum": "sha256:46b5da7e4219f6f21416628e85c646ad244403e12e3599be45abd26d22d2103f",
-      "description": "Uninstall Google Chrome",
+      "checksum": "sha256:7363ea4eb92d346a528205fd5f96e776e03f8a05907d9d1f0300cbcda755a7d2",
+      "description": "Remove Google Chrome browser with repository cleanup",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:52+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -541,12 +541,12 @@
       "file_name": "uninstall_docker.sh",
       "relative_path": "uninstallers/uninstall_docker.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_docker.sh",
-      "checksum": "sha256:2cabc9dcde68e6000a80979266b88a3a151fd2e03f5ebec651ddb1ad2a534a3a",
-      "description": "Uninstall Docker and Docker Compose",
+      "checksum": "sha256:378c23b9f1e9dd6028a8950506e3be4b67904a727258022d187151d0d54fb5a1",
+      "description": "Complete Docker ecosystem removal with data cleanup options",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -557,12 +557,12 @@
       "file_name": "uninstall_flatpak.sh",
       "relative_path": "uninstallers/uninstall_flatpak.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_flatpak.sh",
-      "checksum": "sha256:3463b4b58b9f980b880a1015e6280300c9732c96531de6679c86660c53c50dc8",
-      "description": "Uninstall Flatpak",
+      "checksum": "sha256:9aa6e430bf5f0de272f74da081d128dc795de1e0d391c64e04d770eeb7c6e651",
+      "description": "Remove Flatpak system and all installed applications",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -573,12 +573,12 @@
       "file_name": "uninstall_nextcloud.sh",
       "relative_path": "uninstallers/uninstall_nextcloud.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_nextcloud.sh",
-      "checksum": "sha256:748bd26013f7a0b16b7c7fb06dab7481c040c8b8ad10e419d54e53d5ec52c7f9",
-      "description": "Uninstall Nextcloud Client",
+      "checksum": "sha256:77d287a539299b7383b0158493caad9b382ade893b54590870762733bdd6e9bb",
+      "description": "Remove Nextcloud Desktop Client with sync data options",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -589,12 +589,12 @@
       "file_name": "uninstall_nordvpn.sh",
       "relative_path": "uninstallers/uninstall_nordvpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_nordvpn.sh",
-      "checksum": "sha256:a2b9e1ba4fa02a980d21e5f27d60ecd32de9188a7c51885d9c5426398216dd14",
-      "description": "Uninstall NordVPN",
+      "checksum": "sha256:b748367b816bb7bfd3d1124d12930454c3a2a034a596078e0acb05178dad19c0",
+      "description": "Remove NordVPN client with complete network restoration",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -605,12 +605,12 @@
       "file_name": "uninstall_sublime.sh",
       "relative_path": "uninstallers/uninstall_sublime.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_sublime.sh",
-      "checksum": "sha256:0092f862090e2658704d5be1b171f5e7b8b9ab5c4bcfcbaf7b3e9d177bc64519",
-      "description": "Uninstall Sublime Text and Sublime Merge",
+      "checksum": "sha256:7d6588588cd41b427778b7e85956204a98e94ee0b740921d1f6a8cfe6eff9f19",
+      "description": "Remove Sublime Text and Sublime Merge with settings cleanup",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -621,12 +621,12 @@
       "file_name": "uninstall_vscode.sh",
       "relative_path": "uninstallers/uninstall_vscode.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_vscode.sh",
-      "checksum": "sha256:7258a1102aed7b61c8bb1de20b949383127b06eebe41f1e6d46c20c1f735874c",
-      "description": "Removes VS Code, optionally removes configuration and extensions.",
+      "checksum": "sha256:96bff665d5119786d93910e974a3af38741f02a482ad1935d2811020984e07af",
+      "description": "Remove Visual Studio Code with extensions and settings cleanup",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -637,12 +637,12 @@
       "file_name": "uninstall_wine.sh",
       "relative_path": "uninstallers/uninstall_wine.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_wine.sh",
-      "checksum": "sha256:442eb120bc459caac55f46638f270a5416335b0f99e706cca8dd8c5db6a44703",
-      "description": "Uninstall Wine",
+      "checksum": "sha256:ddee1657b43b53bd2fd6637eb926f7c09754a7559b7863517a90adaaa6d7ea30",
+      "description": "Remove Wine Windows compatibility layer and prefix data",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -653,12 +653,12 @@
       "file_name": "uninstall_zerotier.sh",
       "relative_path": "uninstallers/uninstall_zerotier.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_zerotier.sh",
-      "checksum": "sha256:9d4ef6623d1905fd0d5593112c5e6bc6c529f287f52415b769b04db8a0da37ca",
-      "description": "Uninstall ZeroTier VPN",
+      "checksum": "sha256:e932051e1bfe86f7e107f63a0541a90e3a64333b86149680f848e1887245f274",
+      "description": "Completely remove ZeroTier VPN with network cleanup",
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -674,7 +674,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
 ,
     {
@@ -690,7 +690,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T02:07:53+00:00"
+      "last_modified": "2025-12-14T02:22:06+00:00"
     }
   ]
 }
