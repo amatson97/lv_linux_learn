@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.1.0",
-  "last_updated": "2025-12-14T01:20:57+00:00",
+  "last_updated": "2025-12-14T01:29:40+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -16,9 +16,9 @@
       "checksum": "sha256:1a9079b012db482bfcd1f0f3d21e3f2c6cfc2c0eba1e31f5ad69c9dbe23842b9",
       "description": "Install Google Chrome (robust, idempotent)",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -32,9 +32,9 @@
       "checksum": "sha256:cadee07951dfda4db5e7a0c939642c33806a5e6c04494c5b09d1b7357760ebe3",
       "description": "Robust, idempotent Docker install for Ubuntu/Debian",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -48,9 +48,9 @@
       "checksum": "sha256:fd85c0341e9d2acd0c77e513860ef58d35bef8f37f02ab57ef6342da18730221",
       "description": "Script to set up Ubuntu 22.04+ with git and gh (GitHub CLI)",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -64,9 +64,9 @@
       "checksum": "sha256:525202a3a08921abd65c8dc357dd2e994ea181da1ec31d109d17b713a2d3bfd2",
       "description": "Install flatpak and gnome-software-plugin-flatpak, add flathub repo",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -80,9 +80,9 @@
       "checksum": "sha256:26b96ec0ceeee2e4805001dec4c58e9d5c2746464f859af3295e3a2f5fb45b80",
       "description": "Install Wine and Winetricks for running Windows apps on Ubuntu",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -96,9 +96,9 @@
       "checksum": "sha256:e7f5b35294747eacbfd82ee0d358f1a4f01ddd2fc6c0bc77d8b981b5d27ecfb7",
       "description": "Installs ZeroTier and joins a user-configured network.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -112,9 +112,9 @@
       "checksum": "sha256:196967d60d077fe54492ffac90386bed46b8f8e4e36049ec0efc47cd370de48f",
       "description": "Install Nextcloud Desktop Client via Flatpak",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -128,9 +128,9 @@
       "checksum": "sha256:0931b83dd236e11857fbef8cf3f20f053722f50b422dedf3b515a4d3ee340152",
       "description": "Install Sublime Text and Sublime Merge",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -144,9 +144,9 @@
       "checksum": "sha256:9edcdab05bb038e49371a338d77ccdb59eda0f2e2ea419e8fe1a419175e49bbe",
       "description": "Installs Microsoft Visual Studio Code editor with extensions support.",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -160,9 +160,9 @@
       "checksum": "sha256:aee6e85f42d650afdf88ac4de4a6420801972421cbbf4928da59c487a2d0889e",
       "description": "Extract 7z archives using RAM disk (/dev/shm) for improved performance",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -192,9 +192,9 @@
       "checksum": "sha256:3382ec71a02879b4663bd96dd999e2ab4dda030e9842e039f1546ec82c0bd969",
       "description": "Check power-on hours for selected drives",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -256,9 +256,9 @@
       "checksum": "sha256:a79c68608f6a101b2d1cf5e6c992dfa7ce258434da671c260b3502f0de0c90af",
       "description": "Pull latest changes from git remote",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -272,9 +272,9 @@
       "checksum": "sha256:152dd7f788d6d79ee303a9976cc5d7f2858d8b0b9635ba8a606a4eedfea7f5e7",
       "description": "Script to commit changes to GitHub",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -322,7 +322,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -336,9 +336,9 @@
       "checksum": "sha256:d5a4d1326a84fc36d7cfd83c8d4c2320bfdd93b7575374f47c5bffff9451465d",
       "description": "This script prompts the user for a filename, then counts and displays the number of lines.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -352,9 +352,9 @@
       "checksum": "sha256:85a7349173a1a7ef4374e4c527da32b3c9c6ed5e292e82fd5b2baec22afbd1a7",
       "description": "This script prompts for a filename and a word, then shows all lines containing that word.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -368,9 +368,9 @@
       "checksum": "sha256:535482dd6372ae02bb8ec128fed8e4ef2aca518f973c00c7f95b4c1fba3f1ff2",
       "description": "Simple test script for custom script addition",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -384,9 +384,9 @@
       "checksum": "sha256:b8aaa80039b2a60beb3b3909ff5c202efd7079720cc0db1a3f297e5270e8e964",
       "description": "This script prints \"Hello, World!\" to the terminal.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -400,9 +400,9 @@
       "checksum": "sha256:7c075129d44641ea420216c04546409784bcc8dd464b7caea8c1d62f1236c723",
       "description": "This script lists all files in the current directory.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -416,9 +416,9 @@
       "checksum": "sha256:064c4f357a68d0561cd9882bf07157cb9be927266ab0acb02e2c06e102d4f8a0",
       "description": "This script prompts the user to enter a directory name and creates it.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:57+00:00"
+      "last_modified": "2025-12-14T01:29:40+00:00"
     }
 ,
     {
@@ -432,9 +432,9 @@
       "checksum": "sha256:a057dfaee9a64f0c1ee2c7f9f0872ed2b14d649aac2b9dffa6f4308089248ed0",
       "description": "This script prints numbers from 1 to 10 using a loop.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -448,9 +448,9 @@
       "checksum": "sha256:5936c8c6421263f9cd433d9fdf8480bf84404f65fa183d7d9aaaa1b0ba7c8c4a",
       "description": "This script displays the current date and time.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -464,9 +464,9 @@
       "checksum": "sha256:6a85a4cf5d3f1aac3a9b0e22b860b3590df6279a1bfe06a5935554e87715f2c9",
       "description": "This script prompts the user to enter two numbers and outputs their sum.",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -480,9 +480,9 @@
       "checksum": "sha256:d6ef0a9d630b34a2c21e41588a5738e066ddf49681fba7edf3ac15190b342697",
       "description": "Test custom script for demonstrating the Custom Script Addition feature",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -496,9 +496,9 @@
       "checksum": "sha256:ae0e236b9c742b2c477c598621693c8305511d375aa083efbc95cadd56e5f887",
       "description": "Clean Desktop Launchers and Helper Scripts",
       "requires_sudo": false,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -509,12 +509,12 @@
       "file_name": "uninstall_all_vpn.sh",
       "relative_path": "uninstallers/uninstall_all_vpn.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_all_vpn.sh",
-      "checksum": "sha256:2bedf1f4037073c7b48a362c5a5642384a6b10396274f602fe520449c905bcb2",
+      "checksum": "sha256:b96bbe1fa5bde4665b29a365ae11410bfd102e53387cc0c052f57876a0d55b59",
       "description": "Uninstall All VPN Tools",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -528,9 +528,9 @@
       "checksum": "sha256:46b5da7e4219f6f21416628e85c646ad244403e12e3599be45abd26d22d2103f",
       "description": "Uninstall Google Chrome",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -544,9 +544,9 @@
       "checksum": "sha256:2cabc9dcde68e6000a80979266b88a3a151fd2e03f5ebec651ddb1ad2a534a3a",
       "description": "Uninstall Docker and Docker Compose",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -560,9 +560,9 @@
       "checksum": "sha256:3463b4b58b9f980b880a1015e6280300c9732c96531de6679c86660c53c50dc8",
       "description": "Uninstall Flatpak",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -576,9 +576,9 @@
       "checksum": "sha256:748bd26013f7a0b16b7c7fb06dab7481c040c8b8ad10e419d54e53d5ec52c7f9",
       "description": "Uninstall Nextcloud Client",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -592,9 +592,9 @@
       "checksum": "sha256:a2b9e1ba4fa02a980d21e5f27d60ecd32de9188a7c51885d9c5426398216dd14",
       "description": "Uninstall NordVPN",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -608,9 +608,9 @@
       "checksum": "sha256:0092f862090e2658704d5be1b171f5e7b8b9ab5c4bcfcbaf7b3e9d177bc64519",
       "description": "Uninstall Sublime Text and Sublime Merge",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -624,9 +624,9 @@
       "checksum": "sha256:7258a1102aed7b61c8bb1de20b949383127b06eebe41f1e6d46c20c1f735874c",
       "description": "Removes VS Code, optionally removes configuration and extensions.",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -640,9 +640,9 @@
       "checksum": "sha256:442eb120bc459caac55f46638f270a5416335b0f99e706cca8dd8c5db6a44703",
       "description": "Uninstall Wine",
       "requires_sudo": true,
-      "dependencies": [],
+      "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
 ,
     {
@@ -656,9 +656,41 @@
       "checksum": "sha256:9d4ef6623d1905fd0d5593112c5e6bc6c529f287f52415b769b04db8a0da37ca",
       "description": "Uninstall ZeroTier VPN",
       "requires_sudo": true,
+      "dependencies": ["includes-main"],
+      "tags": [],
+      "last_modified": "2025-12-14T01:29:41+00:00"
+    }
+,
+    {
+      "id": "includes-main",
+      "name": "Includes: main.sh",
+      "category": "includes",
+      "version": "1.0.0",
+      "file_name": "main.sh",
+      "relative_path": "includes/main.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/includes/main.sh",
+      "checksum": "sha256:9754d6c8e0b0d277cc139717f87507852a40e3ea9ae478a7c8badefe5fe78054",
+      "description": "Shared include file: main.sh",
+      "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-14T01:20:58+00:00"
+      "last_modified": "2025-12-14T01:29:41+00:00"
+    }
+,
+    {
+      "id": "includes-repository",
+      "name": "Includes: repository.sh",
+      "category": "includes",
+      "version": "1.0.0",
+      "file_name": "repository.sh",
+      "relative_path": "includes/repository.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/includes/repository.sh",
+      "checksum": "sha256:88b49ebcc5b3f669fb960f5431830931935a83af671255e57e37139ae8b32156",
+      "description": "Shared include file: repository.sh",
+      "requires_sudo": false,
+      "dependencies": [],
+      "tags": [],
+      "last_modified": "2025-12-14T01:29:41+00:00"
     }
   ]
 }

@@ -100,6 +100,17 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
   OLD_SCRIPTS=$(jq -r '.scripts[].id' "$BACKUP_FILE" 2>/dev/null | sort)
   NEW_SCRIPTS=$(jq -r '.scripts[].id' "$REPO_ROOT/manifest.json" 2>/dev/null | sort)
   
+  # Get category breakdown
+  echo -e "${BLUE}Category Breakdown:${NC}"
+  for category in install tools exercises uninstall includes; do
+    old_count=$(jq ".scripts | map(select(.category == \"$category\")) | length" "$BACKUP_FILE" 2>/dev/null || echo "0")
+    new_count=$(jq ".scripts | map(select(.category == \"$category\")) | length" "$REPO_ROOT/manifest.json" 2>/dev/null || echo "0")
+    if [ "$old_count" != "0" ] || [ "$new_count" != "0" ]; then
+      echo -e "  ${category}: $old_count → $new_count"
+    fi
+  done
+  echo ""
+  
   # Find added scripts
   ADDED=$(comm -13 <(echo "$OLD_SCRIPTS") <(echo "$NEW_SCRIPTS"))
   if [ -n "$ADDED" ]; then
@@ -131,12 +142,20 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
   # Find modified scripts (checksum changes)
   COMMON=$(comm -12 <(echo "$OLD_SCRIPTS") <(echo "$NEW_SCRIPTS"))
   MODIFIED=""
+  DEPS_CHANGED=""
   while IFS= read -r script_id; do
     if [ -n "$script_id" ]; then
       OLD_CHECKSUM=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$BACKUP_FILE" 2>/dev/null)
       NEW_CHECKSUM=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$REPO_ROOT/manifest.json" 2>/dev/null)
+      OLD_DEPS=$(jq -c ".scripts[] | select(.id == \"$script_id\") | .dependencies" "$BACKUP_FILE" 2>/dev/null)
+      NEW_DEPS=$(jq -c ".scripts[] | select(.id == \"$script_id\") | .dependencies" "$REPO_ROOT/manifest.json" 2>/dev/null)
+      
       if [ "$OLD_CHECKSUM" != "$NEW_CHECKSUM" ]; then
         MODIFIED="${MODIFIED}${script_id}\n"
+      fi
+      
+      if [ "$OLD_DEPS" != "$NEW_DEPS" ]; then
+        DEPS_CHANGED="${DEPS_CHANGED}${script_id}\n"
       fi
     fi
   done <<< "$COMMON"
@@ -153,7 +172,20 @@ if command -v jq &> /dev/null && [ -f "$BACKUP_FILE" ]; then
     echo ""
   fi
   
-  if [ -z "$ADDED" ] && [ -z "$REMOVED" ] && [ -z "$MODIFIED" ]; then
+  if [ -n "$DEPS_CHANGED" ]; then
+    echo -e "${CYAN}⚡ Dependency Changes:${NC}"
+    echo -e "$DEPS_CHANGED" | while IFS= read -r script_id; do
+      if [ -n "$script_id" ]; then
+        script_name=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .name" "$REPO_ROOT/manifest.json" 2>/dev/null)
+        old_deps=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .dependencies | @csv" "$BACKUP_FILE" 2>/dev/null | tr -d '"')
+        new_deps=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .dependencies | @csv" "$REPO_ROOT/manifest.json" 2>/dev/null | tr -d '"')
+        echo -e "  ${CYAN}⚡${NC} $script_name: [$old_deps] → [$new_deps]"
+      fi
+    done
+    echo ""
+  fi
+  
+  if [ -z "$ADDED" ] && [ -z "$REMOVED" ] && [ -z "$MODIFIED" ] && [ -z "$DEPS_CHANGED" ]; then
     info "Only metadata changed (timestamps, version, etc.)"
     echo ""
   fi
@@ -208,6 +240,10 @@ fi
 if [ -n "${MODIFIED:-}" ]; then
   MODIFIED_COUNT=$(echo -e "$MODIFIED" | grep -c . || echo 0)
   COMMIT_MSG="${COMMIT_MSG}\n~ Modified: $MODIFIED_COUNT script(s)"
+fi
+if [ -n "${DEPS_CHANGED:-}" ]; then
+  DEPS_COUNT=$(echo -e "$DEPS_CHANGED" | grep -c . || echo 0)
+  COMMIT_MSG="${COMMIT_MSG}\n⚡ Dependencies changed: $DEPS_COUNT script(s)"
 fi
 
 git -C "$REPO_ROOT" commit -m "$(echo -e "$COMMIT_MSG")"

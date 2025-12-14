@@ -34,14 +34,63 @@ main() {
     if command -v zerotier-cli &> /dev/null; then
         green_echo ""
         green_echo "[*] ========== Uninstalling ZeroTier =========="
-        bash "$SCRIPT_DIR/uninstall_zerotier.sh"
+        
+        # Try to use dedicated script if available, otherwise inline uninstall
+        if [ -f "$SCRIPT_DIR/uninstall_zerotier.sh" ]; then
+            bash "$SCRIPT_DIR/uninstall_zerotier.sh"
+        else
+            # Inline ZeroTier uninstall logic
+            green_echo "[*] Leaving all ZeroTier networks..."
+            networks=$(sudo zerotier-cli listnetworks 2>/dev/null | tail -n +2 | awk '{print $3}' || true)
+            for network in $networks; do
+                green_echo "[*] Leaving network: $network"
+                sudo zerotier-cli leave "$network" 2>/dev/null || true
+            done
+            
+            green_echo "[*] Stopping ZeroTier service..."
+            sudo systemctl stop zerotier-one 2>/dev/null || true
+            sudo systemctl disable zerotier-one 2>/dev/null || true
+            
+            green_echo "[*] Removing ZeroTier package..."
+            sudo apt remove --purge -y zerotier-one 2>/dev/null || true
+            sudo apt autoremove -y
+            
+            green_echo "[*] Removing configuration..."
+            sudo rm -rf /var/lib/zerotier-one
+            
+            green_echo "[+] ZeroTier has been uninstalled successfully!"
+        fi
     fi
     
     # Uninstall NordVPN
     if command -v nordvpn &> /dev/null; then
         green_echo ""
         green_echo "[*] ========== Uninstalling NordVPN =========="
-        bash "$SCRIPT_DIR/uninstall_nordvpn.sh"
+        
+        # Try to use dedicated script if available, otherwise inline uninstall
+        if [ -f "$SCRIPT_DIR/uninstall_nordvpn.sh" ]; then
+            bash "$SCRIPT_DIR/uninstall_nordvpn.sh"
+        else
+            # Inline NordVPN uninstall logic
+            green_echo "[*] Disconnecting and logging out..."
+            nordvpn disconnect 2>/dev/null || true
+            nordvpn logout 2>/dev/null || true
+            nordvpn set meshnet off 2>/dev/null || true
+            
+            green_echo "[*] Removing NordVPN package..."
+            sudo apt remove --purge -y nordvpn 2>/dev/null || true
+            sudo apt autoremove -y
+            
+            green_echo "[*] Removing configuration..."
+            rm -rf "$HOME/.config/nordvpn"
+            sudo rm -rf /var/lib/nordvpn
+            sudo rm -f /etc/systemd/system/nordvpnd.service
+            
+            green_echo "[*] Reloading systemd..."
+            sudo systemctl daemon-reload
+            
+            green_echo "[+] NordVPN has been uninstalled successfully!"
+        fi
     fi
     
     # Uninstall Hamachi

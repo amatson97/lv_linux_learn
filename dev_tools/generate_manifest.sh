@@ -86,6 +86,29 @@ get_script_version() {
   echo "$version"
 }
 
+# Detect if script depends on includes
+uses_includes() {
+  local script="$1"
+  
+  if grep -q 'source.*includes/main.sh\|\. .*includes/main.sh\|\..*includes/main.sh' "$script" 2>/dev/null; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
+# Get includes dependencies for a script
+get_includes_dependencies() {
+  local script="$1"
+  local deps="[]"
+  
+  if [ "$(uses_includes "$script")" = "true" ]; then
+    deps='["includes-main"]'
+  fi
+  
+  echo "$deps"
+}
+
 generate_manifest() {
   log "Generating manifest.json..."
   
@@ -109,10 +132,11 @@ EOF
     ["tools"]="tools"
     ["bash_exercises"]="exercises"
     ["uninstallers"]="uninstall"
+    ["includes"]="includes"
   )
   
   # Process each directory
-  for dir in scripts tools bash_exercises uninstallers; do
+  for dir in scripts tools bash_exercises uninstallers includes; do
     if [ ! -d "$REPO_ROOT/$dir" ]; then
       warn "Directory not found: $dir"
       continue
@@ -121,7 +145,12 @@ EOF
     category="${categories[$dir]}"
     log "Processing $dir/ ($category)..."
     
-    # Find all .sh files
+    # Find all .sh files (and all files for includes)
+    local file_pattern="*.sh"
+    if [ "$dir" = "includes" ]; then
+      file_pattern="*"
+    fi
+    
     while IFS= read -r script; do
       [ -f "$script" ] || continue
       
@@ -134,11 +163,23 @@ EOF
       
       local relative_path="${script#$REPO_ROOT/}"
       local checksum=$(sha256sum "$script" | awk '{print $1}')
-      local script_id=$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-')
-      local script_name=$(echo "$filename" | sed 's/_/ /g' | sed 's/.sh$//' | sed 's/\b\(.\)/\u\1/g')
-      local description=$(get_description "$script")
-      local sudo=$(requires_sudo "$script")
-      local version=$(get_script_version "$script")
+      
+      # Handle includes files differently
+      if [ "$dir" = "includes" ]; then
+        local script_id="includes-$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-' | tr '.' '-')"
+        local script_name="Includes: $filename"
+        local description="Shared include file: $filename"
+        local sudo="false"
+        local version="1.0.0"
+        local dependencies="[]"
+      else
+        local script_id=$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-')
+        local script_name=$(echo "$filename" | sed 's/_/ /g' | sed 's/.sh$//' | sed 's/\b\(.\)/\u\1/g')
+        local description=$(get_description "$script")
+        local sudo=$(requires_sudo "$script")
+        local version=$(get_script_version "$script")
+        local dependencies=$(get_includes_dependencies "$script")
+      fi
       
       # Comma separator
       if [ "$first" = false ]; then
@@ -159,14 +200,14 @@ EOF
       "checksum": "sha256:$checksum",
       "description": "$description",
       "requires_sudo": $sudo,
-      "dependencies": [],
+      "dependencies": $dependencies,
       "tags": [],
       "last_modified": "$(date -Iseconds)"
     }
 ENTRY
       
       script_count=$((script_count + 1))
-    done < <(find "$REPO_ROOT/$dir" -maxdepth 1 -name "*.sh" -type f 2>/dev/null | sort)
+    done < <(find "$REPO_ROOT/$dir" -maxdepth 1 -name "$file_pattern" -type f 2>/dev/null | sort)
   done
   
   # Close JSON
