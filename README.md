@@ -309,7 +309,6 @@ See [**CONTRIBUTING.md**](CONTRIBUTING.md) for detailed guidelines.
 - **🐛 Bug Reports:** [GitHub Issues](https://github.com/amatson97/lv_linux_learn/issues/new?template=bug_report.yml)
 - **✨ Feature Requests:** [GitHub Issues](https://github.com/amatson97/lv_linux_learn/issues/new?template=feature_request.yml)  
 - **🔒 Security Issues:** [Security Advisories](https://github.com/amatson97/lv_linux_learn/security/advisories/new)
-- **💬 Discussions:** [GitHub Discussions](https://github.com/amatson97/lv_linux_learn/discussions)
 - **📖 Troubleshooting:** [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## 🙏 Credits

@@ -18,21 +18,21 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 - **Custom scripts**: Local custom scripts in `~/.lv_linux_learn/custom_scripts.json`, repository scripts via manifest system
 
 3) Coding & style conventions (project-specific)
-- **Shell flavor**: scripts use `#!/bin/bash`. Use bash-compatible constructs (arrays, `[[ ... ]]`) rather than strict POSIX `sh`
+- **Shell flavor**: scripts use `#!/bin/bash` or `#!/usr/bin/env bash`. Use bash-compatible constructs (arrays, `[[ ... ]]`) rather than strict POSIX `sh`
+- **Strict mode**: All new scripts start with `set -euo pipefail` for safety (see section 17 for compatibility notes)
 - **Logging**: use `green_echo` helper for status messages. Available in both local and cached execution contexts
 - **Shared helpers**: put reusable functions in `includes/main.sh`. Repository-compatible scripts should handle both local and cached includes paths:
   ```bash
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  INCLUDES_DIR="$SCRIPT_DIR/../includes"
-  if [ -f "$INCLUDES_DIR/main.sh" ]; then
-      source "$INCLUDES_DIR/main.sh"
-  elif [ -f "$HOME/lv_linux_learn/includes/main.sh" ]; then
-      source "$HOME/lv_linux_learn/includes/main.sh"
-  fi
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  repo_root="$(cd "$script_dir/.." && pwd)"
+  # shellcheck source=/dev/null
+  source "$repo_root/includes/main.sh"
   ```
+  See [docker_install.sh](scripts/docker_install.sh) for the preferred pattern
 - **Execution contexts**: Scripts must work in both local repository and cached execution (`~/.lv_linux_learn/script_cache/`)
 - **Path handling**: Use absolute paths and detect execution context. Cached scripts run from cache directory with symlinked/downloaded includes
 - **Desktop integration**: launchers created under `$HOME/.lv_connect` and `$HOME/Desktop` with `gio set <file> metadata::trusted true`
+- **Script metadata**: Include description comment at top: `# Description: Brief summary`
 
 4) Safety, secrets & sensitive state
 - There are hard-coded tokens/IDs in scripts (example: `NORDVPN_TOKEN` in `includes/main.sh`). Do NOT expose, modify, or commit secrets. If a change requires a token, prompt the repo owner or add configuration to read it from environment variables instead.
@@ -45,6 +45,11 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
   ./menu.sh  # CLI interface
   ./menu.py  # GUI interface (if desktop available)
   ```
+- **Manifest generation**: After adding/modifying scripts, regenerate manifest:
+  ```bash
+  ./dev_tools/update_manifest.sh  # Updates manifest.json with checksums
+  ```
+  This is critical for repository distribution - manifest includes SHA256 checksums for all scripts
 - **Repository system testing**: Test both local and cached execution:
   ```bash
   # Test repository menu (CLI)
@@ -92,10 +97,15 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 10) Files to consult when uncertain
 - `README.md` — project overview and quick start (streamlined, <250 lines).
+- `VERSION` — current version (2.1.0), update when releasing new versions
+- `manifest.json` — auto-generated script registry, do not edit manually (use dev_tools/update_manifest.sh)
 - `docs/` — detailed topic-specific guides (INSTALLATION.md, DOCKER.md, TROUBLESHOOTING.md, NETWORKING.md, TOOLS.md, AI_TOOLS.md, ADVANCED.md).
 - `includes/main.sh` — shared helpers and conventions.
+- `includes/repository.sh` — bash repository backend (816 lines, core multi-repo logic)
+- `lib/repository.py` — Python repository backend (738 lines, GUI equivalent)
 - `menu.sh`, `menu.py` — entry points and menu system architecture.
 - `scripts/`, `tools/`, `ai_fun/`, `uninstallers/` — examples of patterns and how installers/uninstallers are implemented.
+- `dev_tools/` — manifest generation and maintenance scripts.
 
 11) Multi-repository system architecture (v2.1.0)
 - **Multi-repository support**: Default GitHub manifest + custom repository configuration via `custom_manifest_url`
@@ -139,6 +149,26 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 14) Multi-repository development patterns
 - **Creating custom repositories**: Use repository_url field in manifest.json to specify includes base URL
 - **Manifest format**: Include repository_url, proper checksums, and category organization
+  ```json
+  {
+    "version": "1.0.0",
+    "repository_version": "2.1.0",
+    "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
+    "scripts": [{
+      "id": "unique-id",
+      "name": "Display Name",
+      "category": "install|tools|exercises|uninstall",
+      "file_name": "script.sh",
+      "relative_path": "scripts/script.sh",
+      "download_url": "https://full-url/script.sh",
+      "checksum": "sha256:...",
+      "description": "Brief summary",
+      "requires_sudo": true,
+      "dependencies": ["includes-main"]
+    }]
+  }
+  ```
+- **Manifest generation**: Use `./dev_tools/update_manifest.sh` to auto-generate checksums and metadata
 - **Remote includes**: Custom repositories should provide includes/main.sh with shared functions
 - **Security considerations**: All repository URLs must use HTTPS, implement checksum validation
 - **Testing custom repositories**: Test with both local and lv_linux_learn system integration

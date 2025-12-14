@@ -253,12 +253,40 @@ class ScriptRepository:
             # Default format: flat array
             return scripts_data
     
-    def get_script_by_id(self, script_id):
-        """Get script information by ID"""
-        scripts = self.parse_manifest()
-        for script in scripts:
-            if script.get('id') == script_id:
-                return script
+    def get_script_by_id(self, script_id, manifest_path=None):
+        """Get script information by ID
+        
+        Args:
+            script_id: Script ID to find
+            manifest_path: Optional path to specific manifest file (for custom manifests)
+        """
+        if manifest_path:
+            # Load from specific custom manifest
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+                    scripts_data = manifest.get('scripts', [])
+                    # Handle both formats
+                    if isinstance(scripts_data, dict):
+                        all_scripts = []
+                        for category, category_scripts in scripts_data.items():
+                            for script in category_scripts:
+                                script['category'] = category
+                                all_scripts.append(script)
+                        scripts_data = all_scripts
+                    
+                    for script in scripts_data:
+                        if script.get('id') == script_id:
+                            return script
+            except Exception as e:
+                logging.error(f"Failed to load manifest from {manifest_path}: {e}")
+                return None
+        else:
+            # Search default/cached manifest
+            scripts = self.parse_manifest()
+            for script in scripts:
+                if script.get('id') == script_id:
+                    return script
         return None
     
     def get_script_by_filename(self, filename):
@@ -341,14 +369,22 @@ class ScriptRepository:
         
         return updates
     
-    def download_script(self, script_id):
-        """Download a script from repository"""
-        logging.info(f"Downloading script: {script_id}")
+    def download_script(self, script_id, manifest_path=None):
+        """Download a script from repository
         
-        script = self.get_script_by_id(script_id)
+        Args:
+            script_id: Script ID to download
+            manifest_path: Optional path to specific manifest file (for custom manifests)
+        
+        Returns:
+            tuple: (success: bool, download_url: str)
+        """
+        logging.info(f"Downloading script: {script_id}" + (f" from {manifest_path}" if manifest_path else ""))
+        
+        script = self.get_script_by_id(script_id, manifest_path=manifest_path)
         if not script:
             logging.error(f"Script not found in manifest: {script_id}")
-            return False
+            return False, None
         
         download_url = script.get('download_url')
         filename = script.get('file_name')
@@ -357,7 +393,7 @@ class ScriptRepository:
         
         if not all([download_url, filename, category]):
             logging.error(f"Incomplete script information for {script_id}")
-            return False
+            return False, None
         
         dest_path = self.script_cache_dir / category / filename
         
@@ -368,7 +404,18 @@ class ScriptRepository:
             
             # Check if checksum verification is enabled
             # First check the manifest-level setting, then fall back to global config
-            manifest = self.load_local_manifest()
+            if manifest_path:
+                # Load from specific custom manifest
+                try:
+                    with open(manifest_path, 'r') as f:
+                        manifest = json.load(f)
+                except Exception as e:
+                    logging.warning(f"Failed to load manifest from {manifest_path}: {e}")
+                    manifest = None
+            else:
+                # Load default/public manifest
+                manifest = self.load_local_manifest()
+            
             manifest_verify_checksums = manifest.get('verify_checksums') if manifest else None
             
             # Use manifest setting if explicitly set, otherwise use global config
@@ -399,11 +446,11 @@ class ScriptRepository:
             dest_path.chmod(0o755)
             
             logging.info(f"Downloaded successfully: {dest_path}")
-            return True
+            return True, download_url
             
         except Exception as e:
             logging.error(f"Failed to download {script_id}: {e}")
-            return False
+            return False, download_url
     
     def _calculate_checksum(self, filepath):
         """Calculate SHA256 checksum of a file"""
@@ -473,9 +520,27 @@ class ScriptRepository:
         logging.info(f"Silent update complete: {updated} scripts updated")
         return updated
     
-    def get_cached_script_path(self, script_id):
-        """Get path to cached script"""
-        script = self.get_script_by_id(script_id)
+    def get_cached_script_path(self, script_id=None, category=None, filename=None, manifest_path=None):
+        """Get path to cached script
+        
+        Args:
+            script_id: Script ID to look up (will search manifest)
+            category: Direct category (bypasses manifest lookup if provided with filename)
+            filename: Direct filename (bypasses manifest lookup if provided with category)
+            manifest_path: Path to specific manifest file for script_id lookup
+        """
+        # If category and filename provided directly, skip manifest lookup
+        if category and filename:
+            cached_path = self.script_cache_dir / category / filename
+            if cached_path.exists():
+                return str(cached_path)
+            return None
+        
+        # Otherwise, look up script by ID
+        if not script_id:
+            return None
+            
+        script = self.get_script_by_id(script_id, manifest_path=manifest_path)
         if not script:
             return None
         
