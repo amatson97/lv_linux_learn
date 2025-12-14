@@ -164,6 +164,12 @@ EOF
       local relative_path="${script#$REPO_ROOT/}"
       local checksum=$(sha256sum "$script" | awk '{print $1}')
       
+      # Validate checksum format
+      if ! [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]; then
+        warn "Invalid checksum for $relative_path: $checksum"
+        continue
+      fi
+      
       # Handle includes files differently
       if [ "$dir" = "includes" ]; then
         local script_id="includes-$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-' | tr '.' '-')"
@@ -186,6 +192,12 @@ EOF
         echo "," >> "$MANIFEST_FILE"
       fi
       first=false
+      
+      # Validate file is readable and non-empty
+      if [ ! -r "$script" ] || [ ! -s "$script" ]; then
+        warn "File $relative_path is not readable or empty, skipping"
+        continue
+      fi
       
       # Generate entry
       cat >> "$MANIFEST_FILE" << ENTRY

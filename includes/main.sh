@@ -82,7 +82,16 @@ prompt_zerotier_network() {
 }
 
 install_zerotier(){
-  local network_id="${1:-$ZEROTIER_NETWORK}"
+  local network_id="${1-}"
+  
+  # If no parameter provided, try to get from global variable or prompt
+  if [ -z "$network_id" ]; then
+    if [ -n "${ZEROTIER_NETWORK:-}" ]; then
+      network_id="$ZEROTIER_NETWORK"
+    else
+      network_id=$(prompt_zerotier_network)
+    fi
+  fi
   
   if [ -z "$network_id" ]; then
     green_echo "[!] Error: No network ID provided to install_zerotier function"
