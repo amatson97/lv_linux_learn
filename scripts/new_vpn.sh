@@ -41,7 +41,7 @@ main() {
     
     # Install and configure ZeroTier
     green_echo "[*] Installing ZeroTier..."
-    install_zerotier
+    install_zerotier "$ZEROTIER_NETWORK"
     
     green_echo "[*] Setting permissions for ZeroTier CLI..."
     set_permissions_zerotier_cli

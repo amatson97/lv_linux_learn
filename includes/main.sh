@@ -82,6 +82,12 @@ prompt_zerotier_network() {
 }
 
 install_zerotier(){
+  local network_id="${1:-$ZEROTIER_NETWORK}"
+  
+  if [ -z "$network_id" ]; then
+    green_echo "[!] Error: No network ID provided to install_zerotier function"
+    return 1
+  fi
 
   # Install dependecnies
   sudo apt install curl -y
@@ -91,11 +97,11 @@ install_zerotier(){
   curl -s https://install.zerotier.com | sudo bash
 
   # Join network
-  green_echo "[*] Joining Linux Learn Network..."
+  green_echo "[*] Joining network: $network_id"
   sleep 2
 
   # Join zerotier network.
-  sudo zerotier-cli join "$ZEROTIER_NETWORK"
+  sudo zerotier-cli join "$network_id"
   green_echo "[✔] Install complete!"
 }
 
