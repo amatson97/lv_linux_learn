@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Sublime Text and Sublime Merge
+# Description: Remove Sublime Text and Sublime Merge with settings cleanup
+#
+# Uninstalls Sublime Text editor and Sublime Merge git client with
+# complete removal of repositories, configuration files, and user settings.
+# Provides option to backup settings before removal.
 set -euo pipefail
 
 # Includes

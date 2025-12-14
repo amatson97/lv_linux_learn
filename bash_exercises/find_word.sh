@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prompts for a filename and a word, then shows all lines containing that word.
-# Demonstrates the 'grep' command for pattern matching and text searching.
+# Description: Text search tutorial - Learn 'grep' command and pattern matching
+#
+# Educational script for learning text search and pattern matching using 'grep'.
+# Demonstrates file validation, user input, case-sensitive/insensitive searches,
+# and regular expressions. Foundation for text processing and data analysis.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall NordVPN
+# Description: Remove NordVPN client with complete network restoration
+#
+# Completely removes NordVPN client, disconnects active connections, removes
+# user from nordvpn group, and restores original network configuration.
+# Provides thorough cleanup of VPN integration and system modifications.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

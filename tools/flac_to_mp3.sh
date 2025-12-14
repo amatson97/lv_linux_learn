@@ -1,6 +1,9 @@
 #!/bin/bash
-# Description: Convert FLAC audio files to MP3 format using ffmpeg
-# Requires: ffmpeg
+# Description: Batch FLAC to MP3 audio converter with quality control
+#
+# Converts FLAC lossless audio files to MP3 format using ffmpeg with
+# configurable bitrate settings. Preserves metadata and supports batch
+# processing of entire directories. Requires ffmpeg to be installed.
 
 # Directory containing FLAC files; default to current directory if not specified
 DIR="${1:-.}"

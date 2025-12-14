@@ -1,6 +1,9 @@
 #!/bin/bash
-# Install Visual Studio Code
-# Description: Installs Microsoft Visual Studio Code editor with extensions support.
+# Description: Install Visual Studio Code with development extensions
+#
+# Installs Microsoft Visual Studio Code from official repository with
+# popular development extensions and optimized settings. Includes GPG key
+# setup, repository configuration, and extension management.
 # Official Site: https://code.visualstudio.com/
 
 set -euo pipefail

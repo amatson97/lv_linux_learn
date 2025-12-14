@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Robust, idempotent Docker install for Ubuntu/Debian
+# Description: Complete Docker Engine installation with user configuration
+#
+# Installs Docker Engine from official repository, adds user to docker group,
+# installs Docker Compose plugin, and configures system for immediate use.
+# Includes post-installation verification and security setup.
 set -euo pipefail
 
 # repo-aware helpers

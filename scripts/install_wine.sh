@@ -1,5 +1,9 @@
 #!/bin/bash
-# Install Wine and Winetricks for running Windows apps on Ubuntu
+# Description: Install Wine compatibility layer for running Windows applications
+#
+# Installs Wine (Windows compatibility layer) and Winetricks (helper tool)
+# to enable running Windows applications and games on Ubuntu Linux.
+# Includes latest Wine repository setup and essential Windows libraries.
 set -euo pipefail
 
 # Includes

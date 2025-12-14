@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prints "Hello, World!" to the terminal.
-# This is the classic first program for learning any programming language.
+# Description: Hello World tutorial - Your first bash script
+#
+# The classic "Hello, World!" program adapted for bash scripting education.
+# Perfect introduction to script structure, shebang lines, comments, and
+# basic output commands. Essential first step for learning shell scripting.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

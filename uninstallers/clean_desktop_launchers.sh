@@ -1,5 +1,9 @@
 #!/bin/bash
-# Clean Desktop Launchers and Helper Scripts
+# Description: Remove desktop launchers and helper scripts created by lv_linux_learn
+#
+# Cleans up desktop shortcuts, helper scripts, and menu entries created by
+# the lv_linux_learn installation scripts. Removes launchers from Desktop,
+# Applications menu, and ~/.lv_connect helper directory for clean system restoration.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

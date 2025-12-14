@@ -1,6 +1,9 @@
 #!/bin/bash
-# Script to set up Ubuntu 22.04+ with git and gh (GitHub CLI)
-# Installs required packages, guides through authentication (HTTPS recommended for Ubuntu Desktop)
+# Description: Complete Git and GitHub CLI setup with guided authentication
+#
+# Sets up Git version control and GitHub CLI (gh) with step-by-step configuration.
+# Installs packages, configures user credentials, and provides guided GitHub
+# authentication setup. Optimized for Ubuntu Desktop development workflow.
 set -euo pipefail
 
 # Includes

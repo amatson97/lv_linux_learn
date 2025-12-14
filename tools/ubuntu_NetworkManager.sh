@@ -1,5 +1,9 @@
 #!/bin/bash
-# Description: Migrate Ubuntu from netplan to NetworkManager for network configuration
+# Description: Migrate Ubuntu networking from netplan to NetworkManager
+#
+# Converts Ubuntu network configuration from netplan to NetworkManager for
+# easier GUI-based network management. Installs NetworkManager, disables netplan,
+# and provides graphical network configuration tools for desktop users.
 
 echo "Migrating netplan to NetworkManager..."
 

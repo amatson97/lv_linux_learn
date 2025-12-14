@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Install Google Chrome (robust, idempotent)
+# Description: Install Google Chrome browser with automatic repository setup
+#
+# Installs the latest stable Google Chrome browser from official Google repository.
+# Handles GPG key management, repository configuration, and package installation.
+# Idempotent design - safe to run multiple times without issues.
 set -euo pipefail
 
 # Source shared helpers (provides green_echo)

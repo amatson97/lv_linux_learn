@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script will extract all rar files in a directory to their respective folders.
-# Original archives will not be deleted.
+# Description: Batch RAR archive extractor with organized output
+#
+# Extracts all RAR archives in directory to individual folders with clean organization.
+# Preserves original archives and handles password-protected files with prompts.
+# Requires unrar utility and provides detailed extraction progress feedback.
 
 # Check if the required command 'unrar' is installed
 if ! command -v unrar &> /dev/null; then

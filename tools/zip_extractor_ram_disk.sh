@@ -1,7 +1,9 @@
 #!/bin/bash
-# This script will extract all zip files in a directory utalising /dev/shm RAM disk.
-# orginal archive will be deleted upon completion.
-# Keep an eye on RAM usage when using this.
+# Description: High-speed ZIP extraction using RAM disk for better performance
+#
+# Extracts all ZIP files in a directory using /dev/shm RAM disk for significantly
+# faster extraction speeds. Original archives are deleted after extraction.
+# Warning: Monitor RAM usage - large archives may consume significant memory.
 
 # Exit on error
 set -e

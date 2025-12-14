@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prints numbers from 1 to 10 using a loop.
-# Demonstrates the 'for' loop construct in bash.
+# Description: Loop tutorial - Learn 'for' loops and iteration concepts
+#
+# Educational script demonstrating loop constructs in bash scripting.
+# Shows different types of 'for' loops, sequence generation, and iteration
+# patterns. Essential for learning control flow and repetitive operations.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

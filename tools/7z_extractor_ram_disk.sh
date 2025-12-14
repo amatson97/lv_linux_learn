@@ -1,7 +1,9 @@
 #!/bin/bash
-# Description: Extract 7z archives using RAM disk (/dev/shm) for improved performance
-# This script will extract all 7z files in a directory utilizing the /dev/shm ram disk.
-# Better performance for larger operations, just watch your RAM usage.
+# Description: High-performance 7-Zip extractor using RAM disk acceleration
+#
+# Extracts 7z archives using /dev/shm RAM disk for dramatically improved performance.
+# Ideal for large archive operations where speed is critical. Automatically manages
+# temporary files and cleanup. Warning: Monitor RAM usage during operation.
 
 # Exit on error
 set -e

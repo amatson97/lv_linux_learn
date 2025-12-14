@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prompts the user to enter a directory name and creates it.
-# Demonstrates user input with 'read' and directory creation with 'mkdir'.
+# Description: Directory creation tutorial - Learn 'mkdir' and user input
+#
+# Educational script teaching directory creation and user input handling.
+# Demonstrates the 'read' command for user interaction and 'mkdir' for
+# directory creation with error handling and validation.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

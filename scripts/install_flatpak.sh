@@ -1,5 +1,9 @@
 #!/bin/bash
-# Install flatpak and gnome-software-plugin-flatpak, add flathub repo
+# Description: Install Flatpak universal package system with Flathub repository
+#
+# Sets up Flatpak universal package management system with GNOME Software
+# integration. Adds Flathub repository for access to thousands of
+# sandboxed applications with automatic updates and dependency management.
 set -euo pipefail
 
 # Includes

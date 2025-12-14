@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script lists all files in the current directory.
-# Demonstrates the 'ls' command with various options.
+# Description: File listing tutorial - Learn 'ls' command and options
+#
+# Educational script demonstrating file listing with various 'ls' command options.
+# Shows different output formats, sorting methods, and file information display.
+# Great introduction to Linux file system navigation and command options.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

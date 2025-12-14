@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Google Chrome
+# Description: Remove Google Chrome browser with repository cleanup
+#
+# Completely uninstalls Google Chrome browser, removes repository
+# configuration, cleans up GPG keys, and optionally preserves user
+# data. Provides thorough cleanup of all Chrome-related components.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

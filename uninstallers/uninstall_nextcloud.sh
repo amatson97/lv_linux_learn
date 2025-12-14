@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Nextcloud Client
+# Description: Remove Nextcloud Desktop Client with sync data options
+#
+# Uninstalls Nextcloud Desktop Client and provides options for handling
+# synchronized data. Removes Flatpak package, cleans up sync folders,
+# and offers to preserve or remove local file synchronization data.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

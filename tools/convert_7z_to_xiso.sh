@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script was prepared for extract xbox roms from 7zip then converting them from xiso to iso format
-# This uses the extract-xiso binary.
+# Description: Xbox ROM extraction and XISO to ISO conversion utility
+#
+# Extracts Xbox game ROMs from 7zip archives and converts them from XISO
+# format to standard ISO format using extract-xiso binary. Handles batch
+# processing of multiple ROM files for Xbox emulation preparation.
 
 # Directory where the 7zip files are located
 source_dir="<YOUR SOURCE DIRECTORY>"

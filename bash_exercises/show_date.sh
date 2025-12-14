@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script displays the current date and time.
-# Demonstrates using the 'date' command with various formats.
+# Description: Date and time tutorial - Learn 'date' command formatting
+#
+# Educational script demonstrating date and time manipulation using the 'date' command.
+# Shows various formatting options, timezone handling, and timestamp generation.
+# Essential for learning system time operations and output formatting.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

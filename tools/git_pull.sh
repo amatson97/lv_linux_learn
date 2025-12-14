@@ -1,5 +1,9 @@
 #!/bin/bash
-# Pull latest changes from git remote
+# Description: Safe Git repository update tool with conflict detection
+#
+# Pulls latest changes from remote repository with safety checks.
+# Verifies clean working directory, handles merge conflicts gracefully,
+# and provides status information before and after pull operations.
 set -euo pipefail
 
 # Includes

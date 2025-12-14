@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall All VPN Tools
+# Description: Remove all VPN software and restore network defaults
+#
+# Comprehensive VPN removal tool that uninstalls NordVPN, ZeroTier,
+# and other VPN clients. Restores default network configuration,
+# removes VPN-related services, and cleans up system modifications.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

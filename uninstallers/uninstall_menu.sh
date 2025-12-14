@@ -1,6 +1,9 @@
 #!/bin/bash
-# Uninstall Menu - Remove installed tools and configurations
-# Description: Interactive menu to uninstall tools installed by lv_linux_learn
+# Description: Interactive uninstall menu for complete software removal
+#
+# Provides organized menu interface for removing software installed by lv_linux_learn.
+# Offers individual uninstallers, bulk removal options, and system restoration tools.
+# Ensures clean removal with configuration cleanup and optional data preservation.
 
 set -euo pipefail
 

@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prompts the user to enter two numbers and outputs their sum.
-# Demonstrates arithmetic operations and user input validation.
+# Description: Interactive calculator - Learn arithmetic and input validation
+#
+# Educational script for learning basic arithmetic operations and user input handling.
+# Demonstrates numeric input validation, error handling, and mathematical operations
+# in bash scripting. Perfect introduction to interactive script development.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,7 +1,9 @@
 #!/bin/bash
-
-# Simple test script for custom script addition
-# Location: /home/adam/lv_linux_learn/bash_exercises/hello_test.sh
+# Description: Basic script testing - Verify script execution environment
+#
+# Simple test script for verifying custom script addition functionality.
+# Demonstrates basic script structure, environment detection, and output
+# formatting. Used for testing the custom script management system.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../includes/main.sh"

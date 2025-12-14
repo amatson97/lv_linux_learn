@@ -1,5 +1,9 @@
 #!/bin/bash
-# This script will extract all 7z files in a directory and remove the original archive.
+# Description: Batch 7-Zip archive extractor with automatic cleanup
+#
+# Extracts all 7z archives in the current directory to individual folders.
+# Original archive files are automatically deleted after successful extraction.
+# Supports nested archives and handles extraction errors gracefully.
 
 # Exit on error
 set -e

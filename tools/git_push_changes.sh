@@ -1,5 +1,9 @@
 #!/bin/bash
-# Script to commit changes to GitHub
+# Description: Interactive Git commit and push tool for quick code updates
+#
+# Provides guided workflow for committing and pushing changes to GitHub.
+# Shows current status, allows review of changes, prompts for commit message,
+# and handles push operation with error handling and confirmation.
 set -euo pipefail
 
 # Includes

@@ -1,6 +1,9 @@
 #!/bin/bash
-# This script prompts the user for a filename, then counts and displays the number of lines.
-# Demonstrates the 'wc' (word count) command and file validation.
+# Description: File analysis tutorial - Learn 'wc' command and file operations
+#
+# Educational script for learning file analysis using the 'wc' (word count) command.
+# Teaches file existence validation, user input handling, and text file statistics.
+# Demonstrates essential file processing concepts in shell scripting.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,5 +1,9 @@
 #!/bin/bash
-# Check power-on hours for selected drives
+# Description: Check drive health and power-on hours using smartctl
+#
+# Analyzes storage device health by checking power-on hours, temperature,
+# and SMART attributes for selected drives. Useful for monitoring drive
+# wear and predicting potential failures in servers and workstations.
 set -euo pipefail
 
 # Parse command-line arguments

@@ -1,6 +1,9 @@
 #!/bin/bash
-
-# Test custom script for demonstrating the Custom Script Addition feature
+# Description: Custom script demo - Learn script integration and path handling
+#
+# Demonstration script for the Custom Script Addition feature in the menu system.
+# Shows path detection, environment variables, and integration with the
+# script management interface. Educational tool for understanding script organization.
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

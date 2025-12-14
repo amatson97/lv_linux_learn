@@ -1,5 +1,9 @@
 #!/bin/bash
-# Install Nextcloud Desktop Client via Flatpak
+# Description: Install Nextcloud Desktop Client for file synchronization
+#
+# Installs Nextcloud Desktop Client via Flatpak for seamless file synchronization
+# with Nextcloud servers. Provides automatic sync, selective sync options,
+# and integration with Ubuntu's file manager and system notifications.
 set -euo pipefail
 
 # Includes

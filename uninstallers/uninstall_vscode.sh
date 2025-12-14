@@ -1,6 +1,9 @@
 #!/bin/bash
-# Uninstall Visual Studio Code
-# Description: Removes VS Code, optionally removes configuration and extensions.
+# Description: Remove Visual Studio Code with extensions and settings cleanup
+#
+# Completely uninstalls Visual Studio Code editor, removes repository configuration,
+# and provides options to clean up extensions, user settings, and workspace data.
+# Offers selective cleanup to preserve or remove development configurations.
 
 set -euo pipefail
 

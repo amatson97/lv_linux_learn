@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Flatpak
+# Description: Remove Flatpak system and all installed applications
+#
+# Completely removes Flatpak universal package system, all installed
+# Flatpak applications, repositories (including Flathub), and cleans up
+# user data. Provides comprehensive cleanup of the entire Flatpak ecosystem.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

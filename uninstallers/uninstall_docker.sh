@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Docker and Docker Compose
+# Description: Complete Docker ecosystem removal with data cleanup options
+#
+# Removes Docker Engine, Docker Compose, containers, images, and volumes.
+# Cleans up user groups, network configuration, and system integration.
+# Provides options to preserve or remove container data and custom networks.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

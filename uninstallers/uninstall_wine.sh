@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall Wine
+# Description: Remove Wine Windows compatibility layer and prefix data
+#
+# Uninstalls Wine and Winetricks with complete removal of Windows application
+# compatibility layer. Cleans up wine prefixes, installed Windows software,
+# and system integration while preserving or removing Windows app data.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

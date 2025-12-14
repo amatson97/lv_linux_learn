@@ -1,5 +1,9 @@
 #!/bin/bash
-# Uninstall ZeroTier VPN
+# Description: Completely remove ZeroTier VPN with network cleanup
+#
+# Removes ZeroTier VPN client, stops all services, leaves networks,
+# removes configuration files, and cleans up system integration.
+# Provides complete uninstallation with optional configuration backup.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,5 +1,9 @@
 #!/bin/bash
-# Install Sublime Text and Sublime Merge
+# Description: Install Sublime Text editor and Sublime Merge git client
+#
+# Installs both Sublime Text (premium code editor) and Sublime Merge
+# (visual git client) from official Sublime HQ repository. Handles repository
+# setup, GPG keys, and provides complete text editing and version control tools.
 set -euo pipefail
 
 # Includes
