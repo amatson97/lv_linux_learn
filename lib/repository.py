@@ -200,7 +200,28 @@ class ScriptRepository:
             return False
     
     def load_local_manifest(self):
-        """Load manifest from local cache"""
+        """Load manifest from local cache or custom manifest"""
+        # Check if we should use a custom manifest
+        custom_manifest_url = self.config.get('custom_manifest_url', '').strip()
+        use_public_repo = self.config.get('use_public_repository', True)
+        
+        # If public repo is disabled and we have a custom manifest, load that
+        if not use_public_repo and custom_manifest_url:
+            if custom_manifest_url.startswith('file://'):
+                # Load from local file
+                custom_path = Path(custom_manifest_url[7:])  # Remove 'file://'
+                if custom_path.exists():
+                    try:
+                        with open(custom_path, 'r') as f:
+                            return json.load(f)
+                    except Exception as e:
+                        logging.error(f"Failed to load custom manifest from {custom_path}: {e}")
+            elif custom_manifest_url.startswith(('http://', 'https://')):
+                # For online custom manifests, we should have cached it
+                # Fall through to load from cache
+                pass
+        
+        # Load from cached manifest (public or online custom)
         if not self.manifest_file.exists():
             return None
         
@@ -217,7 +238,20 @@ class ScriptRepository:
         if not manifest:
             return []
         
-        return manifest.get('scripts', [])
+        scripts_data = manifest.get('scripts', [])
+        
+        # Handle both formats: flat array and nested dictionary
+        if isinstance(scripts_data, dict):
+            # Custom manifest format: nested by category
+            all_scripts = []
+            for category, category_scripts in scripts_data.items():
+                for script in category_scripts:
+                    script['category'] = category  # Ensure category is set
+                    all_scripts.append(script)
+            return all_scripts
+        else:
+            # Default format: flat array
+            return scripts_data
     
     def get_script_by_id(self, script_id):
         """Get script information by ID"""
@@ -332,15 +366,29 @@ class ScriptRepository:
             with urllib.request.urlopen(download_url, timeout=30) as response:
                 content = response.read()
             
-            # Verify checksum
-            if self.get_config_value("verify_checksums", True) and checksum:
+            # Check if checksum verification is enabled
+            # First check the manifest-level setting, then fall back to global config
+            manifest = self.load_local_manifest()
+            manifest_verify_checksums = manifest.get('verify_checksums') if manifest else None
+            
+            # Use manifest setting if explicitly set, otherwise use global config
+            if manifest_verify_checksums is not None:
+                should_verify = manifest_verify_checksums
+            else:
+                should_verify = self.get_config_value("verify_checksums", True)
+            
+            # Verify checksum if enabled
+            if should_verify and checksum:
                 actual_checksum = hashlib.sha256(content).hexdigest()
                 if actual_checksum != checksum:
                     logging.error(f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}")
                     logging.info(f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification")
                     raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
             elif not checksum:
-                logging.warning(f"No checksum provided for {script_id}, skipping verification")
+                if should_verify:
+                    logging.warning(f"No checksum provided for {script_id}, skipping verification")
+            else:
+                logging.info(f"Checksum verification disabled for {script_id}")
             
             # Save script
             dest_path.parent.mkdir(parents=True, exist_ok=True)

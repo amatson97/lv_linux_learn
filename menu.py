@@ -47,6 +47,13 @@ except ImportError:
     ChecksumVerificationError = Exception
 
 try:
+    from lib.custom_manifest import CustomManifestCreator, ScriptScanner
+except ImportError:
+    print("Warning: Custom manifest module not available")
+    CustomManifestCreator = None
+    ScriptScanner = None
+
+try:
     # optional nicer icons / pixbuf usage if available
     from gi.repository import GdkPixbuf
 except Exception:
@@ -169,6 +176,14 @@ def fetch_manifest(terminal_widget=None, repository=None):
     Fetch manifest.json from configured repository
     Returns Path to manifest file (cached)
     
+    Priority System (from highest to lowest):
+    1. Custom manifest URL (custom_manifest_url in config) - ALWAYS takes priority
+    2. Public repository (if use_public_repository=true and no custom manifest)
+    3. Error (if both disabled)
+    
+    NOTE: The use_public_repository toggle NEVER affects custom manifests.
+    Custom manifests are managed exclusively via the Custom Manifests tab.
+    
     Args:
         terminal_widget: Optional terminal widget to send output to
         repository: Optional repository instance for custom configuration
@@ -180,14 +195,29 @@ def fetch_manifest(terminal_widget=None, repository=None):
     if repository:
         try:
             config = repository.load_config()
-            custom_url = config.get('custom_manifest_url', '').strip()
+            
+            # PRIORITY 1: Check if there's a custom manifest URL configured (takes priority)
+            custom_url = config.get('custom_manifest_url', '')
             if custom_url:
-                manifest_url = custom_url
-            else:
-                # No custom URL in config, use global MANIFEST_URL
-                manifest_url = MANIFEST_URL
-        except Exception:
-            # Config reading failed, use global MANIFEST_URL
+                # Custom manifest configured - use it regardless of public repo setting
+                # This will be handled by the custom manifest exception handler below
+                raise Exception("Custom manifest configured")
+            
+            # PRIORITY 2: No custom manifest - check if public repository is enabled
+            use_public_repo = config.get('use_public_repository', True)
+            if not use_public_repo:
+                # Public repository is disabled and no custom manifest
+                raise Exception("Public repository disabled - use custom manifests only")
+            
+            # Public repo enabled and no custom manifest - use default repository
+            manifest_url = DEFAULT_MANIFEST_URL
+        except Exception as e:
+            if "Custom manifest configured" in str(e):
+                # Fall through to custom manifest handling below
+                raise
+            if "Public repository disabled" in str(e):
+                raise  # Re-raise the specific public repo disabled exception
+            # Other config reading failures, use global MANIFEST_URL
             manifest_url = MANIFEST_URL
     else:
         # No repository instance, use global MANIFEST_URL
@@ -212,15 +242,35 @@ def fetch_manifest(terminal_widget=None, repository=None):
     # Fetch from configured repository
     terminal_output("[*] Fetching latest manifest from repository...")
     terminal_output(f"[*] Connecting to: {manifest_url}")
+    
     try:
-        with urllib.request.urlopen(manifest_url, timeout=10) as response:
-            terminal_output(f"[*] Connection successful (HTTP {response.getcode()})")
-            manifest_data = response.read()
-            terminal_output(f"[*] Downloaded {len(manifest_data)} bytes")
-        
-        # Save to cache
-        with open(MANIFEST_CACHE_FILE, 'wb') as f:
-            f.write(manifest_data)
+        # Handle file:// URLs differently
+        if manifest_url.startswith('file://'):
+            # Local file URL - copy directly
+            file_path = manifest_url[7:]  # Remove 'file://' prefix
+            terminal_output(f"[*] Loading local manifest: {file_path}")
+            
+            if not os.path.exists(file_path):
+                raise Exception(f"Local manifest file not found: {file_path}")
+            
+            # Copy local manifest to cache
+            import shutil
+            shutil.copy2(file_path, MANIFEST_CACHE_FILE)
+            
+            with open(file_path, 'rb') as f:
+                manifest_size = len(f.read())
+            
+            terminal_output(f"[*] Loaded {manifest_size} bytes from local file")
+        else:
+            # HTTP/HTTPS URL - download normally
+            with urllib.request.urlopen(manifest_url, timeout=10) as response:
+                terminal_output(f"[*] Connection successful (HTTP {response.getcode()})")
+                manifest_data = response.read()
+                terminal_output(f"[*] Downloaded {len(manifest_data)} bytes")
+            
+            # Save to cache
+            with open(MANIFEST_CACHE_FILE, 'wb') as f:
+                f.write(manifest_data)
         
         terminal_output(f"[*] Cached to: {MANIFEST_CACHE_FILE}")
         terminal_output("[+] Manifest updated successfully")
@@ -250,11 +300,6 @@ def load_scripts_from_manifest(terminal_widget=None, repository=None):
         terminal_widget: Optional terminal widget to send output to
         repository: Optional repository instance for custom configuration
     """
-    # Initialize empty structures
-    scripts = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
-    names = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
-    descriptions = {'install': [], 'tools': [], 'exercises': [], 'uninstall': []}
-    
     def terminal_output(msg):
         if terminal_widget:
             # Write directly to terminal output without shell prompt
@@ -271,9 +316,35 @@ def load_scripts_from_manifest(terminal_widget=None, repository=None):
         
         # Display manifest information
         version = manifest.get('version', 'unknown')
-        repo_version = manifest.get('repository_version', 'unknown')
-        last_updated = manifest.get('last_updated', 'unknown')
-        total_scripts = len(manifest.get('scripts', []))
+        repo_version = manifest.get('repository_version', 'unknown') or manifest.get('manifest_version', 'unknown')
+        last_updated = manifest.get('last_updated', 'unknown') or manifest.get('created', 'unknown')
+        
+        # Handle both flat and nested script structures
+        scripts_data = manifest.get('scripts', [])
+        if isinstance(scripts_data, dict):
+            # Custom manifest format: nested by category
+            total_scripts = manifest.get('total_scripts', 0) or sum(len(scripts_data.get(cat, [])) for cat in scripts_data)
+            all_scripts = []
+            # Get all unique categories from the manifest
+            manifest_categories = set(scripts_data.keys())
+            for category, category_scripts in scripts_data.items():
+                for script in category_scripts:
+                    script['category'] = category  # Ensure category is set
+                    all_scripts.append(script)
+        else:
+            # Default manifest format: flat array
+            total_scripts = len(scripts_data)
+            all_scripts = scripts_data
+            # Get categories from scripts
+            manifest_categories = set(script.get('category', 'tools') for script in all_scripts)
+        
+        # Initialize dynamic structures based on manifest categories
+        default_categories = {'install', 'tools', 'exercises', 'uninstall'}
+        all_categories = default_categories | manifest_categories
+        
+        scripts = {cat: [] for cat in all_categories}
+        names = {cat: [] for cat in all_categories}
+        descriptions = {cat: [] for cat in all_categories}
         
         terminal_output(f"[*] Loaded manifest version {version} (repo: {repo_version})")
         terminal_output(f"[*] Last updated: {last_updated}")
@@ -283,40 +354,76 @@ def load_scripts_from_manifest(terminal_widget=None, repository=None):
         from lib.repository import ScriptRepository, ChecksumVerificationError
         repository = ScriptRepository()
         
-        # Track scripts per category and cache status
-        category_counts = {'install': 0, 'tools': 0, 'exercises': 0, 'uninstall': 0}
-        cached_counts = {'install': 0, 'tools': 0, 'exercises': 0, 'uninstall': 0}
+        # Track scripts per category and cache status (dynamic categories)
+        category_counts = {cat: 0 for cat in all_categories}
+        cached_counts = {cat: 0 for cat in all_categories}
         
         # Group scripts by category and use cached paths when available
-        for script in manifest.get('scripts', []):
-            category = script.get('category', 'tools')
-            if category not in scripts:
-                continue
-            
-            script_id = script.get('id')
-            cached_path = repository.get_cached_script_path(script_id) if script_id else None
-            
-            # Use cached path if available, otherwise fall back to relative path
-            if cached_path:
-                scripts[category].append(cached_path)
-                cached_counts[category] += 1
-                status_indicator = "✓ "
-            else:
-                # Fall back to relative path (local filesystem)
-                scripts[category].append(script.get('relative_path', ''))
-                status_indicator = "☁️ "
-            
-            names[category].append(f"{status_indicator}{script.get('name', '')}")
-            category_counts[category] += 1
-            
-            # Build description markup with cache status
-            desc = f"<b>{script.get('name', 'Unknown')}</b>\n"
-            if cached_path:
-                desc += f"Script: <tt>{cached_path}</tt> (cached)\n\n"
-            else:
-                desc += f"Script: <tt>{script.get('relative_path', '')}</tt> (local)\n\n"
-            desc += script.get('description', 'No description available')
-            descriptions[category].append(desc)
+        for i, script in enumerate(all_scripts):
+            try:
+                if not isinstance(script, dict):
+                    terminal_output(f"[!] Warning: Script {i} is not a dict: {type(script)} = {script}")
+                    continue
+                    
+                category = script.get('category', 'tools')
+                if category not in scripts:
+                    continue
+                
+                script_id = script.get('id')
+                
+                # Check if this is a custom manifest with file:// URLs
+                download_url = script.get('download_url', '')
+                if download_url.startswith('file://'):
+                    # Custom manifest - use direct file path
+                    file_path = download_url[7:]  # Remove 'file://' prefix
+                    if os.path.exists(file_path):
+                        scripts[category].append(file_path)
+                        cached_counts[category] += 1  # Count as "cached" since it's local
+                        status_indicator = "📁 "  # Local file indicator
+                    else:
+                        scripts[category].append(script.get('relative_path', ''))
+                        status_indicator = "❌ "  # Missing file indicator
+                else:
+                    # Regular repository manifest - try cache first
+                    try:
+                        cached_path = repository.get_cached_script_path(script_id) if script_id else None
+                        if cached_path:
+                            scripts[category].append(cached_path)
+                            cached_counts[category] += 1
+                            status_indicator = "✓ "
+                        else:
+                            # Fall back to relative path (local filesystem)
+                            scripts[category].append(script.get('relative_path', ''))
+                            status_indicator = "☁️ "
+                    except Exception:
+                        # Repository error - fall back to relative path
+                        scripts[category].append(script.get('relative_path', ''))
+                        status_indicator = "☁️ "
+                
+                names[category].append(f"{status_indicator}{script.get('name', '')}")
+                category_counts[category] += 1
+                
+                # Build description markup with cache status
+                desc = f"<b>{script.get('name', 'Unknown')}</b>\n"
+                if download_url.startswith('file://'):
+                    # Custom manifest with file:// URL
+                    file_path = download_url[7:]
+                    desc += f"Script: <tt>{file_path}</tt> (local file)\n\n"
+                elif status_indicator == "✓ ":
+                    # Repository cached script
+                    desc += f"Script: <tt>{scripts[category][-1]}</tt> (cached)\n\n"
+                else:
+                    # Repository local script
+                    desc += f"Script: <tt>{script.get('relative_path', '')}</tt> (local)\n\n"
+                desc += script.get('description', 'No description available')
+                descriptions[category].append(desc)
+            except Exception as e:
+                terminal_output(f"[!] Error processing script {i}: {e}")
+                terminal_output(f"    Script type: {type(script)}")
+                if isinstance(script, dict):
+                    terminal_output(f"    Script keys: {list(script.keys())}")
+                else:
+                    terminal_output(f"    Script value: {script}")
         
         # Display category breakdown with cache status
         terminal_output("[*] Script breakdown:")
@@ -335,11 +442,219 @@ def load_scripts_from_manifest(terminal_widget=None, repository=None):
         return scripts, names, descriptions
         
     except Exception as e:
-        if terminal_widget:
-            terminal_widget.feed(f"Error loading manifest.json: {e}\r\n".encode())
+        if "Custom manifest configured" in str(e) or "Public repository disabled" in str(e):
+            # Custom manifest is configured OR public repository is disabled
+            # Try to load custom manifest
+            if terminal_widget:
+                terminal_widget.feed("[*] Loading custom manifest\r\n".encode())
+            else:
+                print("[*] Loading custom manifest")
+            
+            # Check if there's a custom manifest URL configured
+            try:
+                if repository:
+                    config = repository.load_config()
+                    custom_manifest_url = config.get('custom_manifest_url', '')
+                    
+                    if custom_manifest_url:
+                        # Load custom manifest (local or online)
+                        import urllib.request
+                        
+                        if custom_manifest_url.startswith('file://'):
+                            # Local manifest
+                            custom_manifest_path = custom_manifest_url[7:]  # Remove 'file://'
+                            
+                            # Check if file exists before trying to load
+                            if not os.path.exists(custom_manifest_path):
+                                msg = f"[!] Custom manifest file not found: {custom_manifest_path}"
+                                if terminal_widget:
+                                    terminal_widget.feed(f"{msg}\r\n".encode())
+                                    terminal_widget.feed("[*] Clearing invalid custom manifest URL from config\r\n".encode())
+                                else:
+                                    print(msg)
+                                    print("[*] Clearing invalid custom manifest URL from config")
+                                
+                                # Clear the invalid custom_manifest_url from config
+                                config['custom_manifest_url'] = ''
+                                repository.save_config(config)
+                                
+                                # Raise exception to fall through to empty state
+                                raise FileNotFoundError(f"Custom manifest file does not exist: {custom_manifest_path}")
+                            
+                            if terminal_widget:
+                                terminal_widget.feed(f"[*] Loading custom manifest: {custom_manifest_path}\r\n".encode())
+                            else:
+                                print(f"[*] Loading custom manifest: {custom_manifest_path}")
+                            
+                            with open(custom_manifest_path, 'r') as f:
+                                manifest = json.load(f)
+                        elif custom_manifest_url.startswith(('http://', 'https://')):
+                            # Online manifest
+                            if terminal_widget:
+                                terminal_widget.feed(f"[*] Loading online custom manifest: {custom_manifest_url}\r\n".encode())
+                            else:
+                                print(f"[*] Loading online custom manifest: {custom_manifest_url}")
+                            
+                            try:
+                                with urllib.request.urlopen(custom_manifest_url, timeout=10) as response:
+                                    manifest = json.loads(response.read().decode())
+                            except (urllib.error.URLError, urllib.error.HTTPError) as url_error:
+                                msg = f"[!] Failed to download custom manifest: {url_error}"
+                                if terminal_widget:
+                                    terminal_widget.feed(f"{msg}\r\n".encode())
+                                    terminal_widget.feed("[!] Consider clearing the custom manifest URL or checking your network\r\n".encode())
+                                else:
+                                    print(msg)
+                                    print("[!] Consider clearing the custom manifest URL or checking your network")
+                                raise
+                        else:
+                            manifest = None
+                        
+                        if manifest:
+                            # Process custom manifest (reuse the same logic)
+                            scripts_data = manifest.get('scripts', [])
+                            if isinstance(scripts_data, dict):
+                                total_scripts = manifest.get('total_scripts', 0) or sum(len(scripts_data.get(cat, [])) for cat in scripts_data)
+                                all_scripts = []
+                                manifest_categories = set(scripts_data.keys())
+                                for category, category_scripts in scripts_data.items():
+                                    for script in category_scripts:
+                                        script['category'] = category
+                                        all_scripts.append(script)
+                            else:
+                                total_scripts = len(scripts_data)
+                                all_scripts = scripts_data
+                                manifest_categories = set(script.get('category', 'tools') for script in all_scripts)
+                            
+                            # Initialize structures with all categories (including non-standard ones)
+                            default_categories = {'install', 'tools', 'exercises', 'uninstall'}
+                            all_categories = default_categories | manifest_categories
+                            
+                            scripts = {cat: [] for cat in all_categories}
+                            names = {cat: [] for cat in all_categories}
+                            descriptions = {cat: [] for cat in all_categories}
+                            
+                            # Track cache status
+                            cached_counts = {cat: 0 for cat in all_categories}
+                            
+                            # Process scripts with cache checking
+                            for script in all_scripts:
+                                if not isinstance(script, dict):
+                                    continue
+                                
+                                category = script.get('category', 'tools')
+                                if category not in scripts:
+                                    # Add category if it doesn't exist
+                                    scripts[category] = []
+                                    names[category] = []
+                                    descriptions[category] = []
+                                
+                                script_id = script.get('id')
+                                download_url = script.get('download_url', '')
+                                file_name = script.get('file_name', '')
+                                
+                                # Extract filename from download_url if file_name is missing
+                                if not file_name and download_url and not download_url.startswith('file://'):
+                                    file_name = download_url.split('/')[-1]
+                                
+                                # Check cache for online manifest scripts
+                                cached_path = None
+                                if file_name and repository:
+                                    cached_path = repository.script_cache_dir / category / file_name
+                                    if not cached_path.exists():
+                                        cached_path = None
+                                
+                                if download_url.startswith('file://'):
+                                    # Local file reference
+                                    file_path = download_url[7:]
+                                    if os.path.exists(file_path):
+                                        scripts[category].append(file_path)
+                                        names[category].append(f"📁 {script.get('name', '')}")
+                                        cached_counts[category] += 1
+                                    else:
+                                        scripts[category].append(script.get('relative_path', ''))
+                                        names[category].append(f"❌ {script.get('name', '')}")
+                                elif cached_path:
+                                    # Cached from online manifest
+                                    scripts[category].append(str(cached_path))
+                                    names[category].append(f"✓ {script.get('name', '')}")
+                                    cached_counts[category] += 1
+                                else:
+                                    # Not cached - remote only
+                                    scripts[category].append(script.get('relative_path', ''))
+                                    names[category].append(f"☁️ {script.get('name', '')}")
+                                
+                                # Build description with cache status
+                                desc = f"<b>{script.get('name', 'Unknown')}</b>\n"
+                                if download_url.startswith('file://'):
+                                    desc += f"Script: <tt>{download_url[7:]}</tt> (local file)\n\n"
+                                elif cached_path:
+                                    desc += f"Script: <tt>{cached_path}</tt> (cached)\n\n"
+                                else:
+                                    desc += f"Script ID: {script_id} (not cached)\n\n"
+                                desc += script.get('description', 'No description available')
+                                descriptions[category].append(desc)
+                            
+                            if terminal_widget:
+                                terminal_widget.feed(f"[*] Loaded {total_scripts} scripts from custom manifest\r\n".encode())
+                            else:
+                                print(f"[*] Loaded {total_scripts} scripts from custom manifest")
+                            
+                            return scripts, names, descriptions
+                        else:
+                            # Could not load manifest
+                            if terminal_widget:
+                                terminal_widget.feed("[!] Failed to load custom manifest\r\n".encode())
+                            else:
+                                print("[!] Failed to load custom manifest")
+            except Exception as custom_error:
+                error_msg = str(custom_error)
+                
+                # Provide specific guidance based on error type
+                if isinstance(custom_error, FileNotFoundError):
+                    if terminal_widget:
+                        terminal_widget.feed(f"[!] Custom manifest file not found\r\n".encode())
+                        terminal_widget.feed("[*] The invalid URL has been cleared from config\r\n".encode())
+                        terminal_widget.feed("[*] You can:\r\n".encode())
+                        terminal_widget.feed("    1. Enable the public repository in Settings\r\n".encode())
+                        terminal_widget.feed("    2. Create a new custom manifest in Custom Manifests tab\r\n".encode())
+                    else:
+                        print("[!] Custom manifest file not found")
+                        print("[*] The invalid URL has been cleared from config")
+                        print("[*] You can:")
+                        print("    1. Enable the public repository in Settings")
+                        print("    2. Create a new custom manifest in Custom Manifests tab")
+                elif "URLError" in type(custom_error).__name__ or "HTTPError" in type(custom_error).__name__:
+                    if terminal_widget:
+                        terminal_widget.feed(f"[!] Failed to download custom manifest: {error_msg}\r\n".encode())
+                        terminal_widget.feed("[*] Check your network connection or clear the custom manifest URL\r\n".encode())
+                    else:
+                        print(f"[!] Failed to download custom manifest: {error_msg}")
+                        print("[*] Check your network connection or clear the custom manifest URL")
+                else:
+                    if terminal_widget:
+                        terminal_widget.feed(f"[!] Error loading custom manifest: {error_msg}\r\n".encode())
+                    else:
+                        print(f"[!] Error loading custom manifest: {error_msg}")
+            
+            # No custom manifest available, return empty structures
+            if terminal_widget:
+                terminal_widget.feed("[*] All tabs will be empty (no manifest configured)\r\n".encode())
+            else:
+                print("[*] All tabs will be empty (no manifest configured)")
+            
+            default_categories = {'install', 'tools', 'exercises', 'uninstall'}
+            scripts = {cat: [] for cat in default_categories}
+            names = {cat: [] for cat in default_categories}
+            descriptions = {cat: [] for cat in default_categories}
+            return scripts, names, descriptions
         else:
-            print(f"Error loading manifest.json: {e}")
-        return scripts, names, descriptions
+            # Other errors
+            if terminal_widget:
+                terminal_widget.feed(f"Error loading manifest.json: {e}\r\n".encode())
+            else:
+                print(f"Error loading manifest.json: {e}")
+            return scripts, names, descriptions
 
 
 # Load scripts from manifest.json (single source of truth)
@@ -371,6 +686,16 @@ DESCRIPTIONS = _DESCRIPTIONS_DICT.get('install', [])
 TOOLS_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('tools', [])
 EXERCISES_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('exercises', [])
 UNINSTALL_DESCRIPTIONS = _DESCRIPTIONS_DICT.get('uninstall', [])
+
+# Track non-standard categories for dynamic tab creation
+NON_STANDARD_CATEGORIES = {}
+for category in _SCRIPTS_DICT.keys():
+    if category not in ['install', 'tools', 'exercises', 'uninstall']:
+        NON_STANDARD_CATEGORIES[category] = {
+            'scripts': _SCRIPTS_DICT.get(category, []),
+            'names': _NAMES_DICT.get(category, []),
+            'descriptions': _DESCRIPTIONS_DICT.get(category, [])
+        }
 
 DARK_CSS = b"""
 /* Modern Light Theme */
@@ -577,8 +902,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         self.set_border_width(12)
         self.set_resizable(True)
         
-        # Initialize custom script manager
-        self.custom_manager = CustomScriptManager()
+        # Initialize custom manifest creator
+        self.custom_manifest_creator = None
+        if CustomManifestCreator:
+            try:
+                self.custom_manifest_creator = CustomManifestCreator()
+            except Exception as e:
+                print(f"Warning: Failed to initialize custom manifest creator: {e}")
         
         # Initialize repository system
         self.repository = None
@@ -587,7 +917,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             try:
                 self.repository = ScriptRepository()
                 self.repo_config = self.repository.load_config()
-                self.repo_enabled = self.repo_config.get('use_remote_scripts', True)
+                self.repo_enabled = True  # Repository system is always enabled
                 
                 # Load custom manifest URL if configured
                 custom_url = self.repo_config.get('custom_manifest_url', '')
@@ -597,10 +927,46 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     MANIFEST_URL = custom_url
                     
                 # Check for updates in background if enabled
-                if self.repo_enabled and self.repo_config.get('auto_check_updates', True):
+                if self.repo_config.get('auto_check_updates', True):
                     GLib.idle_add(self._check_updates_background)
             except Exception as e:
                 print(f"Warning: Failed to initialize repository: {e}")
+        
+        # Reload scripts with cache status now that repository is initialized
+        if self.repository:
+            global _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, NON_STANDARD_CATEGORIES
+            global SCRIPTS, SCRIPT_NAMES, DESCRIPTIONS, TOOLS_SCRIPTS, TOOLS_NAMES, TOOLS_DESCRIPTIONS
+            global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
+            global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
+            
+            _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest(repository=self.repository)
+            
+            # Update global arrays with cache icons
+            SCRIPTS[:] = _SCRIPTS_DICT.get('install', [])
+            SCRIPT_NAMES[:] = _NAMES_DICT.get('install', [])
+            DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('install', [])
+            
+            TOOLS_SCRIPTS[:] = _SCRIPTS_DICT.get('tools', [])
+            TOOLS_NAMES[:] = _NAMES_DICT.get('tools', [])
+            TOOLS_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('tools', [])
+            
+            EXERCISES_SCRIPTS[:] = _SCRIPTS_DICT.get('exercises', [])
+            EXERCISES_NAMES[:] = _NAMES_DICT.get('exercises', [])
+            EXERCISES_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('exercises', [])
+            
+            UNINSTALL_SCRIPTS[:] = _SCRIPTS_DICT.get('uninstall', [])
+            UNINSTALL_NAMES[:] = _NAMES_DICT.get('uninstall', [])
+            UNINSTALL_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('uninstall', [])
+            
+            # Update non-standard categories
+            NON_STANDARD_CATEGORIES.clear()
+            for category in _SCRIPTS_DICT.keys():
+                if category not in ['install', 'tools', 'exercises', 'uninstall']:
+                    NON_STANDARD_CATEGORIES[category] = {
+                        'scripts': _SCRIPTS_DICT.get(category, []),
+                        'names': _NAMES_DICT.get(category, []),
+                        'descriptions': _DESCRIPTIONS_DICT.get(category, [])
+                    }
 
         # HeaderBar + integrated search (keeps GNOME decoration/behavior consistent)
         hb = Gtk.HeaderBar()
@@ -649,11 +1015,38 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         uninstall_tab_label = self._create_tab_label("⚠️ Uninstall", "uninstall")
         self.notebook.append_page(uninstall_box, uninstall_tab_label)
         
+        # Create dynamic tabs for non-standard categories
+        self.dynamic_category_tabs = {}  # Store references to dynamic tabs
+        for category, data in NON_STANDARD_CATEGORIES.items():
+            category_box = self._create_script_tab(data['scripts'], data['descriptions'], category)
+            # Get appropriate emoji for category
+            category_emoji = {
+                'custom': '📦',
+                'ai': '🤖',
+                'network': '🌐',
+                'security': '🔒',
+                'database': '🗄',
+                'docker': '🐳',
+                'other': '📝'
+            }.get(category.lower(), '📦')
+            category_label = self._create_tab_label(f"{category_emoji} {category.capitalize()}", category)
+            self.notebook.append_page(category_box, category_label)
+            self.dynamic_category_tabs[category] = {
+                'box': category_box,
+                'label': category_label
+            }
+        
         # Create Repository tab (if enabled)
         if self.repo_enabled:
             repository_box = self._create_repository_tab()
             repository_label = Gtk.Label(label="📥 Repository")
             self.notebook.append_page(repository_box, repository_label)
+        
+        # Create Custom Manifests tab
+        if CustomManifestCreator:
+            custom_manifest_box = self._create_custom_manifest_tab()
+            custom_manifest_label = Gtk.Label(label="📁 Custom Manifests")
+            self.notebook.append_page(custom_manifest_box, custom_manifest_label)
 
         # Add top section to paned widget
         main_paned.pack1(top_box, True, True)
@@ -739,39 +1132,212 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         )
         return False  # Remove idle handler
 
-    def _create_script_tab(self, scripts, descriptions, tab_name):
+    # ========================================================================
+    # Centralized Script Handling Methods
+    # ========================================================================
+    
+    def _build_script_metadata(self, script_path: str, category: str) -> dict:
+        """
+        Build metadata for a script based on its source and current manifest type.
+        
+        Returns dict with:
+            - type: "local" | "cached" | "remote"
+            - manifest_type: "public" | "custom_online" | "custom_local"
+            - source_url: Original download URL if applicable
+            - file_exists: bool for local files
+        """
+        metadata = {
+            "type": "remote",
+            "manifest_type": "public",
+            "source_url": "",
+            "file_exists": False
+        }
+        
+        # Determine manifest type
+        if self.repository:
+            config = self.repository.load_config()
+            custom_url = config.get('custom_manifest_url', '')
+            if custom_url:
+                if custom_url.startswith('file://'):
+                    metadata["manifest_type"] = "custom_local"
+                else:
+                    metadata["manifest_type"] = "custom_online"
+            else:
+                metadata["manifest_type"] = "public"
+        
+        # Check if it's a local file
+        if script_path.startswith('/') or script_path.startswith('file://'):
+            actual_path = script_path[7:] if script_path.startswith('file://') else script_path
+            metadata["type"] = "local"
+            metadata["file_exists"] = os.path.isfile(actual_path)
+            metadata["source_url"] = f"file://{actual_path}"
+            return metadata
+        
+        # Check if it's cached
+        if self.repository and self.repository.script_cache_dir:
+            cached_path = self.repository.script_cache_dir / category / os.path.basename(script_path)
+            if cached_path.exists():
+                metadata["type"] = "cached"
+                return metadata
+        
+        # Default to remote
+        metadata["type"] = "remote"
+        return metadata
+
+    def _get_script_metadata(self, model, treeiter) -> dict:
+        """Extract and parse metadata from liststore row"""
+        try:
+            metadata_json = model[treeiter][4]  # Column 4 is metadata
+            if metadata_json:
+                return json.loads(metadata_json)
+        except (IndexError, json.JSONDecodeError) as e:
+            print(f"Warning: Failed to parse script metadata: {e}")
+        return {}
+
+    def _execute_script_unified(self, script_path: str, metadata: dict = None) -> bool:
+        """
+        Centralized script execution logic handling all manifest types.
+        
+        Logic:
+        - Local files (custom_local): Execute directly from source
+        - Cached files (public/custom_online): Execute from cache with includes
+        - Remote files (public/custom_online): Prompt to download first
+        """
+        script_name = os.path.basename(script_path)
+        
+        # If no metadata, try to infer from path
+        if not metadata:
+            metadata = {"type": "remote" if not os.path.isfile(script_path) else "local"}
+        
+        script_type = metadata.get("type", "remote")
+        
+        # Handle local files - execute directly (no caching)
+        if script_type == "local":
+            file_path = script_path[7:] if script_path.startswith('file://') else script_path
+            if os.path.isfile(file_path):
+                abs_path = os.path.abspath(file_path)
+                command = f"bash '{abs_path}'\n"
+                self.terminal.feed(f"\x1b[33m[*] Executing local script: {script_name}\x1b[0m\r\n".encode())
+                self.terminal.feed_child(command.encode())
+                return True
+            else:
+                self.terminal.feed(f"\x1b[31m[!] Local file not found: {file_path}\x1b[0m\r\n".encode())
+                return False
+        
+        # Handle cached files - execute from cache
+        elif script_type == "cached":
+            if os.path.isfile(script_path):
+                self._ensure_includes_available()
+                cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
+                command = f"cd '{cache_root}' && bash '{script_path}'\n"
+                self.terminal.feed(f"\x1b[33m[*] Executing cached script: {script_name}\x1b[0m\r\n".encode())
+                self.terminal.feed_child(command.encode())
+                return True
+            else:
+                self.terminal.feed(f"\x1b[31m[!] Cached file not found: {script_path}\x1b[0m\r\n".encode())
+                return False
+        
+        # Handle remote files - need to download first
+        else:
+            self.terminal.feed(f"\x1b[33m[*] Script not cached. Use Download button first.\x1b[0m\r\n".encode())
+            return False
+
+    def _navigate_to_directory_unified(self, script_path: str, metadata: dict = None) -> bool:
+        """
+        Centralized directory navigation logic handling all manifest types.
+        
+        Logic:
+        - Local files: Navigate directly to parent directory
+        - Cached files: Navigate to cache directory
+        - Remote files: Prompt to download first
+        """
+        script_name = os.path.basename(script_path)
+        
+        if not metadata:
+            metadata = {"type": "remote" if not os.path.isfile(script_path) else "local"}
+        
+        script_type = metadata.get("type", "remote")
+        
+        # Handle local files - open parent directory
+        if script_type == "local":
+            file_path = script_path[7:] if script_path.startswith('file://') else script_path
+            if os.path.isfile(file_path):
+                directory = os.path.dirname(os.path.abspath(file_path))
+                command = f"xdg-open '{directory}' 2>/dev/null &\n"
+                self.terminal.feed(f"\x1b[33m[*] Opening directory: {directory}\x1b[0m\r\n".encode())
+                self.terminal.feed_child(command.encode())
+                return True
+            else:
+                self.terminal.feed(f"\x1b[31m[!] Local file not found: {file_path}\x1b[0m\r\n".encode())
+                return False
+        
+        # Handle cached files - open cache directory
+        elif script_type == "cached":
+            if os.path.isfile(script_path):
+                directory = os.path.dirname(script_path)
+                command = f"xdg-open '{directory}' 2>/dev/null &\n"
+                self.terminal.feed(f"\x1b[33m[*] Opening cache directory: {directory}\x1b[0m\r\n".encode())
+                self.terminal.feed_child(command.encode())
+                return True
+            else:
+                self.terminal.feed(f"\x1b[31m[!] Cached file not found: {script_path}\x1b[0m\r\n".encode())
+                return False
+        
+        # Handle remote files - need to download first
+        else:
+            self.terminal.feed(f"\x1b[33m[*] Script not cached. Download it first to access its directory.\x1b[0m\r\n".encode())
+            return False
+
+    def _should_use_cache_engine(self, metadata: dict = None) -> bool:
+        """
+        Determine if cache engine should be used for this script.
+        
+        Returns:
+            True: Use cache engine (public, custom_online)
+            False: Direct execution (custom_local)
+        """
+        if not metadata:
+            return True  # Default to using cache
+        
+        manifest_type = metadata.get("manifest_type", "public")
+        script_type = metadata.get("type", "remote")
+        
+        # Local files from custom_local manifests don't use cache
+        if manifest_type == "custom_local" and script_type == "local":
+            return False
+        
+        # Everything else uses cache
+        return True
+
+    def _create_script_tab(self, scripts, descriptions, tab_name, names=None):
         """Create a tab with script list and description panel"""
         main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         main_box.set_border_width(12)
 
         # Get the appropriate names array
-        if tab_name == "install":
-            names = SCRIPT_NAMES
-        elif tab_name == "tools":
-            names = TOOLS_NAMES
-        elif tab_name == "exercises":
-            names = EXERCISES_NAMES
-        else:
-            names = UNINSTALL_NAMES
+        if names is None:
+            if tab_name == "install":
+                names = SCRIPT_NAMES
+            elif tab_name == "tools":
+                names = TOOLS_NAMES
+            elif tab_name == "exercises":
+                names = EXERCISES_NAMES
+            elif tab_name == "uninstall":
+                names = UNINSTALL_NAMES
+            else:
+                # For dynamic categories, use names from global NON_STANDARD_CATEGORIES
+                names = NON_STANDARD_CATEGORIES.get(tab_name, {}).get('names', [])
 
-        # store: display name, full path, description, is_custom (bool), script_id (str)
+        # store: display name, full path, description, is_custom (bool), metadata (str as JSON)
+        # metadata contains: {"type": "local"|"cached"|"remote", "source_url": "", "manifest_type": "public"|"custom_online"|"custom_local"}
         liststore = Gtk.ListStore(str, str, str, bool, str)
         
-        # Add built-in scripts
+        # Add scripts from manifest with metadata
         for i, script_path in enumerate(scripts):
-            liststore.append([names[i], script_path, descriptions[i], False, ""])
-        
-        # Add custom scripts for this category
-        custom_scripts = self.custom_manager.get_scripts(tab_name)
-        for script in custom_scripts:
-            display_name = f"📝 {script['name']}"  # Icon to indicate custom script
-            liststore.append([
-                display_name,
-                script['script_path'],
-                script['description'],
-                True,  # is_custom
-                script['id']  # script_id for edit/delete
-            ])
+            if i < len(names) and i < len(descriptions):
+                # Determine script metadata
+                metadata = self._build_script_metadata(script_path, tab_name)
+                liststore.append([names[i], script_path, descriptions[i], False, json.dumps(metadata)])
 
         # filtered model driven by search entry
         filter_model = liststore.filter_new()
@@ -787,9 +1353,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         elif tab_name == "exercises":
             self.exercises_liststore = liststore
             self.exercises_filter = filter_model
-        else:
+        elif tab_name == "uninstall":
             self.uninstall_liststore = liststore
             self.uninstall_filter = filter_model
+        else:
+            # Dynamic category - store with category name
+            setattr(self, f'{tab_name}_liststore', liststore)
+            setattr(self, f'{tab_name}_filter', filter_model)
 
         treeview = Gtk.TreeView(model=filter_model)
         treeview.set_name("treeview")
@@ -825,8 +1395,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.tools_treeview = treeview
         elif tab_name == "exercises":
             self.exercises_treeview = treeview
-        else:
+        elif tab_name == "uninstall":
             self.uninstall_treeview = treeview
+        else:
+            # Dynamic category - store with category name
+            setattr(self, f'{tab_name}_treeview', treeview)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_hexpand(True)
@@ -865,8 +1438,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.tools_description_label = description_label
         elif tab_name == "exercises":
             self.exercises_description_label = description_label
-        else:
+        elif tab_name == "uninstall":
             self.uninstall_description_label = description_label
+        else:
+            # Dynamic category - store with category name
+            setattr(self, f'{tab_name}_description_label', description_label)
 
         desc_scroll = Gtk.ScrolledWindow()
         desc_scroll.set_vexpand(True)
@@ -908,9 +1484,15 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.exercises_view_button = view_button
             self.exercises_cd_button = cd_button
             self.exercises_run_button = run_button
-        else:
+        elif tab_name == "uninstall":
             self.uninstall_view_button = view_button
             self.uninstall_cd_button = cd_button
+            self.uninstall_run_button = run_button
+        else:
+            # Dynamic category - store with category name
+            setattr(self, f'{tab_name}_view_button', view_button)
+            setattr(self, f'{tab_name}_cd_button', cd_button)
+            setattr(self, f'{tab_name}_run_button', run_button)
             self.uninstall_run_button = run_button
 
         return main_box
@@ -930,7 +1512,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.current_tab = "uninstall"
             treeview = self.uninstall_treeview
         else:
-            return  # About tab, no filter needed
+            # Check if this is a dynamic category tab
+            tab_label = notebook.get_tab_label_text(page)
+            if tab_label:
+                # Convert tab label (e.g., "Custom") to category name (e.g., "custom")
+                category = tab_label.lower()
+                if category in NON_STANDARD_CATEGORIES:
+                    self.current_tab = category
+                    treeview = getattr(self, f'{category}_treeview', None)
+                    if treeview:
+                        # Reapply search filter for dynamic tab
+                        self.on_search_changed(self.header_search)
+                    return
+            # Not a dynamic category - might be Repository/About/etc., no filter needed
+            return
         
         # Reapply search filter
         self.on_search_changed(self.header_search)
@@ -980,7 +1575,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 'scripts': EXERCISES_SCRIPTS,
                 'descriptions': EXERCISES_DESCRIPTIONS
             }
-        else:
+        elif self.current_tab == "uninstall":
             return {
                 'treeview': self.uninstall_treeview,
                 'description_label': self.uninstall_description_label,
@@ -990,6 +1585,41 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 'filter': self.uninstall_filter,
                 'scripts': UNINSTALL_SCRIPTS,
                 'descriptions': UNINSTALL_DESCRIPTIONS
+            }
+        else:
+            # Handle dynamic categories
+            global NON_STANDARD_CATEGORIES
+            if self.current_tab in NON_STANDARD_CATEGORIES:
+                category_data = NON_STANDARD_CATEGORIES[self.current_tab]
+                # Get stored widget references for this dynamic category
+                treeview_name = f'{self.current_tab}_treeview'
+                description_label_name = f'{self.current_tab}_description_label'
+                run_button_name = f'{self.current_tab}_run_button'
+                view_button_name = f'{self.current_tab}_view_button'
+                cd_button_name = f'{self.current_tab}_cd_button'
+                filter_name = f'{self.current_tab}_filter'
+                
+                return {
+                    'treeview': getattr(self, treeview_name, None),
+                    'description_label': getattr(self, description_label_name, None),
+                    'run_button': getattr(self, run_button_name, None),
+                    'view_button': getattr(self, view_button_name, None),
+                    'cd_button': getattr(self, cd_button_name, None),
+                    'filter': getattr(self, filter_name, None),
+                    'scripts': category_data.get('scripts', []),
+                    'descriptions': category_data.get('descriptions', [])
+                }
+            
+            # Fallback - shouldn't reach here
+            return {
+                'treeview': None,
+                'description_label': None,
+                'run_button': None,
+                'view_button': None,
+                'cd_button': None,
+                'filter': None,
+                'scripts': [],
+                'descriptions': []
             }
 
     def _create_tab_label(self, label_text, category):
@@ -1004,12 +1634,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             add_button = Gtk.Button()
             add_button.set_label("+")
             add_button.set_relief(Gtk.ReliefStyle.NONE)
-            add_button.set_tooltip_text(f"Add custom script to {label_text}")
-            add_button.connect("clicked", self.on_add_custom_script, category)
-            box.pack_start(add_button, False, False, 0)
-        
-        box.show_all()
-        return box
+    def _create_tab_label(self, label_text, category):
+        """Create a tab label"""
+        label = Gtk.Label(label=label_text)
+        return label
 
     def _create_help_tab(self):
         """Create About tab"""
@@ -1343,16 +1971,100 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         return vbox
     
     def _update_repo_status(self):
-        """Update repository status label"""
+        """Update repository status label with all configured sources"""
         if not self.repository:
             return
         
         try:
-            total = len(self.repository.parse_manifest())
-            cached = self.repository.count_cached_scripts()
-            updates = len(self.repository.list_available_updates())
+            # Check which manifest sources are configured
+            config = self.repository.load_config()
+            use_public_repo = config.get('use_public_repository', True)
+            custom_manifest_url = config.get('custom_manifest_url', '')
             
-            status_text = f"<b>Repository Status:</b>  Total: {total}  |  Cached: {cached}  |  Updates: {updates}"
+            # Count scripts from all sources
+            all_scripts = []
+            script_ids_seen = set()
+            custom_count = 0
+            public_count = 0
+            
+            # Load custom manifest if configured
+            if custom_manifest_url:
+                import json
+                import urllib.request
+                
+                try:
+                    if custom_manifest_url.startswith('file://'):
+                        # Local manifest
+                        custom_manifest_path = custom_manifest_url[7:]
+                        with open(custom_manifest_path, 'r') as f:
+                            custom_manifest = json.load(f)
+                    elif custom_manifest_url.startswith(('http://', 'https://')):
+                        # Online manifest
+                        with urllib.request.urlopen(custom_manifest_url, timeout=10) as response:
+                            custom_manifest = json.loads(response.read().decode())
+                    else:
+                        custom_manifest = None
+                    
+                    if custom_manifest:
+                        manifest_scripts = custom_manifest.get('scripts', [])
+                        if isinstance(manifest_scripts, dict):
+                            for category, category_scripts in manifest_scripts.items():
+                                for script in category_scripts:
+                                    script_id = script.get('id')
+                                    if script_id and script_id not in script_ids_seen:
+                                        all_scripts.append(script)
+                                        script_ids_seen.add(script_id)
+                                        custom_count += 1
+                        else:
+                            for script in manifest_scripts:
+                                script_id = script.get('id')
+                                if script_id and script_id not in script_ids_seen:
+                                    all_scripts.append(script)
+                                    script_ids_seen.add(script_id)
+                                    custom_count += 1
+                except:
+                    pass
+            
+            # Load public repository if enabled
+            if use_public_repo:
+                try:
+                    public_scripts = self.repository.parse_manifest()
+                    for script in public_scripts:
+                        script_id = script.get('id')
+                        if script_id and script_id not in script_ids_seen:
+                            all_scripts.append(script)
+                            script_ids_seen.add(script_id)
+                            public_count += 1
+                except:
+                    pass
+            
+            # Count cached scripts from all sources
+            cached = 0
+            for script in all_scripts:
+                category = script.get('category', 'tools')
+                file_name = script.get('file_name', '')
+                if file_name:
+                    cached_path = self.repository.script_cache_dir / category / file_name
+                    if cached_path.exists():
+                        cached += 1
+            
+            # Build source description
+            source_parts = []
+            if custom_count > 0:
+                manifest_type = 'Local' if custom_manifest_url.startswith('file://') else 'Online'
+                source_parts.append(f"{manifest_type} ({custom_count})")
+            if public_count > 0:
+                source_parts.append(f"Public ({public_count})")
+            
+            if source_parts:
+                source = " + ".join(source_parts)
+            else:
+                source = "No active manifest"
+            
+            total = len(all_scripts)
+            updates = len(self.repository.list_available_updates()) if use_public_repo else 0
+            
+            status_text = f"<b>Sources:</b> {source}  |  <b>Scripts:</b> {total}  |  <b>Cached:</b> {cached}  |  <b>Updates:</b> {updates}"
             self.repo_status_label.set_markup(status_text)
         except Exception as e:
             self.repo_status_label.set_markup(f"<b>Status:</b> Error - {e}")
@@ -1365,26 +2077,125 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         self.repo_store.clear()
         
         try:
-            scripts = self.repository.parse_manifest()
+            # Check which manifest sources to use
+            config = self.repository.load_config()
+            use_public_repo = config.get('use_public_repository', True)
+            custom_manifest_url = config.get('custom_manifest_url', '')
             
-            for script in scripts:
+            # Determine which scripts to display - can be multiple sources
+            all_scripts = []
+            script_ids_seen = set()  # Track to avoid duplicates
+            
+            # 1. Load custom manifest if configured (Local or Online)
+            if custom_manifest_url:
+                import json
+                import urllib.request
+                
+                custom_scripts = []
+                try:
+                    if custom_manifest_url.startswith('file://'):
+                        # Local manifest
+                        custom_manifest_path = custom_manifest_url[7:]  # Remove 'file://'
+                        with open(custom_manifest_path, 'r') as f:
+                            custom_manifest = json.load(f)
+                    elif custom_manifest_url.startswith(('http://', 'https://')):
+                        # Online manifest
+                        with urllib.request.urlopen(custom_manifest_url, timeout=10) as response:
+                            custom_manifest = json.loads(response.read().decode())
+                    else:
+                        custom_manifest = None
+                    
+                    if custom_manifest:
+                        # Handle both flat and nested script structures
+                        manifest_scripts = custom_manifest.get('scripts', [])
+                        if isinstance(manifest_scripts, dict):
+                            # Nested structure (by category)
+                            for category, category_scripts in manifest_scripts.items():
+                                for script in category_scripts:
+                                    script['category'] = category
+                                    script['_source'] = 'custom'
+                                    custom_scripts.append(script)
+                        else:
+                            # Flat structure
+                            for script in manifest_scripts:
+                                script['_source'] = 'custom'
+                                custom_scripts.append(script)
+                        
+                        # Add custom scripts and track IDs
+                        for script in custom_scripts:
+                            script_id = script.get('id')
+                            if script_id and script_id not in script_ids_seen:
+                                all_scripts.append(script)
+                                script_ids_seen.add(script_id)
+                        
+                except Exception as e:
+                    if hasattr(self, 'terminal'):
+                        self.terminal.feed(f"\x1b[33m[!] Could not load custom manifest: {e}\x1b[0m\r\n".encode())
+            
+            # 2. Load public repository scripts if enabled
+            if use_public_repo:
+                try:
+                    public_scripts = self.repository.parse_manifest()
+                    for script in public_scripts:
+                        script['_source'] = 'public'
+                        script_id = script.get('id')
+                        if script_id and script_id not in script_ids_seen:
+                            all_scripts.append(script)
+                            script_ids_seen.add(script_id)
+                except Exception as e:
+                    if hasattr(self, 'terminal'):
+                        self.terminal.feed(f"\x1b[33m[!] Could not load public repository: {e}\x1b[0m\r\n".encode())
+            
+            # If no scripts from any source, show message
+            if not all_scripts:
+                if hasattr(self, 'terminal'):
+                    self.terminal.feed(b"\x1b[33m[*] Repository tab: No manifest sources configured\x1b[0m\r\n")
+                return
+            
+            # Process all scripts from all sources
+            for script in all_scripts:
                 script_id = script.get('id')
                 name = script.get('name')
-                version = script.get('version')
+                version = script.get('version', '1.0')
                 category = script.get('category', 'tools')
                 file_name = script.get('file_name', '')
+                source = script.get('_source', 'unknown')
+                
+                # If file_name is missing, try to extract from download_url
+                if not file_name:
+                    download_url = script.get('download_url', '')
+                    if download_url:
+                        file_name = download_url.split('/')[-1]
+                
+                # Build cached path directly for all manifest types
+                if file_name:
+                    cached_path = self.repository.script_cache_dir / category / file_name
+                else:
+                    cached_path = None
                 
                 # Determine cache status
-                status = self.repository.get_script_status(file_name)
-                status_text = {
-                    'cached': '✓ Cached',
-                    'outdated': '📥 Update Available', 
-                    'not_installed': '☁️ Not Cached'
-                }.get(status, 'Unknown')
+                if cached_path and cached_path.exists():
+                    # Check if checksums match (if available)
+                    remote_checksum = script.get('checksum', '').replace('sha256:', '')
+                    if remote_checksum:
+                        import hashlib
+                        try:
+                            with open(cached_path, 'rb') as f:
+                                local_checksum = hashlib.sha256(f.read()).hexdigest()
+                            if local_checksum == remote_checksum:
+                                status_text = '✓ Cached'
+                            else:
+                                status_text = '📥 Update Available'
+                        except:
+                            status_text = '✓ Cached'
+                    else:
+                        # No checksum available, just mark as cached
+                        status_text = '✓ Cached'
+                else:
+                    status_text = '☁️ Not Cached'
                 
                 # Get cached file info if available
-                cached_path = self.repository.get_cached_script_path(script_id)
-                if cached_path:
+                if cached_path and cached_path.exists():
                     import os
                     from datetime import datetime
                     try:
@@ -1413,13 +2224,39 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     size_text,
                     modified_text
                 ])
+            
+            # Display summary in terminal
+            custom_count = sum(1 for s in all_scripts if s.get('_source') == 'custom')
+            public_count = sum(1 for s in all_scripts if s.get('_source') == 'public')
+            cached_count = sum(1 for row in self.repo_store if '✓ Cached' in row[4])
+            total_count = len(self.repo_store)
+            
+            status_parts = []
+            if custom_count > 0:
+                manifest_type = 'Local' if custom_manifest_url.startswith('file://') else 'Online'
+                status_parts.append(f"{manifest_type} manifest ({custom_count} scripts)")
+            if public_count > 0:
+                status_parts.append(f"Public repository ({public_count} scripts)")
+            
+            if status_parts:
+                sources_text = " + ".join(status_parts)
+                if hasattr(self, 'terminal'):
+                    self.terminal.feed(f"\x1b[32m[*] Repository tab: {sources_text}\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[32m[*] Total: {total_count} scripts, {cached_count} cached\x1b[0m\r\n".encode())
                 
         except Exception as e:
             print(f"Error populating repository tree: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _check_updates_background(self):
         """Check for updates in background"""
         if not self.repository or not self.repo_enabled:
+            return False
+        
+        # Don't check updates for custom manifests
+        config = self.repository.load_config()
+        if config.get('custom_manifest_url'):
             return False
         
         if self.repository.is_update_check_needed():
@@ -1633,10 +2470,6 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         content.set_margin_bottom(10)
         
         # Settings widgets
-        use_remote = Gtk.CheckButton(label="Use remote scripts")
-        use_remote.set_active(self.repo_config.get('use_remote_scripts', True))
-        content.pack_start(use_remote, False, False, 0)
-        
         auto_check = Gtk.CheckButton(label="Auto-check for updates")
         auto_check.set_active(self.repo_config.get('auto_check_updates', True))
         content.pack_start(auto_check, False, False, 0)
@@ -1644,20 +2477,6 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         auto_install = Gtk.CheckButton(label="Auto-install updates")
         auto_install.set_active(self.repo_config.get('auto_install_updates', True))
         content.pack_start(auto_install, False, False, 0)
-        
-        # Security settings section
-        security_separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        content.pack_start(security_separator, False, False, 5)
-        
-        security_label = Gtk.Label()
-        security_label.set_markup("<b>Security Settings</b>")
-        security_label.set_xalign(0)
-        content.pack_start(security_label, False, False, 0)
-        
-        verify_checksums = Gtk.CheckButton(label="Verify script checksums (recommended)")
-        verify_checksums.set_active(self.repo_config.get('verify_checksums', True))
-        verify_checksums.set_tooltip_text("Verify downloaded scripts match expected checksums for security. Disable only for custom repositories with incorrect checksums.")
-        content.pack_start(verify_checksums, False, False, 0)
         
         interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         interval_label = Gtk.Label(label="Check interval (minutes):")
@@ -1669,109 +2488,67 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         interval_box.pack_start(interval_spin, False, False, 0)
         content.pack_start(interval_box, False, False, 0)
         
-        # Manifest URL configuration
-        manifest_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        manifest_label = Gtk.Label(label="Manifest URL:")
-        manifest_label.set_xalign(0)
-        manifest_entry = Gtk.Entry()
-        # Show the currently active manifest URL (could be custom or default)
-        current_manifest_url = self.repo_config.get('custom_manifest_url', '').strip()
-        if not current_manifest_url:
-            current_manifest_url = DEFAULT_MANIFEST_URL
-        manifest_entry.set_text(current_manifest_url)
-        manifest_entry.set_placeholder_text("Enter custom manifest URL or leave for default")
-        manifest_box.pack_start(manifest_label, False, False, 0)
-        manifest_box.pack_start(manifest_entry, False, False, 0)
+        # Repository source settings section
+        source_separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        content.pack_start(source_separator, False, False, 5)
         
-        # Reset button for manifest URL
-        reset_manifest_btn = Gtk.Button(label="Reset to Default")
-        reset_manifest_btn.connect("clicked", lambda btn: manifest_entry.set_text(DEFAULT_MANIFEST_URL))
-        manifest_box.pack_start(reset_manifest_btn, False, False, 0)
+        source_label = Gtk.Label()
+        source_label.set_markup("<b>Repository Source</b>")
+        source_label.set_xalign(0)
+        content.pack_start(source_label, False, False, 0)
         
-        content.pack_start(manifest_box, False, False, 0)
+        use_public_repo = Gtk.CheckButton(label="Enable public repository (lv_linux_learn)")
+        use_public_repo.set_active(self.repo_config.get('use_public_repository', True))
+        use_public_repo.set_tooltip_text("Toggle access to the public lv_linux_learn script repository. Disable to use only custom manifests.")
+        content.pack_start(use_public_repo, False, False, 0)
+        
+        public_repo_note = Gtk.Label()
+        public_repo_note.set_markup("<small><i>Note: Custom manifests can be configured in the 'Custom Manifests' tab.\nThis includes both local directory scanning and online manifest URLs.</i></small>")
+        public_repo_note.set_line_wrap(True)
+        public_repo_note.set_xalign(0)
+        content.pack_start(public_repo_note, False, False, 0)
         
         dialog.show_all()
         
         response = dialog.run()
         
         if response == Gtk.ResponseType.OK:
-            # Check if use_remote_scripts setting changed
-            old_repo_enabled = self.repo_enabled
-            new_repo_enabled = use_remote.get_active()
+            # Check if public repository setting changed
+            old_public_repo = self.repo_config.get('use_public_repository', True)
+            new_public_repo = use_public_repo.get_active()
             
             # Save settings
-            self.repo_config['use_remote_scripts'] = new_repo_enabled
             self.repo_config['auto_check_updates'] = auto_check.get_active()
             self.repo_config['auto_install_updates'] = auto_install.get_active()
             self.repo_config['update_check_interval_minutes'] = int(interval_spin.get_value())
-            self.repo_config['verify_checksums'] = verify_checksums.get_active()
+            self.repo_config['use_public_repository'] = new_public_repo
+            # Note: custom_manifest_url is NEVER modified here - managed only by Custom Manifests tab
+            # Note: verify_checksums is always True for public repository, per-manifest for custom repos
             
-            # Handle manifest URL
-            new_manifest_url = manifest_entry.get_text().strip()
-            # Get the currently active manifest URL
-            current_custom_url = self.repo_config.get('custom_manifest_url', '').strip()
-            old_manifest_url = current_custom_url or DEFAULT_MANIFEST_URL
-            manifest_url_changed = False
-            
-            if new_manifest_url == DEFAULT_MANIFEST_URL:
-                # Reset to default, remove custom setting
-                if old_manifest_url != DEFAULT_MANIFEST_URL:
-                    manifest_url_changed = True
-                self.repo_config['custom_manifest_url'] = ''
-                os.environ.pop('CUSTOM_MANIFEST_URL', None)
-                MANIFEST_URL = DEFAULT_MANIFEST_URL
-            elif new_manifest_url and (new_manifest_url.startswith('http://') or new_manifest_url.startswith('https://')):
-                # Valid custom URL
-                if old_manifest_url != new_manifest_url:
-                    manifest_url_changed = True
-                self.repo_config['custom_manifest_url'] = new_manifest_url
-                os.environ['CUSTOM_MANIFEST_URL'] = new_manifest_url
-                MANIFEST_URL = new_manifest_url
-            else:
-                # Invalid URL, show error
-                error_dialog = Gtk.MessageDialog(
-                    transient_for=dialog,
-                    flags=0,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="Invalid manifest URL. Please use http:// or https://"
-                )
-                error_dialog.run()
-                error_dialog.destroy()
-                dialog.destroy()
-                return
-            
+            # Save configuration
             self.repository.save_config(self.repo_config)
             
-            # Update repository URL if manifest URL changed
-            if manifest_url_changed and self.repository:
-                # Refresh the repository's effective URL
-                self.repository.repo_url = self.repository.get_effective_repository_url()
+            self.terminal.feed("\x1b[2J\x1b[H\x1b[32m[*] Repository settings saved successfully\x1b[0m\r\n".encode())
             
-            # Update repo_enabled and refresh UI if setting changed
-            self.repo_enabled = new_repo_enabled
-            if old_repo_enabled != new_repo_enabled:
-                self._refresh_ui_for_repo_setting()
-            
-            # Clear manifest cache if URL changed to force fresh download
-            if manifest_url_changed:
-                try:
-                    if MANIFEST_CACHE_FILE.exists():
-                        MANIFEST_CACHE_FILE.unlink()
-                        self.terminal.feed("\x1b[33m[*] Cleared manifest cache for new repository\x1b[0m\r\n".encode())
-                except Exception as e:
-                    self.terminal.feed(f"\x1b[31m[!] Error clearing cache: {e}\x1b[0m\r\n".encode())
-            
-            if self.repo_config.get('custom_manifest_url'):
-                self.terminal.feed("\x1b[2J\x1b[H\x1b[32m[*] Repository settings saved\x1b[0m\r\n".encode())
-                self.terminal.feed(f"\x1b[33m[*] Switching to custom repository: {new_manifest_url}\x1b[0m\r\n".encode())
-                # Refresh all script data to load from new repository
-                self._refresh_all_script_data()
-            else:
-                self.terminal.feed("\x1b[2J\x1b[H\x1b[32m[*] Repository settings saved\x1b[0m\r\n".encode())
-                self.terminal.feed(f"\x1b[33m[*] Switching to default repository: {DEFAULT_MANIFEST_URL}\x1b[0m\r\n".encode())
-                # Refresh to use default repository
-                self._refresh_all_script_data()
+            # Check if public repository setting changed and refresh UI
+            if old_public_repo != new_public_repo:
+                # Check if custom manifest is configured
+                has_custom_manifest = bool(self.repo_config.get('custom_manifest_url', ''))
+                
+                if not new_public_repo:
+                    if has_custom_manifest:
+                        self.terminal.feed("\x1b[33m[*] Public repository disabled - using custom manifest\x1b[0m\r\n".encode())
+                    else:
+                        self.terminal.feed("\x1b[33m[*] Public repository disabled - no scripts available (configure custom manifest)\x1b[0m\r\n".encode())
+                else:
+                    if has_custom_manifest:
+                        self.terminal.feed("\x1b[33m[*] Public repository enabled - but custom manifest takes priority\x1b[0m\r\n".encode())
+                    else:
+                        self.terminal.feed("\x1b[33m[*] Public repository enabled - default lv_linux_learn scripts available\x1b[0m\r\n".encode())
+                
+                # Refresh UI to reflect public repository setting change
+                self.terminal.feed("\x1b[33m[*] Refreshing interface...\x1b[0m\r\n".encode())
+                GLib.timeout_add(500, self._refresh_all_script_data)
             
             # Auto-complete after short delay
             GLib.timeout_add(1500, self._complete_terminal_operation)
@@ -1850,13 +2627,24 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Download selected scripts
         self.terminal.feed(b"\x1b[2J\x1b[H")
-        self.terminal.feed(f"\x1b[32m[*] Downloading {len(selected_scripts)} selected scripts...\x1b[0m\r\n".encode())
+        self.terminal.feed(f"\x1b[32m[*] Processing {len(selected_scripts)} selected scripts...\x1b[0m\r\n".encode())
         
         success_count = 0
         failed_count = 0
+        local_count = 0
         
         for script_id, script_name in selected_scripts:
             try:
+                # Check if this is a local file:// script
+                script_info = self.repository.get_script_by_id(script_id)
+                if script_info and script_info.get('download_url', '').startswith('file://'):
+                    # Local script - no need to download
+                    self.terminal.feed(f"  📁 {script_name} (local file - no download needed)\r\n".encode())
+                    local_count += 1
+                    success_count += 1
+                    continue
+                
+                # Remote script - download to cache
                 if self.repository.download_script(script_id):
                     self.terminal.feed(f"  ✓ {script_name}\r\n".encode())
                     success_count += 1
@@ -1868,12 +2656,21 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 self.terminal.feed(f"  ✗ {script_name} ({error_msg})\r\n".encode())
                 failed_count += 1
         
-        self.terminal.feed(f"\x1b[32m[*] Download complete: {success_count} downloaded, {failed_count} failed\x1b[0m\r\n".encode())
+        summary_parts = [f"{success_count - local_count} downloaded"]
+        if local_count > 0:
+            summary_parts.append(f"{local_count} local")
+        if failed_count > 0:
+            summary_parts.append(f"{failed_count} failed")
+        
+        self.terminal.feed(f"\x1b[32m[*] Complete: {', '.join(summary_parts)}\x1b[0m\r\n".encode())
         
         # Auto-complete and refresh
         GLib.timeout_add(1500, self._complete_terminal_operation)
         self._update_repo_status()
         self._populate_repository_tree()
+        
+        # Reload main tabs to update cache status icons
+        self._reload_main_tabs()
         
         # Reload main tabs to reflect changes
         self._reload_main_tabs()
@@ -1965,6 +2762,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global SCRIPTS, SCRIPT_NAMES, DESCRIPTIONS, TOOLS_SCRIPTS, TOOLS_NAMES, TOOLS_DESCRIPTIONS
             global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
+            global NON_STANDARD_CATEGORIES
             
             # Reload from manifest with repository configuration (this will show cache status in terminal)
             _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
@@ -1986,6 +2784,16 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             UNINSTALL_NAMES[:] = _names.get('uninstall', [])
             UNINSTALL_DESCRIPTIONS[:] = _descriptions.get('uninstall', [])
             
+            # Update NON_STANDARD_CATEGORIES for dynamic tabs
+            NON_STANDARD_CATEGORIES.clear()
+            for category in _scripts.keys():
+                if category not in ['install', 'tools', 'exercises', 'uninstall']:
+                    NON_STANDARD_CATEGORIES[category] = {
+                        'scripts': _scripts.get(category, []),
+                        'names': _names.get(category, []),
+                        'descriptions': _descriptions.get(category, [])
+                    }
+            
             # Use a small delay to ensure the UI updates are visible
             GLib.timeout_add(100, self._delayed_repopulate)
             
@@ -2003,13 +2811,37 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global SCRIPTS, SCRIPT_NAMES, DESCRIPTIONS, TOOLS_SCRIPTS, TOOLS_NAMES, TOOLS_DESCRIPTIONS
             global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
+            global NON_STANDARD_CATEGORIES
             
             # Reload from manifest silently with repository configuration (pass None for terminal_widget to suppress output)
             _scripts, _names, _descriptions = load_scripts_from_manifest(terminal_widget=None, repository=self.repository)
             
             # Update global arrays with slice assignment to maintain references
             SCRIPTS[:] = _scripts.get('install', [])
-            SCRIPT_NAMES[:] = _names.get('install', [])  
+            SCRIPT_NAMES[:] = _names.get('install', [])
+            DESCRIPTIONS[:] = _descriptions.get('install', [])
+            
+            TOOLS_SCRIPTS[:] = _scripts.get('tools', [])
+            TOOLS_NAMES[:] = _names.get('tools', [])
+            TOOLS_DESCRIPTIONS[:] = _descriptions.get('tools', [])
+            
+            EXERCISES_SCRIPTS[:] = _scripts.get('exercises', [])
+            EXERCISES_NAMES[:] = _names.get('exercises', [])
+            EXERCISES_DESCRIPTIONS[:] = _descriptions.get('exercises', [])
+            
+            UNINSTALL_SCRIPTS[:] = _scripts.get('uninstall', [])
+            UNINSTALL_NAMES[:] = _names.get('uninstall', [])
+            UNINSTALL_DESCRIPTIONS[:] = _descriptions.get('uninstall', [])
+            
+            # Update NON_STANDARD_CATEGORIES for dynamic tabs
+            NON_STANDARD_CATEGORIES.clear()
+            for category in _scripts.keys():
+                if category not in ['install', 'tools', 'exercises', 'uninstall']:
+                    NON_STANDARD_CATEGORIES[category] = {
+                        'scripts': _scripts.get(category, []),
+                        'names': _names.get(category, []),
+                        'descriptions': _descriptions.get(category, [])
+                    }  
             DESCRIPTIONS[:] = _descriptions.get('install', [])
             
             TOOLS_SCRIPTS[:] = _scripts.get('tools', [])
@@ -2067,6 +2899,845 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             return False  # Don't repeat the timeout
         except Exception as e:
             print(f"Error in silent UI refresh: {e}")
+            return False
+
+    def _create_custom_manifest_tab(self):
+        """Create the custom manifest management tab"""
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        vbox.set_margin_start(10)
+        vbox.set_margin_end(10)
+        vbox.set_margin_top(10)
+        vbox.set_margin_bottom(10)
+        
+        # Header with current manifest info
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.custom_manifest_status_label = Gtk.Label()
+        self._update_custom_manifest_status()
+        header_box.pack_start(self.custom_manifest_status_label, True, True, 0)
+        vbox.pack_start(header_box, False, False, 0)
+        
+        # Control buttons
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        
+        create_btn = Gtk.Button(label="Create Manifest")
+        create_btn.get_style_context().add_class("suggested-action")
+        create_btn.connect("clicked", self._on_create_custom_manifest)
+        button_box.pack_start(create_btn, False, False, 0)
+        
+        edit_btn = Gtk.Button(label="Edit Selected")
+        edit_btn.connect("clicked", self._on_edit_custom_manifest)
+        button_box.pack_start(edit_btn, False, False, 0)
+        
+        refresh_btn = Gtk.Button(label="Refresh List")
+        refresh_btn.connect("clicked", self._on_refresh_custom_manifests)
+        button_box.pack_start(refresh_btn, False, False, 0)
+        
+        switch_default_btn = Gtk.Button(label="Switch to Default")
+        switch_default_btn.connect("clicked", self._on_switch_to_default_manifest)
+        button_box.pack_start(switch_default_btn, False, False, 0)
+        
+        vbox.pack_start(button_box, False, False, 0)
+        
+        # Custom manifests list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        
+        # Store: name(str), description(str), version(str), created(str), total_scripts(int), categories(str)
+        self.custom_manifest_store = Gtk.ListStore(str, str, str, str, int, str)
+        
+        self.custom_manifest_tree = Gtk.TreeView(model=self.custom_manifest_store)
+        
+        # Name column
+        name_renderer = Gtk.CellRendererText()
+        name_column = Gtk.TreeViewColumn("Name", name_renderer, text=0)
+        name_column.set_resizable(True)
+        name_column.set_min_width(150)
+        self.custom_manifest_tree.append_column(name_column)
+        
+        # Description column
+        desc_renderer = Gtk.CellRendererText()
+        desc_renderer.set_property("ellipsize", 3)  # End ellipsize
+        desc_column = Gtk.TreeViewColumn("Description", desc_renderer, text=1)
+        desc_column.set_resizable(True)
+        desc_column.set_min_width(200)
+        self.custom_manifest_tree.append_column(desc_column)
+        
+        # Scripts count column
+        count_renderer = Gtk.CellRendererText()
+        count_column = Gtk.TreeViewColumn("Scripts", count_renderer, text=4)
+        count_column.set_min_width(60)
+        self.custom_manifest_tree.append_column(count_column)
+        
+        # Categories column
+        categories_renderer = Gtk.CellRendererText()
+        categories_renderer.set_property("ellipsize", 3)  # End ellipsize
+        categories_column = Gtk.TreeViewColumn("Categories", categories_renderer, text=5)
+        categories_column.set_resizable(True)
+        categories_column.set_min_width(100)
+        self.custom_manifest_tree.append_column(categories_column)
+        
+        # Created column
+        created_renderer = Gtk.CellRendererText()
+        created_column = Gtk.TreeViewColumn("Created", created_renderer, text=3)
+        created_column.set_min_width(100)
+        self.custom_manifest_tree.append_column(created_column)
+        
+        # Connect row activation (double-click to switch)
+        self.custom_manifest_tree.connect("row-activated", self._on_manifest_row_activated)
+        
+        # Right-click context menu
+        self.custom_manifest_tree.connect("button-press-event", self._on_manifest_tree_button_press)
+        
+        scrolled.add(self.custom_manifest_tree)
+        vbox.pack_start(scrolled, True, True, 0)
+        
+        # Instructions
+        instructions_label = Gtk.Label()
+        instructions_label.set_markup(
+            "<i>Double-click to edit a manifest.\n"
+            "Right-click for options. Active manifest shown at top.</i>"
+        )
+        instructions_label.set_line_wrap(True)
+        vbox.pack_start(instructions_label, False, False, 0)
+        
+        # Populate tree
+        self._populate_custom_manifest_tree()
+        
+        return vbox
+    
+    def _update_custom_manifest_status(self):
+        """Update custom manifest status label"""
+        if not self.custom_manifest_creator:
+            self.custom_manifest_status_label.set_markup("<b>Status:</b> Custom manifest creator not available")
+            return
+        
+        try:
+            current_info = self.custom_manifest_creator.get_current_manifest_info()
+            manifest_type = current_info['type']
+            name = current_info['name']
+            
+            if manifest_type == 'default':
+                status_text = f"<b>Active Manifest:</b> {name} (Default GitHub Repository)"
+            elif manifest_type == 'custom_local':
+                total_scripts = current_info.get('total_scripts', 0)
+                status_text = f"<b>Active Manifest:</b> {name} (Custom Local - {total_scripts} scripts)"
+            elif manifest_type == 'custom_remote':
+                status_text = f"<b>Active Manifest:</b> {name} (Custom Remote Repository)"
+            else:
+                status_text = f"<b>Active Manifest:</b> {name} (Unknown type)"
+            
+            self.custom_manifest_status_label.set_markup(status_text)
+        except Exception as e:
+            self.custom_manifest_status_label.set_markup(f"<b>Status:</b> Error - {e}")
+    
+    def _populate_custom_manifest_tree(self):
+        """Populate custom manifest tree view"""
+        if not self.custom_manifest_creator:
+            return
+        
+        self.custom_manifest_store.clear()
+        
+        try:
+            manifests = self.custom_manifest_creator.list_custom_manifests()
+            
+            for manifest in manifests:
+                name = manifest['name']
+                description = manifest['description']
+                version = manifest['version']
+                created = manifest['created']
+                total_scripts = manifest['total_scripts']
+                categories = ', '.join(manifest['categories'])
+                
+                # Format created date
+                try:
+                    from datetime import datetime
+                    created_dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                    created_text = created_dt.strftime("%Y-%m-%d %H:%M")
+                except:
+                    created_text = created[:16] if len(created) > 16 else created
+                
+                self.custom_manifest_store.append([
+                    name,
+                    description,
+                    version,
+                    created_text,
+                    total_scripts,
+                    categories
+                ])
+                
+        except Exception as e:
+            print(f"Error populating custom manifest tree: {e}")
+    
+    def _on_create_custom_manifest(self, button):
+        """Show create custom manifest dialog"""
+        if not self.custom_manifest_creator:
+            return
+        
+        dialog = Gtk.Dialog(
+            title="Create Custom Manifest",
+            parent=self,
+            flags=0
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            "Create", Gtk.ResponseType.OK
+        )
+        dialog.set_default_size(600, 500)
+        
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_start(10)
+        content.set_margin_end(10)
+        content.set_margin_top(10)
+        content.set_margin_bottom(10)
+        
+        # Name entry (common to both methods)
+        name_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        name_label = Gtk.Label(label="Manifest Name:")
+        name_label.set_size_request(120, -1)
+        name_entry = Gtk.Entry()
+        name_entry.set_placeholder_text("my_custom_scripts")
+        name_box.pack_start(name_label, False, False, 0)
+        name_box.pack_start(name_entry, True, True, 0)
+        content.pack_start(name_box, False, False, 0)
+        
+        # Description entry (common to both methods)
+        desc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        desc_label = Gtk.Label(label="Description:")
+        desc_label.set_size_request(120, -1)
+        desc_entry = Gtk.Entry()
+        desc_entry.set_placeholder_text("My collection of custom scripts")
+        desc_box.pack_start(desc_label, False, False, 0)
+        desc_box.pack_start(desc_entry, True, True, 0)
+        content.pack_start(desc_box, False, False, 0)
+        
+        # Method selection notebook
+        notebook = Gtk.Notebook()
+        notebook.set_tab_pos(Gtk.PositionType.TOP)
+        content.pack_start(notebook, True, True, 0)
+        
+        # Tab 1: Directory Scanning
+        dir_scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        dir_scan_box.set_margin_start(10)
+        dir_scan_box.set_margin_end(10)
+        dir_scan_box.set_margin_top(10)
+        dir_scan_box.set_margin_bottom(10)
+        
+        # Recursive checkbox
+        recursive_check = Gtk.CheckButton(label="Scan directories recursively")
+        recursive_check.set_active(True)
+        dir_scan_box.pack_start(recursive_check, False, False, 0)
+        
+        # Directories list
+        dir_scan_box.pack_start(Gtk.Label(label="Directories to scan:"), False, False, 0)
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_size_request(-1, 200)
+        
+        # Store: directory path
+        dir_store = Gtk.ListStore(str)
+        dir_tree = Gtk.TreeView(model=dir_store)
+        
+        path_renderer = Gtk.CellRendererText()
+        path_column = Gtk.TreeViewColumn("Directory Path", path_renderer, text=0)
+        dir_tree.append_column(path_column)
+        
+        scrolled.add(dir_tree)
+        dir_scan_box.pack_start(scrolled, True, True, 0)
+        
+        # Directory buttons
+        dir_button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        
+        add_dir_btn = Gtk.Button(label="Add Directory")
+        add_dir_btn.connect("clicked", lambda b: self._add_directory_to_scan(dir_store, dialog))
+        dir_button_box.pack_start(add_dir_btn, False, False, 0)
+        
+        remove_dir_btn = Gtk.Button(label="Remove Selected")
+        remove_dir_btn.connect("clicked", lambda b: self._remove_selected_directory(dir_tree, dir_store))
+        dir_button_box.pack_start(remove_dir_btn, False, False, 0)
+        
+        dir_scan_box.pack_start(dir_button_box, False, False, 0)
+        
+        # Checksum verification toggle for directory scan
+        dir_verify_checksums = Gtk.CheckButton(label="Verify script checksums (recommended for security)")
+        dir_verify_checksums.set_active(True)  # Default to enabled
+        dir_verify_checksums.set_margin_top(10)
+        dir_verify_checksums.set_tooltip_text("Verify scripts match checksums during execution. Recommended for security.")
+        dir_scan_box.pack_start(dir_verify_checksums, False, False, 0)
+        
+        # Add directory scanning tab to notebook
+        dir_tab_label = Gtk.Label(label="📁 Directory Scan")
+        notebook.append_page(dir_scan_box, dir_tab_label)
+        
+        # Tab 2: Online Manifest
+        online_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        online_box.set_margin_start(10)
+        online_box.set_margin_end(10)
+        online_box.set_margin_top(10)
+        online_box.set_margin_bottom(10)
+        
+        # Instructions
+        instruction_label = Gtk.Label()
+        instruction_label.set_markup(
+            "<b>Import from Online Manifest</b>\n\n"
+            "Enter the URL of an existing manifest.json file to import.\n"
+            "This can be from a GitHub repository, web server, or local file.\n\n"
+            "<i>Examples:</i>\n"
+            "• https://raw.githubusercontent.com/user/repo/main/manifest.json\n"
+            "• https://example.com/my-scripts/manifest.json\n"
+            "• file:///home/user/my-manifest.json"
+        )
+        instruction_label.set_line_wrap(True)
+        instruction_label.set_xalign(0)
+        online_box.pack_start(instruction_label, False, False, 0)
+        
+        # URL entry
+        url_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        url_label = Gtk.Label(label="Manifest URL:")
+        url_label.set_size_request(100, -1)
+        url_entry = Gtk.Entry()
+        url_entry.set_placeholder_text("https://raw.githubusercontent.com/user/repo/main/manifest.json")
+        url_box.pack_start(url_label, False, False, 0)
+        url_box.pack_start(url_entry, True, True, 0)
+        online_box.pack_start(url_box, False, False, 0)
+        
+        # Verify button
+        verify_btn = Gtk.Button(label="Verify URL")
+        verify_btn.connect("clicked", lambda b: self._verify_manifest_url(url_entry, verify_status_label))
+        online_box.pack_start(verify_btn, False, False, 0)
+        
+        # Status label
+        verify_status_label = Gtk.Label()
+        verify_status_label.set_line_wrap(True)
+        verify_status_label.set_xalign(0)
+        online_box.pack_start(verify_status_label, False, False, 0)
+        
+        # Checksum verification toggle for online manifest
+        url_verify_checksums = Gtk.CheckButton(label="Verify script checksums (recommended for security)")
+        url_verify_checksums.set_active(True)  # Default to enabled
+        url_verify_checksums.set_margin_top(10)
+        url_verify_checksums.set_tooltip_text("Verify downloaded scripts match expected checksums. Disable only if checksums are unavailable.")
+        online_box.pack_start(url_verify_checksums, False, False, 0)
+        
+        # Add online manifest tab to notebook
+        online_tab_label = Gtk.Label(label="🌐 Online Manifest")
+        notebook.append_page(online_box, online_tab_label)
+        
+        content.show_all()
+        
+        while True:
+            response = dialog.run()
+            
+            if response != Gtk.ResponseType.OK:
+                dialog.destroy()
+                return
+            
+            # Validate inputs
+            name = name_entry.get_text().strip()
+            description = desc_entry.get_text().strip()
+            current_tab = notebook.get_current_page()
+            
+            if not name:
+                self._show_error_dialog(dialog, "Please enter a manifest name.")
+                continue
+            
+            # Handle based on current tab
+            if current_tab == 0:  # Directory Scan tab
+                recursive = recursive_check.get_active()
+                directories = []
+                for row in dir_store:
+                    directories.append(row[0])
+                
+                if not directories:
+                    self._show_error_dialog(dialog, "Please add at least one directory to scan.")
+                    continue
+                
+                # Create manifest from directories
+                dialog.destroy()
+                
+                success, message = self.custom_manifest_creator.create_manifest(
+                    name, directories, description, recursive, dir_verify_checksums.get_active()
+                )
+                
+            else:  # Online Manifest tab
+                url = url_entry.get_text().strip()
+                
+                if not url:
+                    self._show_error_dialog(dialog, "Please enter a manifest URL.")
+                    continue
+                
+                if not (url.startswith(('http://', 'https://', 'file://'))):
+                    self._show_error_dialog(dialog, "URL must start with http://, https://, or file://")
+                    continue
+                
+                # Import manifest from URL
+                dialog.destroy()
+                
+                success, message = self.custom_manifest_creator.import_manifest_from_url(
+                    name, url, description, url_verify_checksums.get_active()
+                )
+            
+            if success:
+                self.terminal.feed(f"\x1b[32m[✓] {message}\x1b[0m\r\n".encode())
+                # Auto-activate the imported manifest
+                self.custom_manifest_creator.switch_to_custom_manifest(name)
+                # Refresh repository system
+                if self.repository:
+                    self.repository.refresh_repository_url()
+                # Reload all tabs to create dynamic tabs for new manifest
+                self._reload_main_tabs()
+                self._populate_custom_manifest_tree()
+                self._update_repo_status()
+            else:
+                self.terminal.feed(f"\x1b[31m[✗] {message}\x1b[0m\r\n".encode())
+            
+            return
+    
+    def _show_edit_manifest_dialog(self, manifest_name):
+        """Show edit dialog for existing custom manifest"""
+        if not self.custom_manifest_creator:
+            return
+        
+        # Get manifest info
+        manifests = self.custom_manifest_creator.list_custom_manifests()
+        manifest_info = next((m for m in manifests if m['name'] == manifest_name), None)
+        
+        if not manifest_info:
+            self._show_error_dialog(self, f"Manifest '{manifest_name}' not found")
+            return
+        
+        dialog = Gtk.Dialog(
+            title=f"Edit Manifest: {manifest_name}",
+            parent=self,
+            flags=0
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            "Save Changes", Gtk.ResponseType.OK
+        )
+        dialog.set_default_size(600, 500)
+        
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_start(10)
+        content.set_margin_end(10)
+        content.set_margin_top(10)
+        content.set_margin_bottom(10)
+        
+        # Show manifest type
+        type_label = Gtk.Label()
+        manifest_type = manifest_info.get('type', 'directory_scan')
+        type_text = "Directory Scan" if manifest_type == 'directory_scan' else f"Imported URL ({manifest_info.get('source_url', 'unknown')})"
+        type_label.set_markup(f"<b>Manifest Type:</b> {type_text}")
+        type_label.set_xalign(0)
+        content.pack_start(type_label, False, False, 0)
+        
+        # Name entry (allow editing)
+        name_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        name_label = Gtk.Label(label="Manifest Name:")
+        name_label.set_size_request(120, -1)
+        name_entry = Gtk.Entry()
+        name_entry.set_text(manifest_name)
+        name_box.pack_start(name_label, False, False, 0)
+        name_box.pack_start(name_entry, True, True, 0)
+        content.pack_start(name_box, False, False, 0)
+        
+        # Description entry (allow editing)
+        desc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        desc_label = Gtk.Label(label="Description:")
+        desc_label.set_size_request(120, -1)
+        desc_entry = Gtk.Entry()
+        desc_entry.set_text(manifest_info.get('description', ''))
+        desc_box.pack_start(desc_label, False, False, 0)
+        desc_box.pack_start(desc_entry, True, True, 0)
+        content.pack_start(desc_box, False, False, 0)
+        
+        # Checksum verification toggle (for all types)
+        content.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 5)
+        
+        verify_checksums = Gtk.CheckButton(label="Verify script checksums (recommended for security)")
+        verify_checksums.set_active(manifest_info.get('verify_checksums', True))
+        verify_checksums.set_tooltip_text("Verify scripts match checksums during execution. Recommended for security.")
+        content.pack_start(verify_checksums, False, False, 0)
+        
+        # Type-specific editing
+        if manifest_type == 'imported_url':
+            # URL manifest - allow URL editing
+            url_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+            url_label = Gtk.Label(label="Source URL:")
+            url_label.set_size_request(120, -1)
+            url_entry = Gtk.Entry()
+            url_entry.set_text(manifest_info.get('source_url', ''))
+            url_box.pack_start(url_label, False, False, 0)
+            url_box.pack_start(url_entry, True, True, 0)
+            content.pack_start(url_box, False, False, 0)
+            
+            # Verify button
+            verify_btn = Gtk.Button(label="Verify URL")
+            verify_status_label = Gtk.Label()
+            verify_btn.connect("clicked", lambda b: self._verify_manifest_url(url_entry, verify_status_label))
+            content.pack_start(verify_btn, False, False, 0)
+            content.pack_start(verify_status_label, False, False, 0)
+            
+        else:
+            # Directory-based manifest - show read-only info for now
+            # (Could be enhanced later to allow directory modification)
+            info_label = Gtk.Label()
+            info_label.set_markup(
+                f"<b>Statistics:</b>\n"
+                f"• Total Scripts: {manifest_info.get('total_scripts', 0)}\n"
+                f"• Categories: {', '.join(manifest_info.get('categories', []))}\n"
+                f"• Created: {manifest_info.get('created', 'Unknown')}\n\n"
+                f"<i>Note: Directory-based manifests can only have name and description edited.\n"
+                f"To modify directories, delete and recreate the manifest.</i>"
+            )
+            info_label.set_line_wrap(True)
+            info_label.set_xalign(0)
+            content.pack_start(info_label, True, True, 0)
+        
+        dialog.show_all()
+        
+        while True:
+            response = dialog.run()
+            
+            if response != Gtk.ResponseType.OK:
+                dialog.destroy()
+                return
+            
+            # Validate inputs
+            new_name = name_entry.get_text().strip()
+            new_description = desc_entry.get_text().strip()
+            new_verify_checksums = verify_checksums.get_active()
+            
+            if not new_name:
+                self._show_error_dialog(dialog, "Please enter a manifest name.")
+                continue
+            
+            if manifest_type == 'imported_url':
+                new_url = url_entry.get_text().strip()
+                if not new_url:
+                    self._show_error_dialog(dialog, "Please enter a manifest URL.")
+                    continue
+                if not (new_url.startswith(('http://', 'https://', 'file://'))):
+                    self._show_error_dialog(dialog, "URL must start with http://, https://, or file://")
+                    continue
+            
+            # Apply changes
+            dialog.destroy()
+            
+            if manifest_type == 'imported_url':
+                # For URL manifests, we need to re-import if URL changed or update metadata
+                if new_url != manifest_info.get('source_url', '') or new_name != manifest_name:
+                    # Delete old manifest and create new one
+                    self.custom_manifest_creator.delete_custom_manifest(manifest_name)
+                    success, message = self.custom_manifest_creator.import_manifest_from_url(
+                        new_name, new_url, new_description, new_verify_checksums
+                    )
+                else:
+                    # Just update description and checksum setting
+                    success, message = self.custom_manifest_creator.update_manifest_metadata(
+                        manifest_name, new_name, new_description, new_url, new_verify_checksums
+                    )
+            else:
+                # For directory manifests, just update metadata
+                success, message = self.custom_manifest_creator.update_manifest_metadata(
+                    manifest_name, new_name, new_description, None, new_verify_checksums
+                )
+            
+            if success:
+                self.terminal.feed(f"\x1b[32m[✓] {message}\x1b[0m\r\n".encode())
+                self._populate_custom_manifest_tree()
+                self._update_custom_manifest_status()
+                self._update_repo_status()
+            else:
+                self.terminal.feed(f"\x1b[31m[✗] {message}\x1b[0m\r\n".encode())
+            
+            return
+    
+    def _add_directory_to_scan(self, dir_store, parent_dialog):
+        """Add a directory to the scan list"""
+        dialog = Gtk.FileChooserDialog(
+            title="Select Directory to Scan",
+            parent=parent_dialog,
+            action=Gtk.FileChooserAction.SELECT_FOLDER
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OPEN, Gtk.ResponseType.OK
+        )
+        
+        # Set default to home directory
+        dialog.set_current_folder(str(Path.home()))
+        
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            directory = dialog.get_filename()
+            # Check if directory is already in the list
+            for row in dir_store:
+                if row[0] == directory:
+                    dialog.destroy()
+                    return
+            dir_store.append([directory])
+        
+        dialog.destroy()
+    
+    def _remove_selected_directory(self, tree_view, dir_store):
+        """Remove selected directory from the scan list"""
+        selection = tree_view.get_selection()
+        model, tree_iter = selection.get_selected()
+        
+        if tree_iter:
+            model.remove(tree_iter)
+    
+    def _verify_manifest_url(self, url_entry, status_label):
+        """Verify that a manifest URL is accessible and valid"""
+        url = url_entry.get_text().strip()
+        
+        if not url:
+            status_label.set_markup("<span color='red'>Please enter a URL</span>")
+            return
+        
+        status_label.set_markup("<span color='blue'>Verifying URL...</span>")
+        
+        # Use GLib.timeout_add to do this in a non-blocking way
+        GLib.timeout_add(100, self._do_verify_url, url, status_label)
+    
+    def _do_verify_url(self, url, status_label):
+        """Perform the actual URL verification"""
+        try:
+            import urllib.request
+            import json
+            
+            # Handle file:// URLs
+            if url.startswith('file://'):
+                file_path = url[7:]  # Remove 'file://' prefix
+                if not os.path.exists(file_path):
+                    status_label.set_markup("<span color='red'>✗ File not found</span>")
+                    return False
+                
+                # Try to load and validate JSON
+                with open(file_path, 'r') as f:
+                    manifest = json.load(f)
+                
+                # Basic validation
+                if 'scripts' in manifest or 'version' in manifest:
+                    status_label.set_markup("<span color='green'>✓ Valid manifest file</span>")
+                else:
+                    status_label.set_markup("<span color='orange'>⚠ File exists but may not be a valid manifest</span>")
+                return False
+            
+            # Handle HTTP/HTTPS URLs
+            elif url.startswith(('http://', 'https://')):
+                # Try to fetch the URL
+                req = urllib.request.Request(url)
+                req.add_header('User-Agent', 'lv_linux_learn/2.1.0')
+                
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    data = response.read()
+                    manifest = json.loads(data)
+                    
+                    # Basic validation
+                    if 'scripts' in manifest or 'version' in manifest:
+                        status_label.set_markup("<span color='green'>✓ Valid manifest URL</span>")
+                    else:
+                        status_label.set_markup("<span color='orange'>⚠ URL accessible but may not be a valid manifest</span>")
+                return False
+            
+            else:
+                status_label.set_markup("<span color='red'>✗ URL must start with http://, https://, or file://</span>")
+                return False
+                
+        except json.JSONDecodeError:
+            status_label.set_markup("<span color='red'>✗ Invalid JSON format</span>")
+        except urllib.error.URLError as e:
+            status_label.set_markup(f"<span color='red'>✗ Cannot access URL: {e.reason}</span>")
+        except Exception as e:
+            status_label.set_markup(f"<span color='red'>✗ Error: {str(e)}</span>")
+        
+        return False  # Remove the timeout
+    
+    def _show_error_dialog(self, parent, message):
+        """Show an error dialog"""
+        error_dialog = Gtk.MessageDialog(
+            transient_for=parent,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text="Error"
+        )
+        error_dialog.format_secondary_text(message)
+        error_dialog.run()
+        error_dialog.destroy()
+    
+    def _on_edit_custom_manifest(self, button):
+        """Edit the selected custom manifest"""
+        selection = self.custom_manifest_tree.get_selection()
+        model, tree_iter = selection.get_selected()
+        
+        if not tree_iter:
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text="No Manifest Selected"
+            )
+            dialog.format_secondary_text("Please select a custom manifest to edit.")
+            dialog.run()
+            dialog.destroy()
+            return
+        
+        manifest_name = model.get_value(tree_iter, 0)
+        self._show_edit_manifest_dialog(manifest_name)
+    
+    def _on_refresh_custom_manifests(self, button):
+        """Refresh the custom manifests list"""
+        self._populate_custom_manifest_tree()
+        self._update_custom_manifest_status()
+        self.terminal.feed(b"\x1b[32m[*] Custom manifests refreshed\x1b[0m\r\n")
+    
+    def _on_switch_to_default_manifest(self, button):
+        """Switch back to the default manifest"""
+        if not self.custom_manifest_creator:
+            return
+        
+        success, message = self.custom_manifest_creator.switch_to_default_manifest()
+        
+        if success:
+            self.terminal.feed(f"\x1b[32m[✓] {message}\x1b[0m\r\n".encode())
+            self._update_custom_manifest_status()
+            # Refresh repository system and main UI
+            if self.repository:
+                self.repository.refresh_repository_url()
+            # Use timeout to allow config changes to take effect
+            GLib.timeout_add(500, self._refresh_ui_after_manifest_switch)
+        else:
+            self.terminal.feed(f"\x1b[31m[✗] {message}\x1b[0m\r\n".encode())
+    
+    def _on_manifest_row_activated(self, tree_view, path, column):
+        """Handle double-click on manifest row - edit manifest"""
+        model = tree_view.get_model()
+        tree_iter = model.get_iter(path)
+        manifest_name = model.get_value(tree_iter, 0)
+        
+        if not self.custom_manifest_creator:
+            return
+        
+        # Open edit dialog
+        self._show_edit_manifest_dialog(manifest_name)
+    
+    def _on_manifest_tree_button_press(self, widget, event):
+        """Handle right-click on manifest tree"""
+        if event.button == 3:  # Right-click
+            path_info = widget.get_path_at_pos(int(event.x), int(event.y))
+            if path_info is not None:
+                path, column, x, y = path_info
+                widget.get_selection().select_path(path)
+                
+                # Get manifest name
+                model = widget.get_model()
+                tree_iter = model.get_iter(path)
+                manifest_name = model.get_value(tree_iter, 0)
+                
+                # Show context menu
+                self._show_manifest_context_menu(event, manifest_name)
+            return True
+        return False
+    
+    def _show_manifest_context_menu(self, event, manifest_name):
+        """Show context menu for manifest"""
+        menu = Gtk.Menu()
+        
+        # Edit manifest
+        edit_item = Gtk.MenuItem(label=f"Edit '{manifest_name}'")
+        edit_item.connect("activate", lambda i: self._show_edit_manifest_dialog(manifest_name))
+        menu.append(edit_item)
+        
+        # Delete manifest
+        delete_item = Gtk.MenuItem(label=f"Delete '{manifest_name}'")
+        delete_item.connect("activate", lambda i: self._delete_manifest_by_name(manifest_name))
+        menu.append(delete_item)
+        
+        menu.show_all()
+        menu.popup(None, None, None, None, event.button, event.time)
+    
+    def _delete_manifest_by_name(self, manifest_name):
+        """Delete manifest by name with confirmation"""
+        if not self.custom_manifest_creator:
+            return
+        
+        # Confirmation dialog
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Delete Custom Manifest"
+        )
+        dialog.format_secondary_text(
+            f"Are you sure you want to delete the manifest '{manifest_name}'?\n\n"
+            "This will permanently remove the manifest and all its copied scripts."
+        )
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            success, message = self.custom_manifest_creator.delete_custom_manifest(manifest_name)
+            
+            if success:
+                self.terminal.feed(f"\x1b[32m[✓] {message}\x1b[0m\r\n".encode())
+                
+                # Refresh the custom manifest tree
+                self._populate_custom_manifest_tree()
+                
+                # Refresh repository system to reload from new manifest
+                if self.repository:
+                    self.repository.refresh_repository_url()
+                
+                # Update repository status and tree
+                self._update_repo_status()
+                if hasattr(self, '_populate_repository_tree'):
+                    self._populate_repository_tree()
+                
+                # Reload main tabs to remove deleted manifest scripts
+                self._reload_main_tabs()
+            else:
+                self.terminal.feed(f"\x1b[31m[✗] {message}\x1b[0m\r\n".encode())
+    
+    def _refresh_ui_after_manifest_switch(self):
+        """Refresh UI after switching manifests - this is the key method for updating main tabs"""
+        try:
+            # Clear manifest cache to force reload from new source
+            global MANIFEST_CACHE_FILE
+            if MANIFEST_CACHE_FILE.exists():
+                MANIFEST_CACHE_FILE.unlink()
+                self.terminal.feed(b"\x1b[33m[*] Cleared manifest cache\x1b[0m\r\n")
+            
+            # Refresh repository system to use new manifest URL
+            if self.repository:
+                self.repository.refresh_repository_url()
+                self.terminal.feed(b"\x1b[33m[*] Refreshed repository configuration\x1b[0m\r\n")
+            
+            # Force refresh of repository tree if available
+            if self.repo_enabled and hasattr(self, '_populate_repository_tree'):
+                self._populate_repository_tree()
+                self._update_repo_status()
+                self.terminal.feed(b"\x1b[33m[*] Updated repository view\x1b[0m\r\n")
+            
+            # The most important part: reload main script tabs with new manifest data
+            self._reload_main_tabs()
+            self.terminal.feed(b"\x1b[32m[+] Main script tabs refreshed with new manifest\x1b[0m\r\n")
+            
+            # Update custom manifest status
+            self._update_custom_manifest_status()
+            
+            return False  # Don't repeat the timeout
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[!] Error refreshing UI: {e}\x1b[0m\r\n".encode())
+            print(f"Error refreshing UI after manifest switch: {e}")
             return False
 
     def _ensure_remote_includes(self, cache_root):
@@ -2386,64 +4057,116 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     def _repopulate_tab_stores(self):
         """Repopulate all main tab list stores with updated data"""
         try:
+            # First, check if we need to create new dynamic tabs
+            self._ensure_dynamic_tabs_exist()
+            
             # Clear and repopulate install tab
             if hasattr(self, 'install_liststore'):
                 self.install_liststore.clear()
-                # Only add repository scripts if repository is enabled
-                if self.repo_enabled:
-                    for i, script_path in enumerate(SCRIPTS):
-                        if i < len(SCRIPT_NAMES) and i < len(DESCRIPTIONS):
-                            self.install_liststore.append([SCRIPT_NAMES[i], script_path, DESCRIPTIONS[i], False, ""])
-                # Add custom scripts
-                custom_scripts = self.custom_manager.get_scripts("install")
-                for script in custom_scripts:
-                    display_name = f"📝 {script['name']}"
-                    self.install_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
+                # Add loaded scripts from manifest (public or custom)
+                for i, script_path in enumerate(SCRIPTS):
+                    if i < len(SCRIPT_NAMES) and i < len(DESCRIPTIONS):
+                        self.install_liststore.append([SCRIPT_NAMES[i], script_path, DESCRIPTIONS[i], False, ""])
             
             # Clear and repopulate tools tab  
             if hasattr(self, 'tools_liststore'):
                 self.tools_liststore.clear()
-                # Only add repository scripts if repository is enabled
-                if self.repo_enabled:
-                    for i, script_path in enumerate(TOOLS_SCRIPTS):
-                        if i < len(TOOLS_NAMES) and i < len(TOOLS_DESCRIPTIONS):
-                            self.tools_liststore.append([TOOLS_NAMES[i], script_path, TOOLS_DESCRIPTIONS[i], False, ""])
-                # Add custom scripts
-                custom_scripts = self.custom_manager.get_scripts("tools")
-                for script in custom_scripts:
-                    display_name = f"📝 {script['name']}"
-                    self.tools_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
+                # Add loaded scripts from manifest (public or custom)
+                for i, script_path in enumerate(TOOLS_SCRIPTS):
+                    if i < len(TOOLS_NAMES) and i < len(TOOLS_DESCRIPTIONS):
+                        self.tools_liststore.append([TOOLS_NAMES[i], script_path, TOOLS_DESCRIPTIONS[i], False, ""])
             
             # Clear and repopulate exercises tab
             if hasattr(self, 'exercises_liststore'):
                 self.exercises_liststore.clear()
-                # Only add repository scripts if repository is enabled
-                if self.repo_enabled:
-                    for i, script_path in enumerate(EXERCISES_SCRIPTS):
-                        if i < len(EXERCISES_NAMES) and i < len(EXERCISES_DESCRIPTIONS):
-                            self.exercises_liststore.append([EXERCISES_NAMES[i], script_path, EXERCISES_DESCRIPTIONS[i], False, ""])
-                # Add custom scripts
-                custom_scripts = self.custom_manager.get_scripts("exercises")
-                for script in custom_scripts:
-                    display_name = f"📝 {script['name']}"
-                    self.exercises_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
+                # Add loaded scripts from manifest (public or custom)
+                for i, script_path in enumerate(EXERCISES_SCRIPTS):
+                    if i < len(EXERCISES_NAMES) and i < len(EXERCISES_DESCRIPTIONS):
+                        self.exercises_liststore.append([EXERCISES_NAMES[i], script_path, EXERCISES_DESCRIPTIONS[i], False, ""])
             
             # Clear and repopulate uninstall tab
             if hasattr(self, 'uninstall_liststore'):
                 self.uninstall_liststore.clear()
-                # Only add repository scripts if repository is enabled
-                if self.repo_enabled:
-                    for i, script_path in enumerate(UNINSTALL_SCRIPTS):
-                        if i < len(UNINSTALL_NAMES) and i < len(UNINSTALL_DESCRIPTIONS):
-                            self.uninstall_liststore.append([UNINSTALL_NAMES[i], script_path, UNINSTALL_DESCRIPTIONS[i], False, ""])
-                # Add custom scripts
-                custom_scripts = self.custom_manager.get_scripts("uninstall")
-                for script in custom_scripts:
-                    display_name = f"📝 {script['name']}"
-                    self.uninstall_liststore.append([display_name, script['script_path'], script['description'], True, script['id']])
+                # Add loaded scripts from manifest (public or custom)
+                for i, script_path in enumerate(UNINSTALL_SCRIPTS):
+                    if i < len(UNINSTALL_NAMES) and i < len(UNINSTALL_DESCRIPTIONS):
+                        self.uninstall_liststore.append([UNINSTALL_NAMES[i], script_path, UNINSTALL_DESCRIPTIONS[i], False, ""])
+            
+            # Repopulate dynamic category tabs
+            if hasattr(self, 'dynamic_category_tabs'):
+                global NON_STANDARD_CATEGORIES
+                for category, data in NON_STANDARD_CATEGORIES.items():
+                    # Find the liststore for this category
+                    liststore_name = f'{category}_liststore'
+                    if hasattr(self, liststore_name):
+                        liststore = getattr(self, liststore_name)
+                        liststore.clear()
+                        # Add loaded scripts
+                        scripts = data.get('scripts', [])
+                        names = data.get('names', [])
+                        descriptions = data.get('descriptions', [])
+                        for i, script_path in enumerate(scripts):
+                            if i < len(names) and i < len(descriptions):
+                                liststore.append([names[i], script_path, descriptions[i], False, ""])
                         
         except Exception as e:
             print(f"Error repopulating tab stores: {e}")
+    
+    def _ensure_dynamic_tabs_exist(self):
+        """Ensure dynamic tabs exist for all non-standard categories"""
+        try:
+            global NON_STANDARD_CATEGORIES
+            
+            if not hasattr(self, 'dynamic_category_tabs'):
+                self.dynamic_category_tabs = {}
+            
+            # Check which categories need tabs created
+            for category, data in NON_STANDARD_CATEGORIES.items():
+                if category not in self.dynamic_category_tabs:
+                    # Create new tab for this category
+                    category_box = self._create_script_tab(data['scripts'], data['descriptions'], category)
+                    
+                    # Get appropriate emoji for category
+                    category_emoji = {
+                        'custom': '📦',
+                        'ai': '🤖',
+                        'network': '🌐',
+                        'security': '🔒',
+                        'database': '🗄',
+                        'docker': '🐳',
+                        'other': '📝'
+                    }.get(category.lower(), '📦')
+                    
+                    category_label = self._create_tab_label(f"{category_emoji} {category.capitalize()}", category)
+                    
+                    # Find the position to insert (before Repository and Custom Manifests tabs)
+                    # These are always the last 2 tabs
+                    n_pages = self.notebook.get_n_pages()
+                    insert_position = n_pages - 2 if n_pages >= 2 else n_pages
+                    
+                    self.notebook.insert_page(category_box, category_label, insert_position)
+                    self.notebook.show_all()
+                    
+                    self.dynamic_category_tabs[category] = {
+                        'box': category_box,
+                        'label': category_label
+                    }
+            
+            # Remove tabs for categories that no longer exist
+            categories_to_remove = []
+            for category in list(self.dynamic_category_tabs.keys()):
+                if category not in NON_STANDARD_CATEGORIES:
+                    categories_to_remove.append(category)
+            
+            for category in categories_to_remove:
+                tab_data = self.dynamic_category_tabs[category]
+                page_num = self.notebook.page_num(tab_data['box'])
+                if page_num >= 0:
+                    self.notebook.remove_page(page_num)
+                del self.dynamic_category_tabs[category]
+                
+        except Exception as e:
+            print(f"Error ensuring dynamic tabs exist: {e}")
 
     def install_packages_in_terminal(self, pkgs, required=True):
         """Install packages by running commands in the embedded terminal"""
@@ -2541,34 +4264,27 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             widgets['cd_button'].set_sensitive(False)
 
     def on_run_clicked(self, button):
+        """Handle Run button - uses centralized execution logic"""
         widgets = self.get_current_widgets()
         selection = widgets['treeview'].get_selection()
         model, treeiter = selection.get_selected()
         if treeiter is None:
             return
-        # model is filtered -> get full path from model column 1
+        
+        # Get script path and metadata
         script_path = model[treeiter][1]
+        metadata = self._get_script_metadata(model, treeiter)
         script_name = os.path.basename(script_path)
         
-        # Check if this is a repository script that needs to be cached
-        if self.repository and self.repo_enabled:
-            # Try to find the script in the manifest
-            manifest_script_id = self._get_manifest_script_id(script_name, script_path)
-            
-            if manifest_script_id:
-                # This is a repository script - check if it's cached
-                cached_path = self.repository.get_cached_script_path(manifest_script_id)
+        # Use centralized execution logic
+        success = self._execute_script_unified(script_path, metadata)
+        
+        # If remote/uncached, offer to download
+        if not success and metadata.get("type") == "remote":
+            if self.repository and self.repo_enabled:
+                manifest_script_id = self._get_manifest_script_id(script_name, script_path)
                 
-                if cached_path and os.path.isfile(cached_path):
-                    # Script is cached - execute from cache
-                    self._ensure_includes_available()
-                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                    command = f"cd '{cache_root}' && bash '{cached_path}'\n"
-                    self.terminal.feed(f"\x1b[33m[*] Executing cached script with includes support\x1b[0m\r\n".encode())
-                    self.terminal.feed_child(command.encode())
-                    return
-                else:
-                    # Script is not cached - prompt user to download
+                if manifest_script_id:
                     dialog = Gtk.MessageDialog(
                         transient_for=self,
                         flags=0,
@@ -2578,44 +4294,31 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     )
                     dialog.format_secondary_text(
                         f"The script '{script_name}' needs to be downloaded to your cache.\n\n"
-                        "Download and run from cache? This provides better performance\n"
-                        "and includes support for repository scripts."
+                        "Download and run from cache?"
                     )
                     response = dialog.run()
                     dialog.destroy()
                     
                     if response == Gtk.ResponseType.YES:
-                        # Download the script
-                        self.terminal.feed(f"\x1b[32m[*] Downloading ☁️ {script_name} to cache...\x1b[0m\r\n".encode())
+                        self.terminal.feed(f"\x1b[32m[*] Downloading ☁️ {script_name}...\x1b[0m\r\n".encode())
                         try:
-                            success = self.repository.download_script(manifest_script_id)
-                            if success:
-                                # Get the cached script path and run it
+                            if self.repository.download_script(manifest_script_id):
                                 cached_path = self.repository.get_cached_script_path(manifest_script_id)
                                 if cached_path and os.path.isfile(cached_path):
-                                    self._ensure_includes_available()
-                                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                                    command = f"cd '{cache_root}' && bash '{cached_path}'\n"
-                                    self.terminal.feed(f"\x1b[32m[✓] Downloaded successfully! Executing...\x1b[0m\r\n".encode())
-                                    # Refresh UI to show updated cache status
+                                    # Update metadata and execute
+                                    updated_metadata = metadata.copy()
+                                    updated_metadata["type"] = "cached"
+                                    self._execute_script_unified(str(cached_path), updated_metadata)
                                     GLib.timeout_add(500, self._refresh_ui_after_cache_change)
-                                    self.terminal.feed_child(command.encode())
-                                    return
                                 else:
                                     self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script\x1b[0m\r\n".encode())
                             else:
-                                self.terminal.feed(f"\x1b[31m[✗] Failed to download {script_name}\x1b[0m\r\n".encode())
+                                self.terminal.feed(f"\x1b[31m[✗] Download failed\x1b[0m\r\n".encode())
                         except Exception as e:
                             if "Checksum verification failed" in str(e):
                                 self.terminal.feed(f"\x1b[31m[✗] Checksum verification failed\x1b[0m\r\n".encode())
-                                self.terminal.feed(f"\x1b[33m[!] Try disabling checksum verification in Repository Settings\x1b[0m\r\n".encode())
                             else:
-                                self.terminal.feed(f"\x1b[31m[✗] Download error: {e}\x1b[0m\r\n".encode())
-                        return
-                    else:
-                        # User chose not to download
-                        self.terminal.feed(f"\x1b[33m[!] Download cancelled by user\x1b[0m\r\n".encode())
-                        return
+                                self.terminal.feed(f"\x1b[31m[✗] Error: {e}\x1b[0m\r\n".encode())
         
         # Fallback: try to execute as local script if it exists
         if os.path.isfile(script_path):
@@ -2627,104 +4330,59 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             self.show_error_dialog(f"Script not found:\n{script_path}")
 
     def on_cd_clicked(self, button):
+        """Handle Go to Directory button - uses centralized navigation logic"""
         widgets = self.get_current_widgets()
         selection = widgets['treeview'].get_selection()
         model, treeiter = selection.get_selected()
         if treeiter is None:
             return
+        
+        # Get script path and metadata
         script_path = model[treeiter][1]
-        if not os.path.isfile(script_path):
-            self.show_error_dialog(f"Script not found:\n{script_path}")
-            return
+        metadata = self._get_script_metadata(model, treeiter)
+        script_name = os.path.basename(script_path)
         
-        # Get absolute path to check for cached scripts
-        abs_path = os.path.abspath(script_path)
+        # Use centralized navigation logic
+        success = self._navigate_to_directory_unified(script_path, metadata)
         
-        # Check if this is a cached script
-        if '.lv_linux_learn/script_cache/' in abs_path:
-            # Cached script - navigate to script's directory in cache
-            self._ensure_includes_available()
-            script_dir = os.path.dirname(abs_path)
-            safe_dir = shlex.quote(script_dir)
-            self.terminal.feed(f"\x1b[33m[*] Navigating to script directory in cache\x1b[0m\r\n".encode())
-        else:
-            # Local script - check if user wants to download it first
+        # If remote/uncached, offer to download
+        if not success and metadata.get("type") == "remote":
             if self.repository and self.repo_enabled:
-                script_name = os.path.basename(script_path)
-                dialog = Gtk.MessageDialog(
-                    transient_for=self,
-                    flags=0,
-                    message_type=Gtk.MessageType.QUESTION,
-                    buttons=Gtk.ButtonsType.YES_NO,
-                    text="Script Not Cached"
-                )
-                dialog.format_secondary_text(
-                    f"The script '{script_name}' is not in your local cache.\n\n"
-                    "Would you like to download it to the cache first?\n"
-                    "This will allow you to navigate to the cache directory with includes support."
-                )
-                response = dialog.run()
-                dialog.destroy()
+                manifest_script_id = self._get_manifest_script_id(script_name, script_path)
                 
-                if response == Gtk.ResponseType.YES:
-                    # Try to download the script first
-                    try:
-                        # Find the script in manifest and download it
-                        manifest = self.repository.parse_manifest()
-                        script_id = None
-                        for script in manifest:
-                            if script['relative_path'].endswith(script_name) or script['relative_path'] == script_path:
-                                script_id = script['id']
-                                break
-                        
-                        if script_id:
-                            self.terminal.feed(f"\r\n\x1b[32m[*] Downloading {script_name}...\x1b[0m\r\n".encode())
-                            success = self.repository.download_script(script_id)
-                            if success:
-                                # Navigate to the specific script directory in cache
-                                cached_path = self.repository.get_cached_script_path(script_id)
+                if manifest_script_id:
+                    dialog = Gtk.MessageDialog(
+                        transient_for=self,
+                        flags=0,
+                        message_type=Gtk.MessageType.QUESTION,
+                        buttons=Gtk.ButtonsType.YES_NO,
+                        text="Download Script?"
+                    )
+                    dialog.format_secondary_text(
+                        f"The script '{script_name}' needs to be downloaded to cache.\n\n"
+                        "Download and navigate to cache directory?"
+                    )
+                    response = dialog.run()
+                    dialog.destroy()
+                    
+                    if response == Gtk.ResponseType.YES:
+                        self.terminal.feed(f"\x1b[32m[*] Downloading {script_name}...\x1b[0m\r\n".encode())
+                        try:
+                            if self.repository.download_script(manifest_script_id):
+                                cached_path = self.repository.get_cached_script_path(manifest_script_id)
                                 if cached_path and os.path.isfile(cached_path):
-                                    self._ensure_includes_available()
-                                    script_cache_dir = os.path.dirname(cached_path)
-                                    safe_dir = shlex.quote(script_cache_dir)
-                                    self.terminal.feed(f"\x1b[33m[*] Downloaded successfully! Navigating to script directory\x1b[0m\r\n".encode())
-                                    # Refresh UI silently to avoid terminal interference
+                                    # Update metadata and navigate
+                                    updated_metadata = metadata.copy()
+                                    updated_metadata["type"] = "cached"
+                                    self._navigate_to_directory_unified(str(cached_path), updated_metadata)
                                     GLib.timeout_add(500, self._refresh_ui_silent)
                                 else:
-                                    # Fallback to cache root if can't find specific directory
-                                    self._ensure_includes_available()
-                                    cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                                    safe_dir = shlex.quote(cache_root)
-                                    self.terminal.feed(f"\x1b[33m[*] Downloaded successfully! Navigating to cache root\x1b[0m\r\n".encode())
-                                    # Refresh UI silently to avoid terminal interference
-                                    GLib.timeout_add(500, self._refresh_ui_silent)
+                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script\x1b[0m\r\n".encode())
                             else:
-                                self.terminal.feed(f"\x1b[31m[!] Download failed, navigating to local directory\x1b[0m\r\n".encode())
-                                script_dir = os.path.dirname(abs_path)
-                                safe_dir = shlex.quote(script_dir)
-                        else:
-                            self.terminal.feed(f"\x1b[31m[!] Script not found in manifest, navigating to local directory\x1b[0m\r\n".encode())
-                            script_dir = os.path.dirname(abs_path)
-                            safe_dir = shlex.quote(script_dir)
-                    except Exception as e:
-                        self.terminal.feed(f"\x1b[31m[!] Error downloading: {e}\x1b[0m\r\n".encode())
-                        script_dir = os.path.dirname(abs_path)
-                        safe_dir = shlex.quote(script_dir)
-                else:
-                    # User chose not to download, navigate to local directory
-                    script_dir = os.path.dirname(abs_path)
-                    safe_dir = shlex.quote(script_dir)
-            else:
-                # Repository not available, navigate to local directory
-                script_dir = os.path.dirname(abs_path)
-                safe_dir = shlex.quote(script_dir)
-        
-        # Change directory in terminal
-        cd_cmd = f"cd {safe_dir} && pwd\n"
-        self.terminal.feed_child(cd_cmd.encode())
-        
-        # No completion needed - the cd && pwd command completes naturally
-    
+                                self.terminal.feed(f"\x1b[31m[✗] Download failed\x1b[0m\r\n".encode())
+                        except Exception as e:
+                            self.terminal.feed(f"\x1b[31m[✗] Error: {e}\x1b[0m\r\n".encode())
+
     def on_view_clicked(self, button):
         widgets = self.get_current_widgets()
         selection = widgets['treeview'].get_selection()
@@ -3379,6 +5037,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global SCRIPTS, SCRIPT_NAMES, TOOLS_SCRIPTS, TOOLS_NAMES
             global EXERCISES_SCRIPTS, EXERCISES_NAMES, UNINSTALL_SCRIPTS, UNINSTALL_NAMES
             global DESCRIPTIONS, TOOLS_DESCRIPTIONS, EXERCISES_DESCRIPTIONS, UNINSTALL_DESCRIPTIONS
+            global NON_STANDARD_CATEGORIES
             
             # Force refresh manifest and reload with repository configuration
             _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT = load_scripts_from_manifest(self.terminal, self.repository)
@@ -3399,6 +5058,16 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             UNINSTALL_SCRIPTS[:] = _SCRIPTS_DICT.get('uninstall', [])
             UNINSTALL_NAMES[:] = _NAMES_DICT.get('uninstall', [])
             UNINSTALL_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('uninstall', [])
+            
+            # Update NON_STANDARD_CATEGORIES for dynamic tabs
+            NON_STANDARD_CATEGORIES.clear()
+            for category in _SCRIPTS_DICT.keys():
+                if category not in ['install', 'tools', 'exercises', 'uninstall']:
+                    NON_STANDARD_CATEGORIES[category] = {
+                        'scripts': _SCRIPTS_DICT.get(category, []),
+                        'names': _NAMES_DICT.get(category, []),
+                        'descriptions': _DESCRIPTIONS_DICT.get(category, [])
+                    }
             
             # Refresh custom scripts (reload from disk)
             self.terminal.feed(b"\x1b[33m[*] Refreshing custom scripts...\x1b[0m\r\n")
