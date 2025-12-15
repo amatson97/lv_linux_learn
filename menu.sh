@@ -38,6 +38,9 @@ REPO_UPDATES_AVAILABLE=0
 # Search filter
 SEARCH_FILTER=""
 
+# Dynamic category mapping (initialized in show_main_menu)
+DYNAMIC_CATEGORY_MAP=""
+
 # Dynamic arrays loaded from manifest
 declare -a SCRIPTS=()
 declare -a DESCRIPTIONS=()
@@ -754,24 +757,83 @@ list_cached_scripts() {
   local total_cached=0
   local categories=("install" "tools" "exercises" "uninstall")
   
+  # Check if we have manifest for enhanced info
+  local has_manifest=false
+  if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
+    has_manifest=true
+  fi
+  
+  # Print table header with better spacing
+  printf "  \033[1m%-6s %-40s %-12s %-10s %-13s %-12s\033[0m\n" "Status" "Script Name" "Category" "Size" "Modified" "Source"
+  printf "  %-6s %-40s %-12s %-10s %-13s %-12s\n" "──────" "────────────────────────────────────────" "────────────" "──────────" "─────────────" "────────────"
+  
   for category in "${categories[@]}"; do
     local category_dir="$cache_dir/$category"
     if [ -d "$category_dir" ]; then
-      local count=$(find "$category_dir" -name "*.sh" | wc -l)
-      if [ "$count" -gt 0 ]; then
-        echo "  📦 $category ($count scripts):"
-        find "$category_dir" -name "*.sh" -exec basename {} \; | sort | sed 's/^/    /'
-        total_cached=$((total_cached + count))
-        echo
-      fi
+      # Find all cached scripts in this category
+      while IFS= read -r script_file; do
+        [ -z "$script_file" ] && continue
+        
+        local script_name=$(basename "$script_file")
+        local size_bytes=$(stat -c%s "$script_file" 2>/dev/null || echo "0")
+        local size_kb=$((size_bytes / 1024))
+        local modified=$(stat -c%y "$script_file" 2>/dev/null | cut -d' ' -f1)
+        
+        # Determine source from manifest
+        local source="Local"
+        local script_id=""
+        local status="✓"
+        
+        if [ "$has_manifest" = true ]; then
+          # Try to find script in manifest (handle jq failures gracefully for pipefail)
+          script_id=$(jq -r ".scripts[] | select(.file_name == \"$script_name\" or .relative_path | endswith(\"$script_name\")) | .id" "$MANIFEST_CACHE" 2>/dev/null | head -1 || echo "")
+          
+          if [ -n "$script_id" ] && [ "$script_id" != "null" ]; then
+            # Check if update available by comparing checksums
+            local remote_checksum=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$MANIFEST_CACHE" 2>/dev/null | sed 's/^sha256://' || echo "")
+            local verify_checksums=$(jq -r '.verify_checksums // true' "$MANIFEST_CACHE" 2>/dev/null || echo "true")
+            
+            # Get source/repository info
+            local repo_url=$(jq -r '.repository_url // ""' "$MANIFEST_CACHE" 2>/dev/null || echo "")
+            if [ -n "$repo_url" ] && [ "$repo_url" != "null" ]; then
+              if [[ "$repo_url" == *"github.com/amatson97/lv_linux_learn"* ]]; then
+                source="Public"
+              else
+                source="Custom"
+              fi
+            fi
+            
+            # Check for updates if checksums enabled
+            if [ -n "$remote_checksum" ] && [ "$remote_checksum" != "null" ] && [ "$verify_checksums" = "true" ]; then
+              local local_checksum=$(sha256sum "$script_file" 2>/dev/null | cut -d' ' -f1 || echo "")
+              if [ -n "$local_checksum" ] && [ "$local_checksum" != "$remote_checksum" ]; then
+                status="📥"
+              fi
+            fi
+          fi
+        fi
+        
+        # Print row with color coding and better alignment
+        if [ "$status" = "📥" ]; then
+          printf "  \033[1;33m%-6s\033[0m" "$status"
+        else
+          printf "  \033[1;32m%-6s\033[0m" "$status"
+        fi
+        printf "%-40s \033[2m%-12s\033[0m \033[1m%-10s\033[0m %-13s \033[2m%-12s\033[0m\n" "$script_name" "$category" "${size_kb}KB" "$modified" "$source"
+        
+        total_cached=$((total_cached + 1))
+      done < <(find "$category_dir" -name "*.sh" 2>/dev/null | sort)
     fi
   done
   
+  echo
   if [ "$total_cached" -eq 0 ]; then
     echo "  No scripts currently cached."
     echo "  Use 'Download All Scripts' option to populate the cache."
   else
-    echo "  Total cached scripts: $total_cached"
+    echo "  \033[1mTotal cached scripts: $total_cached\033[0m"
+    echo
+    echo "  Legend: ✓ = Cached & Up-to-date  |  📥 = Update Available  |  ☁️ = Not Cached"
   fi
   echo
 }
@@ -831,6 +893,174 @@ clear_script_cache() {
   
   # Refresh script arrays after clearing cache
   load_scripts_from_manifest
+}
+
+download_single_script() {
+  clear
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                      Download Individual Script                                ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  if [ ! -f "$MANIFEST_CACHE" ]; then
+    green_echo "[!] No manifest found"
+    return 1
+  fi
+  
+  # Get total scripts
+  local total_scripts=$(jq -r '.scripts | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+  
+  if [ "$total_scripts" -eq 0 ]; then
+    green_echo "[!] No scripts available in repository"
+    return 1
+  fi
+  
+  # Group scripts by category for display
+  declare -A category_scripts
+  local categories=("install" "tools" "exercises" "uninstall")
+  
+  # Load all scripts grouped by category
+  for category in "${categories[@]}"; do
+    local scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .id + \"|\" + .file_name + \"|\" + (.description // \"No description\")" "$MANIFEST_CACHE" 2>/dev/null || echo "")
+    if [ -n "$scripts" ]; then
+      category_scripts["$category"]="$scripts"
+    fi
+  done
+  
+  # Display by category
+  echo "  Filter by category:"
+  echo "   1) 📦 Install Scripts"
+  echo "   2) 🔧 Tools & Utilities"
+  echo "   3) 📚 Bash Exercises"
+  echo "   4) ⚠️  Uninstall Scripts"
+  echo "   a) Show All Scripts"
+  echo
+  read -rp "Select category (1-4, a, or 0 to cancel): " cat_choice
+  
+  local selected_category=""
+  case "$cat_choice" in
+    1) selected_category="install" ;;
+    2) selected_category="tools" ;;
+    3) selected_category="exercises" ;;
+    4) selected_category="uninstall" ;;
+    a|A) selected_category="all" ;;
+    0) return 0 ;;
+    *)
+      green_echo "[!] Invalid choice"
+      sleep 1
+      return 1
+      ;;
+  esac
+  
+  clear
+  echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+  echo "║                      Available Scripts to Download                             ║"
+  echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+  echo
+  
+  # Build list of scripts to display
+  declare -a script_ids
+  declare -a script_names
+  declare -a script_descs
+  declare -a script_cats
+  local count=0
+  
+  if [ "$selected_category" = "all" ]; then
+    # Show all scripts
+    for category in "${categories[@]}"; do
+      if [ -n "${category_scripts[$category]}" ]; then
+        while IFS='|' read -r id name desc; do
+          count=$((count + 1))
+          script_ids+=("$id")
+          script_names+=("$name")
+          script_descs+=("$desc")
+          script_cats+=("$category")
+        done <<< "${category_scripts[$category]}"
+      fi
+    done
+  else
+    # Show scripts from selected category
+    if [ -n "${category_scripts[$selected_category]}" ]; then
+      while IFS='|' read -r id name desc; do
+        count=$((count + 1))
+        script_ids+=("$id")
+        script_names+=("$name")
+        script_descs+=("$desc")
+        script_cats+=("$selected_category")
+      done <<< "${category_scripts[$selected_category]}"
+    fi
+  fi
+  
+  if [ "$count" -eq 0 ]; then
+    green_echo "[!] No scripts found"
+    return 1
+  fi
+  
+  # Display scripts with status indicators
+  for i in $(seq 0 $((count - 1))); do
+    local script_id="${script_ids[$i]}"
+    local script_name="${script_names[$i]}"
+    local desc="${script_descs[$i]}"
+    local cat="${script_cats[$i]}"
+    local num=$((i + 1))
+    
+    # Check if already cached
+    local status="☁️"
+    local status_text="Not Cached"
+    if type get_cached_script_path &> /dev/null; then
+      local cached_path=$(get_cached_script_path "$script_id" 2>/dev/null || echo "")
+      if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+        status="✓"
+        status_text="Cached"
+      fi
+    fi
+    
+    printf "  %2d) \033[1m%-35s\033[0m [%s \033[2m%s\033[0m]\n" "$num" "$script_name" "$status" "$status_text"
+    printf "      \033[2m%s\033[0m\n" "$desc"
+  done
+  
+  echo
+  echo "  ────────────────────────────────────────────────────────────────────────────"
+  echo
+  read -rp "Select script to download (1-$count, or 0 to cancel): " script_choice
+  
+  if [ "$script_choice" = "0" ] || [ -z "$script_choice" ]; then
+    return 0
+  fi
+  
+  if [[ ! "$script_choice" =~ ^[0-9]+$ ]] || [ "$script_choice" -lt 1 ] || [ "$script_choice" -gt "$count" ]; then
+    green_echo "[!] Invalid choice"
+    sleep 1
+    return 1
+  fi
+  
+  local idx=$((script_choice - 1))
+  local selected_id="${script_ids[$idx]}"
+  local selected_name="${script_names[$idx]}"
+  
+  # Check if already cached
+  if type get_cached_script_path &> /dev/null; then
+    local cached_path=$(get_cached_script_path "$selected_id" 2>/dev/null || echo "")
+    if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+      echo
+      green_echo "[!] $selected_name is already cached"
+      read -rp "Download again (overwrite)? [y/N]: " overwrite
+      if [[ "${overwrite,,}" != "y" ]]; then
+        green_echo "[*] Download cancelled"
+        return 0
+      fi
+    fi
+  fi
+  
+  echo
+  green_echo "[*] Downloading $selected_name..."
+  
+  if download_script "$selected_id"; then
+    green_echo "[+] Successfully downloaded $selected_name to cache!"
+  else
+    green_echo "[!] Failed to download $selected_name"
+    return 1
+  fi
 }
 
 remove_cached_script() {
@@ -1366,19 +1596,62 @@ show_menu() {
       fi
     fi
     
-    # Compact format: number, name, status on one line
-    if [ ! -f "$script" ]; then
-      printf "  \033[1;31m%2d)\033[0m %-35s \033[1;31m[MISSING]\033[0m" "$show_num" "$script_name"
-      printf "%b\n" "$cache_status"
-    elif [ ! -x "$script" ]; then
-      printf "  \033[1;33m%2d)\033[0m %-35s \033[1;33m[NOT EXEC]\033[0m" "$show_num" "$script_name"
-      printf "%b\n" "$cache_status"
-    else
-      printf "  \033[1;32m%2d)\033[0m %-35s" "$show_num" "$script_name"
-      printf "%b\n" "$cache_status"
+    # Get file metadata
+    local file_info=""
+    local actual_file="$script"
+    
+    # Check if cached version exists and use it for metadata
+    if [ -n "$script_id" ] && [ "$script_id" != "__separator__" ] && type get_cached_script_path &> /dev/null; then
+      local cached_path=""
+      cached_path=$(get_cached_script_path "$script_id" 2>/dev/null || echo "")
+      if [ -n "$cached_path" ] && [ -f "$cached_path" ]; then
+        actual_file="$cached_path"
+      fi
     fi
-    # Description indented on next line
-    printf "      \033[2m%s\033[0m\n" "$desc"
+    
+    # Extract metadata if file exists
+    if [ -f "$actual_file" ]; then
+      local size_bytes=$(stat -c%s "$actual_file" 2>/dev/null || echo "0")
+      local size_kb=$((size_bytes / 1024))
+      local modified=$(stat -c%y "$actual_file" 2>/dev/null | cut -d' ' -f1)
+      
+      # Get version from manifest if available
+      local version=""
+      if [ -f "$MANIFEST_CACHE" ] && [ -n "$script_id" ] && [ "$script_id" != "__separator__" ]; then
+        version=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .version" "$MANIFEST_CACHE" 2>/dev/null || echo "")
+        if [ -n "$version" ] && [ "$version" != "null" ]; then
+          file_info=" \033[2m│ v${version}\033[0m"
+        fi
+      fi
+      
+      if [ "$size_kb" -gt 0 ]; then
+        file_info="${file_info} \033[2m│ ${size_kb}KB\033[0m"
+      fi
+      if [ -n "$modified" ]; then
+        file_info="${file_info} \033[2m│ ${modified}\033[0m"
+      fi
+    fi
+    
+    # Format with better alignment and readability
+    if [ ! -f "$script" ]; then
+      printf "  \033[1;31m%2d)\033[0m \033[0;31m%-30s\033[0m" "$show_num" "$script_name"
+      printf " \033[1;31m[MISSING]\033[0m"
+      printf "%b\n" "$file_info"
+    elif [ ! -x "$script" ]; then
+      printf "  \033[1;33m%2d)\033[0m \033[0;33m%-30s\033[0m" "$show_num" "$script_name"
+      printf " \033[1;33m[NOT EXEC]\033[0m"
+      printf "%b\n" "$file_info"
+    else
+      printf "  \033[1;32m%2d)\033[0m \033[1m%-30s\033[0m" "$show_num" "$script_name"
+      printf "%b" "$cache_status"
+      # Add metadata on same line with better spacing
+      if [ -n "$file_info" ]; then
+        printf "  %b" "$file_info"
+      fi
+      printf "\n"
+    fi
+    # Description indented on next line with subtle styling
+    printf "      \033[2;3m%s\033[0m\n" "$desc"
   done
   
   if [ -n "$SEARCH_FILTER" ] && [ "$display_count" -eq 0 ]; then
@@ -1785,13 +2058,16 @@ show_repository_menu() {
     echo "  • Cached locally:    $cached_count"
     echo "  • Updates available: $updates"
     echo
+    echo "  ────────────────────────────────────────────────────────────────────────────"
+    echo
     echo "  Options:"
     printf "   \033[1;32m1)\033[0m Update All Scripts         ($updates updates)\n"
     echo "   2) Download All Scripts        (bulk download)"
-    echo "   3) View Cached Scripts         (list local cache)"
-    echo "   4) Clear Script Cache          (remove all cached)"
-    echo "   5) Check for Updates           (manual refresh)"
-    echo "   6) Repository Settings"
+    echo "   3) Download Single Script      (browse and select)"
+    echo "   4) View Cached Scripts         (list local cache)"
+    echo "   5) Clear Script Cache          (remove all cached)"
+    echo "   6) Check for Updates           (manual refresh)"
+    echo "   7) Repository Settings"
     echo
     echo "  ──────────────────────────────────────────────────────────────────────────────"
     echo "   b) Back to Main Menu    0) Exit"
@@ -1813,21 +2089,25 @@ show_repository_menu() {
         read -rp "Press Enter to continue..."
         ;;
       3)
+        download_single_script
+        read -rp "Press Enter to continue..."
+        ;;
+      4)
         clear
         list_cached_scripts
         read -rp "Press Enter to continue..."
         ;;
-      4)
+      5)
         clear_script_cache
         read -rp "Press Enter to continue..."
         ;;
-      5)
+      6)
         green_echo "[*] Checking for updates..."
         check_for_updates
         green_echo "[+] Update check complete. $REPO_UPDATES_AVAILABLE updates available."
         read -rp "Press Enter to continue..."
         ;;
-      6)
+      7)
         show_repo_settings
         ;;
       b|B)
@@ -1870,6 +2150,13 @@ show_help() {
   echo "  • Scripts are stored in: ~/.lv_linux_learn/"
   echo "  • Custom scripts marked with 📝 emoji"
   echo "  • Requires 'jq' package: sudo apt install jq"
+  echo
+  green_echo "SCRIPT REPOSITORY"
+  echo "  • Access via 'Script Repository' menu option"
+  echo "  • Download scripts to local cache for faster execution"
+  echo "  • Download all scripts or select individual scripts"
+  echo "  • Automatic update checking and version management"
+  echo "  • Scripts cached in: ~/.lv_linux_learn/script_cache/"
   echo
   green_echo "TABS/CATEGORIES"
   echo "  • Install: System tools and applications"
@@ -2715,11 +3002,11 @@ while true; do
         ;;
       *)
         # Check if choice matches a dynamic category
-        local found_dynamic=false
+        found_dynamic=false
         if [ -n "$DYNAMIC_CATEGORY_MAP" ]; then
           for mapping in $DYNAMIC_CATEGORY_MAP; do
-            local map_num="${mapping%%:*}"
-            local map_category="${mapping#*:}"
+            map_num="${mapping%%:*}"
+            map_category="${mapping#*:}"
             if [ "$choice" = "$map_num" ]; then
               CURRENT_CATEGORY="$map_category"
               found_dynamic=true

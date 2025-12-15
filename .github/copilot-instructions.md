@@ -132,7 +132,7 @@ The GUI application (menu.py ~5500 lines) is organized with clear section marker
 - **Remote includes**: Automatic download of includes directories from repository_url in manifest
 - **Cache-first execution**: Scripts download to `~/.lv_linux_learn/script_cache/` before execution with user permission
 - **Dynamic loading**: Scripts loaded from manifest (local or remote) with category organization
-- **Navigation**: 6 main categories (Install, Tools, Exercises, Uninstall, Custom Scripts, Repository)
+- **Navigation**: 4 standard categories (Install, Tools, Exercises, Uninstall) plus dynamic categories and Repository
 - **Feature parity**: Identical functionality in CLI (`menu.sh`) and GUI (`menu.py`)
 - **Repository menu**: Full repository management (update, download, clear cache, settings)
 - **Custom manifest support**: Environment variable `CUSTOM_MANIFEST_URL` or config setting

@@ -1,13 +1,13 @@
 # Custom Script System with Multi-Repository Support
 
 ## Overview
-The Custom Script System allows you to add your own scripts and configure custom repositories in both GUI and CLI interfaces. This includes local custom scripts and complete custom script repositories with their own manifests and includes directories.
+The Custom Script System allows you to add your own scripts and configure custom repositories in both GUI and CLI interfaces. Custom scripts are integrated inline within existing categories (Install, Tools, Exercises, Uninstall) and marked with a 📝 emoji. This system also supports complete custom script repositories with their own manifests and includes directories.
 
 ## Features
 
 ### 1. Local Custom Scripts
-- **GUI**: Click the **+** button on any tab header (Install, Tools, Exercises, or Uninstall)
-- **CLI**: Use "Custom Scripts" menu option (5) to add, edit, and manage scripts
+- **GUI**: Click the **+** button on any tab header (Install, Tools, Exercises, or Uninstall) to add scripts to that category
+- **CLI**: Custom scripts are managed through the main menu system and appear inline with manifest scripts
 - Fill in script details:
   - **Script Name**: Display name that will appear in the list
   - **Script Path**: Full path to your executable script file, or browse with the **Browse...** button
@@ -28,10 +28,10 @@ The Custom Script System allows you to add your own scripts and configure custom
 - **Cache-First Execution**: Repository scripts download to cache before execution
 
 ### 4. Visual Indicators
-- Custom scripts are marked with a 📝 emoji prefix
+- Custom scripts are marked with a 📝 emoji prefix and appear inline within their assigned categories
 - Repository scripts show cache status indicators
 - Built-in scripts have no prefix
-- Right-click menu only appears for custom scripts
+- Right-click menu only appears for custom scripts (marked with 📝)
 
 ## Storage
 

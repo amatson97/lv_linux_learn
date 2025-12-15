@@ -1,5 +1,7 @@
 # Bug Fixes - Version 2.1.1
 
+> **Status**: These bugs were fixed and released in v2.1.1. This document serves as historical reference for the fixes made during the v2.1.1 release cycle.
+
 ## Critical Issues Fixed (Based on Testing Results)
 
 ### 1. ✅ Custom Repository Scripts Missing Includes (CRITICAL)

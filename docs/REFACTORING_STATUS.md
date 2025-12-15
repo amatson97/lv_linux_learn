@@ -1,5 +1,7 @@
 # Refactoring Status - Version 2.1.1
 
+> **Status**: This document tracks the ongoing refactoring effort to create an AI-friendly, modular architecture. Phase 1 is complete (Milestones 1-3). Phases 2-3 are pending. Last updated: December 15, 2025.
+
 ## Overview
 This document tracks the ongoing refactoring effort to create an AI-friendly, modular architecture for the lv_linux_learn project.
 

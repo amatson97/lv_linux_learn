@@ -52,10 +52,10 @@ Automatically detects your environment and launches:
 ./menu.sh
 ```
 **Features:**
-- **Hierarchical category navigation** - Browse by Install, Tools, Exercises, Uninstall, or Custom Scripts
+- **Hierarchical category navigation** - Browse by Install, Tools, Exercises, Uninstall, or dynamic categories
 - Text-based interactive menu with compact spacing
 - **Multi-Repository System** - Full repository management with custom manifest support
-- **Custom script addition** - Add your own scripts via 'a' command (with cancel support)
+- **Custom script addition** - Add your own scripts via GUI '+' button or CLI, scripts appear inline in categories
 - **Repository menu** - Access repository management via option 6
 - Works over SSH and headless systems
 - No GUI dependencies required
@@ -65,7 +65,7 @@ Automatically detects your environment and launches:
 **Navigation:**
 - **Main Menu:** Numbers 1-6 select categories (includes Repository)
 - **Category View:** Numbers select scripts, `b` returns to main menu
-- **Commands:** `a` add custom script, `h` help, `s` search, `0` exit
+- **Commands:** `h` help, `s` search, `0` exit
 
 ---
 
@@ -304,7 +304,7 @@ See [uninstallers/README.md](../uninstallers/README.md) for detailed documentati
 
 **CLI (menu.sh):**
 - **Add**: Press 'a' from main menu (supports cancel at any prompt)
-- **Run**: Navigate to category 5 (Custom Scripts), select script number
+- **Run**: Custom scripts appear inline in their respective categories (marked with 📝), select script number
 - **Search**: Press 's' to search across all scripts including custom ones
 - **Edit/Delete**: Currently GUI-only (use menu.py for management)
 

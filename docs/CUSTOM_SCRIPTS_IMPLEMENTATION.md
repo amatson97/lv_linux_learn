@@ -1,5 +1,7 @@
 # Custom Script Addition Feature - Implementation Summary
 
+> **Note**: This is historical technical documentation describing how the CustomScriptManager feature was implemented. This feature is still active in v2.1.1+. Custom scripts are added inline to existing categories (Install, Tools, Exercises, Uninstall) using the '+' button, not as a separate tab. For user documentation, see [CUSTOM_SCRIPTS.md](CUSTOM_SCRIPTS.md).
+
 ## Overview
 Successfully implemented a complete Custom Script Addition feature for menu.py, allowing users to add, edit, and delete their own scripts without editing Python code.
 

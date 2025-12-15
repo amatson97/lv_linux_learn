@@ -1,5 +1,7 @@
 # Testing Plan & Results - Version 2.1.1
 
+> **Status**: This document contains test results from v2.1.1 development/release cycle. Tests were performed with custom repository `https://ichigo1990.uk/script_repo/manifest.json`. This serves as a testing reference and template for future releases.
+
 ## Test Execution Summary
 Comprehensive testing performed with custom repository: `https://ichigo1990.uk/script_repo/manifest.json`
 

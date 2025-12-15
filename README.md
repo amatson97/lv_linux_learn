@@ -44,7 +44,7 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 - **🖥️ Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
 - **☁️ Multi-Repository System** — Support for custom script repositories and libraries
 - **📦 Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
-- **🔧 Custom Scripts** — Add your own scripts and configure custom repositories
+- **🔧 Custom Scripts** — Add your own scripts inline to existing categories with GUI '+' button
 - **🎓 Learning Exercises** — Interactive bash tutorials for beginners
 - **🛠️ Utility Tools** — File conversion, extraction, and system utilities
 - **🤖 AI Integration** — Perplexity CLI with streaming and context support
@@ -81,8 +81,7 @@ docs/
 ├── ADVANCED.md                        # Traefik, Nextcloud, GitHub
 ├── TOKEN_GUIDE.md                     # API tokens & credentials
 ├── CUSTOM_SCRIPTS.md                  # Custom script addition guide
-├── CUSTOM_SCRIPTS_QUICKSTART.md       # Quick start for custom scripts
-├── CUSTOM_SCRIPTS_IMPLEMENTATION.md   # Implementation details
+├── CUSTOM_SCRIPTS_IMPLEMENTATION.md   # Implementation details (technical)
 ├── SCRIPT_REPOSITORY.md               # Multi-repository system guide
 ├── REPOSITORY_ARCHITECTURE.md         # Repository system architecture
 ├── REPOSITORY_SECURITY.md             # Security considerations
