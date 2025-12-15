@@ -196,7 +196,7 @@ Contributions welcome! Please:
 
 ---
 
-## 🌐 Multi-Repository System (v2.1.0+)
+## 🌐 Multi-Repository System (v2.1.1)
 
 **Enhanced repository system supporting custom script libraries with automated distribution and local caching.**
 

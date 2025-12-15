@@ -386,6 +386,22 @@ class ScriptRepository:
             logging.error(f"Script not found in manifest: {script_id}")
             return False, None
         
+        # Ensure includes are available for this repository (critical for custom repos)
+        if manifest_path:
+            # Custom repository - download its includes
+            try:
+                with open(manifest_path, 'r') as f:
+                    custom_manifest = json.load(f)
+                    custom_repo_url = custom_manifest.get('repository_url')
+                    if custom_repo_url:
+                        logging.info(f"Ensuring includes available for custom repository: {custom_repo_url}")
+                        self._download_repository_includes(custom_repo_url)
+            except Exception as e:
+                logging.warning(f"Failed to ensure includes for custom repository: {e}")
+        else:
+            # Default repository - use standard includes method
+            self.ensure_includes_available()
+        
         download_url = script.get('download_url')
         filename = script.get('file_name')
         category = script.get('category')

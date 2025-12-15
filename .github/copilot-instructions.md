@@ -4,12 +4,13 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 1) Big picture
 - This repository is a curated collection of Ubuntu-focused setup and utility scripts (mostly Bash) with multi-repository support. Primary user flows are interactive installers and desktop helpers invoked from `./launcher.sh`, `./menu.sh` (CLI), or `./menu.py` (GUI).
-- **Version 2.1.0**: Multi-repository system supporting custom script libraries, remote includes, cache-first execution, and dual CLI/GUI interfaces with feature parity.
+- **Version 2.1.1**: Multi-repository system supporting custom script libraries, remote includes, cache-first execution, and dual CLI/GUI interfaces with feature parity.
 - Key responsibilities: install packages (`apt`), configure VPN/networking tools, create desktop launchers, provide utility tools, and manage custom script repositories with automated distribution and caching.
 
 2) Entry points & important paths
 - **Primary interfaces**: `./launcher.sh` (auto-detects GUI vs CLI), `./menu.sh` (bash CLI), or `./menu.py` (Python GUI)
 - **Repository backends**: `includes/repository.sh` (bash), `lib/repository.py` (Python) — core multi-repository functionality
+- **Library modules**: `lib/custom_scripts.py` (CustomScriptManager), `lib/custom_manifest.py` (manifest creation)
 - **Shared functions**: `includes/main.sh` — global helpers sourced by scripts, works with both local and cached execution
 - **Main directories**: `scripts/`, `tools/`, `zerotier_tools/`, `docker-compose/`, `ai_fun/`, `bash_exercises/`, `uninstallers/`
 - **Cache system**: `~/.lv_linux_learn/script_cache/` — downloaded scripts with includes support
@@ -97,17 +98,36 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 10) Files to consult when uncertain
 - `README.md` — project overview and quick start (streamlined, <250 lines).
-- `VERSION` — current version (2.1.0), update when releasing new versions
+- `VERSION` — current version (2.1.1), update when releasing new versions
 - `manifest.json` — auto-generated script registry, do not edit manually (use dev_tools/update_manifest.sh)
 - `docs/` — detailed topic-specific guides (INSTALLATION.md, DOCKER.md, TROUBLESHOOTING.md, NETWORKING.md, TOOLS.md, AI_TOOLS.md, ADVANCED.md).
 - `includes/main.sh` — shared helpers and conventions.
 - `includes/repository.sh` — bash repository backend (816 lines, core multi-repo logic)
 - `lib/repository.py` — Python repository backend (738 lines, GUI equivalent)
-- `menu.sh`, `menu.py` — entry points and menu system architecture.
+- `lib/custom_scripts.py` — CustomScriptManager for user-added scripts
+- `menu.sh`, `menu.py` — entry points and menu system architecture. menu.py uses modular structure with clear section markers.
 - `scripts/`, `tools/`, `ai_fun/`, `uninstallers/` — examples of patterns and how installers/uninstallers are implemented.
 - `dev_tools/` — manifest generation and maintenance scripts.
 
-11) Multi-repository system architecture (v2.1.0)
+10.1) menu.py structure (for AI navigation)
+The GUI application (menu.py ~5500 lines) is organized with clear section markers:
+- **CONFIGURATION & CONSTANTS** — Package requirements, manifest URLs
+- **MANIFEST LOADING FUNCTIONS** — fetch_manifest(), load_scripts_from_manifest()
+- **GTK THEME / CSS STYLING** — Application theming
+- **MAIN APPLICATION CLASS** — ScriptMenuGTK(Gtk.ApplicationWindow)
+  - **CENTRALIZED SCRIPT HANDLING METHODS** — Cache checking, metadata building, execution logic
+  - **TAB CREATION & UI BUILDING** — _create_script_tab(), tab switching
+  - **PACKAGE MANAGEMENT** — check_required_packages(), install prompts
+  - **REPOSITORY TAB & MANAGEMENT** — Repository browser, manifest management
+  - **REPOSITORY SELECTION & BULK OPERATIONS** — Download/remove selected scripts
+  - **INCLUDES & CACHE MANAGEMENT** — Remote includes, symlink management
+  - **PACKAGE INSTALLATION HELPERS** — Terminal-based package installation
+  - **EVENT HANDLERS - USER INTERACTIONS** — Button clicks, selection changes
+  - **SCRIPT CACHE OPERATIONS** — Download, update, remove scripts
+  - **MENU BAR & DIALOGS** — Application menus, about dialog
+- **APPLICATION INITIALIZATION** — on_activate(), main()
+
+11) Multi-repository system architecture (v2.1.1)
 - **Multi-repository support**: Default GitHub manifest + custom repository configuration via `custom_manifest_url`
 - **Remote includes**: Automatic download of includes directories from repository_url in manifest
 - **Cache-first execution**: Scripts download to `~/.lv_linux_learn/script_cache/` before execution with user permission
@@ -118,7 +138,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 - **Custom manifest support**: Environment variable `CUSTOM_MANIFEST_URL` or config setting
 - **Includes management**: Smart includes resolution for both local and remote repositories
 
-12) Multi-repository architecture (v2.1.0)
+12) Multi-repository architecture (v2.1.1)
 - **Default manifest**: https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json
 - **Custom repositories**: User-configurable via `custom_manifest_url` in config or `CUSTOM_MANIFEST_URL` env var
 - **Local cache**: `~/.lv_linux_learn/script_cache/` with downloaded scripts and includes
@@ -133,7 +153,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 - **Custom scripts**: Both local (`custom_scripts.json`) and repository-based scripts supported
 - **Visual indicators**: 📝 for custom scripts, cache status for repository scripts
 
-13) Documentation strategy (v2.1.0)
+13) Documentation strategy (v2.1.1)
 - **Main README.md**: Keep <250 lines, highlight multi-repository system, link to detailed guides
 - **Core documentation**: 
   - `docs/SCRIPT_REPOSITORY.md` - Multi-repository system comprehensive guide
@@ -142,7 +162,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
   - `docs/REPOSITORY_SECURITY.md` - Security considerations for multi-repository usage
   - `docs/INSTALLATION.md` - Updated with repository configuration guidance
 - **Feature documentation**: Multi-repository features documented across multiple files
-- **Version consistency**: All documentation reflects v2.1.0 multi-repository capabilities
+- **Version consistency**: All documentation reflects v2.1.1 multi-repository capabilities
 - **AI guidance**: This copilot-instructions.md provides comprehensive development context
 - **Update pattern**: When modifying repository features, update README.md + relevant docs/ files
 
@@ -152,7 +172,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
   ```json
   {
     "version": "1.0.0",
-    "repository_version": "2.1.0",
+    "repository_version": "2.1.1",
     "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
     "scripts": [{
       "id": "unique-id",

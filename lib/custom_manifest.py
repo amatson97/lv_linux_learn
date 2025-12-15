@@ -387,6 +387,15 @@ class CustomManifestCreator:
             if not manifest_existed:
                 return False, f"Manifest '{name}' does not exist"
             
+            # CRITICAL: Delete cached manifest file to prevent persistence
+            config_dir = Path.home() / '.lv_linux_learn'
+            # Create cache filename using same pattern as manifest_loader.py
+            cache_filename = f"manifest_{name.lower().replace(' ', '_')}.json"
+            cached_manifest = config_dir / cache_filename
+            if cached_manifest.exists():
+                cached_manifest.unlink()
+                print(f"[DEBUG] Deleted cached manifest: {cached_manifest}")
+            
             # Check if this was the active manifest and clear it
             config = self._load_config()
             current_url = config.get('custom_manifest_url', '')
@@ -427,6 +436,7 @@ class CustomManifestCreator:
             
             # Update config to use custom manifest
             config['custom_manifest_url'] = file_url
+            config['custom_manifest_name'] = name  # Store the manifest name for display
             
             # Save updated config
             self._save_config(config)

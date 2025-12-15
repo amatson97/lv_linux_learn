@@ -2,7 +2,7 @@
 
 ## Overview
 
-Version 2.1.0 introduces a **centralized script handling system** that provides unified logic for managing scripts across all manifest types and dynamic tabs.
+Version 2.1.1 includes a **centralized script handling system** that provides unified logic for managing scripts across all manifest types and dynamic tabs.
 
 ## Problem Solved
 
