@@ -72,20 +72,29 @@ Install common tools with one command:
 ### 📖 Documentation Structure
 ```
 docs/
-├── INSTALLATION.md          # Menu interfaces & installation scripts
-├── DOCKER.md                # Docker, Portainer, Plex setup
-├── TROUBLESHOOTING.md       # System diagnostics & problem solving
-├── NETWORKING.md            # ZeroTier VPN & network tools
-├── TOOLS.md                 # Utilities & bash exercises
-├── AI_TOOLS.md              # Perplexity CLI & desktop apps
-├── ADVANCED.md              # Traefik, Nextcloud, GitHub
-├── TOKEN_GUIDE.md           # API tokens & credentials
-├── CUSTOM_SCRIPTS.md        # Custom script addition guide
-├── CUSTOM_SCRIPTS_QUICKSTART.md
-└── CUSTOM_SCRIPTS_IMPLEMENTATION.md
+├── INSTALLATION.md                    # Menu interfaces & installation scripts
+├── DOCKER.md                          # Docker, Portainer, Plex setup
+├── TROUBLESHOOTING.md                 # System diagnostics & problem solving
+├── NETWORKING.md                      # ZeroTier VPN & network tools
+├── TOOLS.md                           # Utilities & bash exercises
+├── AI_TOOLS.md                        # Perplexity CLI & desktop apps
+├── ADVANCED.md                        # Traefik, Nextcloud, GitHub
+├── TOKEN_GUIDE.md                     # API tokens & credentials
+├── CUSTOM_SCRIPTS.md                  # Custom script addition guide
+├── CUSTOM_SCRIPTS_QUICKSTART.md       # Quick start for custom scripts
+├── CUSTOM_SCRIPTS_IMPLEMENTATION.md   # Implementation details
+├── SCRIPT_REPOSITORY.md               # Multi-repository system guide
+├── REPOSITORY_ARCHITECTURE.md         # Repository system architecture
+├── REPOSITORY_SECURITY.md             # Security considerations
+├── CENTRALIZED_SCRIPT_ARCHITECTURE.md # Script handling architecture
+├── REFACTORING_STATUS.md              # Ongoing refactoring progress
+├── BUGFIXES_v2.1.1.md                 # Bug fixes in v2.1.1
+└── TESTING.md                         # Testing plan & results
 
 dev_tools/
-└── README.md                # Development & maintenance tools
+├── README.md                # Development & maintenance tools
+├── generate_manifest.sh     # Generate manifest from scratch
+└── update_manifest.sh       # Update existing manifest
 ```
 
 ---
