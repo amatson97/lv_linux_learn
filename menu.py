@@ -91,6 +91,20 @@ except ImportError:
     RepoOps = None
 
 try:
+    from lib.ai_analyzer import OllamaAnalyzer, check_ollama_available
+except ImportError:
+    print("Warning: AI analyzer module not available")
+    OllamaAnalyzer = None
+    check_ollama_available = None
+
+try:
+    from lib.manifest_manager import ManifestManager, get_local_repository_manifests
+except ImportError:
+    print("Warning: Manifest manager module not available")
+    ManifestManager = None
+    get_local_repository_manifests = None
+
+try:
     # optional nicer icons / pixbuf usage if available
     from gi.repository import GdkPixbuf
 except Exception:
@@ -572,9 +586,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         uninstall_tab_label = self._create_tab_label("⚠️ Uninstall", "uninstall")
         self.notebook.append_page(uninstall_box, uninstall_tab_label)
         
-        # Create dynamic tabs for non-standard categories
+        # Create dynamic tabs for non-standard categories (excluding 'custom')
         self.dynamic_category_tabs = {}  # Store references to dynamic tabs
         for category, data in NON_STANDARD_CATEGORIES.items():
+            # Skip 'custom' category - scripts should be properly categorized into install/tools/exercises/uninstall
+            if category.lower() == 'custom':
+                continue
+            
             category_box = self._create_script_tab(data['scripts'], data['descriptions'], category)
             # Get appropriate emoji for category
             category_emoji = {
@@ -593,16 +611,22 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 'label': category_label
             }
         
-        # Create Repository tab (if enabled)
+        # Create Repository tab (if enabled) - Online repos only
         if self.repo_enabled:
             repository_box = self._create_repository_tab()
-            repository_label = Gtk.Label(label="📥 Repository")
+            repository_label = Gtk.Label(label="🌐 Repository (Online)")
             self.notebook.append_page(repository_box, repository_label)
         
-        # Create Custom Manifests tab
+        # Create Local Repositories tab - Direct execution, no cache
+        if self.repo_enabled:
+            local_repo_box = self._create_local_repository_tab()
+            local_repo_label = Gtk.Label(label="� Repository (Local)")
+            self.notebook.append_page(local_repo_box, local_repo_label)
+        
+        # Create Sources tab (formerly Custom Manifests)
         if CustomManifestCreator:
             custom_manifest_box = self._create_custom_manifest_tab()
-            custom_manifest_label = Gtk.Label(label="📁 Custom Manifests")
+            custom_manifest_label = Gtk.Label(label="🔗 Sources")
             self.notebook.append_page(custom_manifest_box, custom_manifest_label)
 
         # Add top section to paned widget
@@ -1561,6 +1585,12 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             name = model[iter][2].lower()  # Script name column
             category = model[iter][5].lower()  # Category column
             return self.filter_text in name or self.filter_text in category
+        elif tab_name == "local_repositories":
+            # For local repository tab: search in script name (column 2), category (column 5), and repository (column 6)
+            name = model[iter][2].lower()  # Script name column
+            category = model[iter][5].lower()  # Category column
+            repository = model[iter][6].lower()  # Repository column
+            return self.filter_text in name or self.filter_text in category or self.filter_text in repository
         else:
             # For main tabs: search in display name (column 0) and path (column 1)
             name = model[iter][0].lower()
@@ -1573,12 +1603,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         self.tools_filter.refilter()
         self.exercises_filter.refilter()
         self.uninstall_filter.refilter()
-        # Also filter repository tab if it exists
+        # Filter repository tabs if they exist
         if hasattr(self, 'repo_filter'):
             self.repo_filter.refilter()
-        # Also filter repository tab if it exists
-        if hasattr(self, 'repo_filter'):
-            self.repo_filter.refilter()
+        if hasattr(self, 'local_repo_filter'):
+            self.local_repo_filter.refilter()
 
     def command_exists(self, cmd):
         from shutil import which
@@ -1904,12 +1933,12 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     self.terminal.feed(f"  • Custom Manifest URL: {custom_url if custom_url else '(not set)'}\r\n\r\n".encode())
                     
                     self.terminal.feed(b"\x1b[32mTo add scripts, please:\x1b[0m\r\n")
-                    self.terminal.feed(b"  1. Go to 'Custom Manifests' tab to add an online manifest\r\n")
+                    self.terminal.feed(b"  1. Go to 'Sources' tab to add an online manifest\r\n")
                     self.terminal.feed(b"  2. Click 'Create New Manifest' and enter a manifest URL\r\n")
                     self.terminal.feed(b"  3. Or enable Public Repository in Settings menu\r\n\r\n")
                 return
             
-            # Process all scripts from all sources
+            # Process all scripts from all sources (exclude local repositories - they have their own tab)
             for script in all_scripts:
                 script_id = script.get('id')
                 name = script.get('name')
@@ -1918,6 +1947,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 file_name = script.get('file_name', '')
                 source = script.get('_source', 'unknown')
                 source_name = script.get('_source_name', 'Unknown Source')
+                source_type = script.get('source_type', '')
+                
+                # Note: Local repositories appear in BOTH Local Repositories tab AND interaction tabs
+                # The Local Repositories tab is for management, interaction tabs show ALL scripts
+                # Only skip if the script has an invalid path or is marked for exclusion
+                # if source_type == 'custom_local' or (source == 'custom' and not script.get('download_url', '').startswith(('http://', 'https://'))):
+                #     continue
                 
                 # If file_name is missing, try to extract from download_url
                 if not file_name:
@@ -2010,6 +2046,387 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 
         except Exception as e:
             print(f"Error populating repository tree: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _create_local_repository_tab(self):
+        """Create the local repository management tab (direct execution, no cache)"""
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        vbox.set_margin_start(10)
+        vbox.set_margin_end(10)
+        vbox.set_margin_top(10)
+        vbox.set_margin_bottom(10)
+        
+        # Info banner
+        info_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        info_box.set_margin_bottom(10)
+        
+        info_icon = Gtk.Label(label="ℹ️")
+        info_box.pack_start(info_icon, False, False, 0)
+        
+        info_label = Gtk.Label()
+        info_label.set_markup("<b>Repository (Local):</b> Scripts execute directly from their source location (no caching)")
+        info_label.set_xalign(0)
+        info_box.pack_start(info_label, True, True, 0)
+        
+        vbox.pack_start(info_box, False, False, 0)
+        
+        # AI Analysis banner
+        try:
+            from lib.ai_analyzer import check_ollama_available
+            self.ollama_available = check_ollama_available()
+        except ImportError:
+            self.ollama_available = False
+        
+        ai_banner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        ai_banner.set_margin_bottom(5)
+        
+        if self.ollama_available:
+            ai_icon = Gtk.Label(label="🤖")
+            ai_banner.pack_start(ai_icon, False, False, 0)
+            
+            ai_label = Gtk.Label()
+            ai_label.set_markup("<span color='#2ecc71'><b>AI Analysis Available:</b> Ollama is ready for script categorization</span>")
+            ai_label.set_xalign(0)
+            ai_banner.pack_start(ai_label, True, True, 0)
+        else:
+            ai_icon = Gtk.Label(label="⚠️")
+            ai_banner.pack_start(ai_icon, False, False, 0)
+            
+            ai_label = Gtk.Label()
+            ai_label.set_markup("<span color='#e67e22'><b>AI Analysis Unavailable:</b> Install Ollama for automatic script categorization</span>")
+            ai_label.set_xalign(0)
+            ai_banner.pack_start(ai_label, True, True, 0)
+            
+            install_ollama_btn = Gtk.Button(label="📥 Install Ollama")
+            install_ollama_btn.connect("clicked", self._on_install_ollama)
+            ai_banner.pack_end(install_ollama_btn, False, False, 0)
+        
+        vbox.pack_start(ai_banner, False, False, 0)
+        
+        # Control buttons
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        
+        refresh_btn = Gtk.Button(label="🔄 Refresh List")
+        refresh_btn.connect("clicked", self._on_refresh_local_repos)
+        button_box.pack_start(refresh_btn, False, False, 0)
+        
+        # AI Analyze button
+        if self.ollama_available:
+            analyze_btn = Gtk.Button(label="🤖 AI Analyze Selected")
+            analyze_btn.connect("clicked", self._on_ai_analyze_scripts)
+            button_box.pack_start(analyze_btn, False, False, 0)
+        
+        select_all_btn = Gtk.Button(label="Select All")
+        select_all_btn.connect("clicked", self._on_local_select_all)
+        button_box.pack_start(select_all_btn, False, False, 0)
+        
+        select_none_btn = Gtk.Button(label="Select None")
+        select_none_btn.connect("clicked", self._on_local_select_none)
+        button_box.pack_start(select_none_btn, False, False, 0)
+        
+        vbox.pack_start(button_box, False, False, 0)
+        
+        # Scripts list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        
+        # Store: selected(bool), id(str), name(str), version(str), path(str), category(str), source(str), size(str)
+        self.local_repo_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        
+        # Create filter model for local repository search
+        self.local_repo_filter = self.local_repo_store.filter_new()
+        self.local_repo_filter.set_visible_func(self._filter_func, "local_repositories")
+        
+        self.local_repo_tree = Gtk.TreeView(model=self.local_repo_filter)
+        
+        # Checkbox column
+        checkbox_renderer = Gtk.CellRendererToggle()
+        checkbox_renderer.set_property("activatable", True)
+        checkbox_renderer.connect("toggled", self._on_local_script_toggled)
+        checkbox_column = Gtk.TreeViewColumn("", checkbox_renderer, active=0)
+        checkbox_column.set_fixed_width(30)
+        self.local_repo_tree.append_column(checkbox_column)
+        
+        # Script name column
+        name_renderer = Gtk.CellRendererText()
+        name_column = Gtk.TreeViewColumn("Script Name", name_renderer, text=2)
+        name_column.set_resizable(True)
+        name_column.set_min_width(200)
+        self.local_repo_tree.append_column(name_column)
+        
+        # Category column
+        cat_renderer = Gtk.CellRendererText()
+        cat_column = Gtk.TreeViewColumn("Category", cat_renderer, text=5)
+        cat_column.set_resizable(True)
+        cat_column.set_min_width(80)
+        self.local_repo_tree.append_column(cat_column)
+        
+        # Source column
+        source_renderer = Gtk.CellRendererText()
+        source_column = Gtk.TreeViewColumn("Repository", source_renderer, text=6)
+        source_column.set_resizable(True)
+        source_column.set_min_width(150)
+        self.local_repo_tree.append_column(source_column)
+        
+        # Version column
+        ver_renderer = Gtk.CellRendererText()
+        ver_column = Gtk.TreeViewColumn("Version", ver_renderer, text=3)
+        ver_column.set_min_width(60)
+        self.local_repo_tree.append_column(ver_column)
+        
+        # Path column
+        path_renderer = Gtk.CellRendererText()
+        path_column = Gtk.TreeViewColumn("Local Path", path_renderer, text=4)
+        path_column.set_resizable(True)
+        path_column.set_min_width(200)
+        self.local_repo_tree.append_column(path_column)
+        
+        # Size column
+        size_renderer = Gtk.CellRendererText()
+        size_column = Gtk.TreeViewColumn("Size", size_renderer, text=7)
+        size_column.set_min_width(60)
+        self.local_repo_tree.append_column(size_column)
+        
+        # Connect double-click to execute
+        self.local_repo_tree.connect("row-activated", self._on_local_repo_row_activated)
+        
+        scrolled.add(self.local_repo_tree)
+        vbox.pack_start(scrolled, True, True, 0)
+        
+        # Populate tree
+        self._populate_local_repository_tree()
+        
+        return vbox
+    
+    def _populate_local_repository_tree(self):
+        """Populate local repository tree view (scripts from file-based manifests)"""
+        if not self.repository:
+            return
+        
+        self.local_repo_store.clear()
+        
+        try:
+            local_scripts = []
+            
+            if hasattr(self, 'terminal'):
+                self.terminal.feed(b"\x1b[36m[*] Scanning for local repositories...\x1b[0m\r\n")
+            
+            # Method 1: Check config.json for local repository (legacy/direct configuration)
+            config = self.repository.load_config()
+            custom_manifest_url = config.get('custom_manifest_url', '')
+            
+            if custom_manifest_url and custom_manifest_url.startswith('file://'):
+                # This is a local file-based repository
+                manifest_path = custom_manifest_url.replace('file://', '').strip()
+                manifest_name = config.get('custom_manifest_name', 'Local Repository')
+                
+                if hasattr(self, 'terminal'):
+                    self.terminal.feed(f"\x1b[32m[*] Found local repository in config: {manifest_name}\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[36m[*] Manifest path: {manifest_path}\x1b[0m\r\n".encode())
+                
+                try:
+                    manifest_file = Path(manifest_path)
+                    if manifest_file.exists():
+                        import json
+                        with open(manifest_file) as f:
+                            local_manifest = json.load(f)
+                        
+                        # Get repository base path (parent directory of manifest.json)
+                        base_path = str(manifest_file.parent)
+                        
+                        # Process scripts from manifest
+                        scripts = local_manifest.get('scripts', [])
+                        
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[36m[*] Found {len(scripts) if isinstance(scripts, list) else len(scripts.keys())} script entries\x1b[0m\r\n".encode())
+                        
+                        # Handle both flat and nested structures
+                        if isinstance(scripts, dict):
+                            # Nested by category
+                            for category, category_scripts in scripts.items():
+                                if isinstance(category_scripts, list):
+                                    for script in category_scripts:
+                                        script['_category'] = category
+                                        script['_manifest_name'] = manifest_name
+                                        script['_manifest_type'] = 'local'
+                                        script['_base_path'] = base_path
+                                        local_scripts.append(script)
+                        else:
+                            # Flat list
+                            for script in scripts:
+                                script['_manifest_name'] = manifest_name
+                                script['_manifest_type'] = 'local'
+                                script['_base_path'] = base_path
+                                local_scripts.append(script)
+                    else:
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[33m[!] Manifest file not found: {manifest_path}\x1b[0m\r\n".encode())
+                except Exception as e:
+                    if hasattr(self, 'terminal'):
+                        self.terminal.feed(f"\x1b[31m[!] Error loading manifest from config: {e}\x1b[0m\r\n".encode())
+            
+            # Method 2: Check custom_manifests directory for manifest metadata files
+            custom_manifests_dir = Path.home() / '.lv_linux_learn' / 'custom_manifests'
+            
+            if custom_manifests_dir.exists():
+                manifest_files = list(custom_manifests_dir.glob('*.json'))
+                if hasattr(self, 'terminal'):
+                    self.terminal.feed(f"\x1b[36m[*] Found {len(manifest_files)} manifest metadata file(s) in {custom_manifests_dir}\x1b[0m\r\n".encode())
+                
+                for manifest_file in manifest_files:
+                    try:
+                        import json
+                        with open(manifest_file) as f:
+                            manifest_data = json.load(f)
+                        
+                        # Check if this is a local file-based manifest
+                        manifest_type = manifest_data.get('type', 'unknown')
+                        repository_url = manifest_data.get('repository_url', '')
+                        manifest_name = manifest_data.get('name', manifest_file.stem.replace('_', ' ').title())
+                        
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[36m[*] Checking {manifest_file.name}: type={manifest_type}, url={repository_url}\x1b[0m\r\n".encode())
+                        
+                        # Determine if this is a local manifest (not online)
+                        is_local = False
+                        if manifest_type == 'local':
+                            is_local = True
+                        elif repository_url and not repository_url.startswith(('http://', 'https://')):
+                            is_local = True
+                        
+                        if not is_local:
+                            if hasattr(self, 'terminal'):
+                                self.terminal.feed(f"\x1b[36m[*] Skipping {manifest_name} (online repository)\x1b[0m\r\n".encode())
+                            continue
+                        
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[32m[*] Processing local repository: {manifest_name}\x1b[0m\r\n".encode())
+                        
+                        # Load the actual manifest.json from the repository
+                        local_manifest_path = Path(repository_url) / 'manifest.json'
+                        
+                        if not local_manifest_path.exists():
+                            if hasattr(self, 'terminal'):
+                                self.terminal.feed(f"\x1b[33m[!] Manifest not found: {local_manifest_path}\x1b[0m\r\n".encode())
+                            continue
+                        
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[36m[*] Loading manifest from: {local_manifest_path}\x1b[0m\r\n".encode())
+                        
+                        with open(local_manifest_path) as f:
+                            local_manifest = json.load(f)
+                        
+                        # Process scripts from manifest
+                        scripts = local_manifest.get('scripts', [])
+                        
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[36m[*] Found {len(scripts) if isinstance(scripts, list) else len(scripts.keys())} script entries\x1b[0m\r\n".encode())
+                        
+                        # Handle both flat and nested structures
+                        if isinstance(scripts, dict):
+                            # Nested by category
+                            for category, category_scripts in scripts.items():
+                                if isinstance(category_scripts, list):
+                                    if hasattr(self, 'terminal'):
+                                        self.terminal.feed(f"\x1b[36m[*] Processing {len(category_scripts)} scripts in category '{category}'\x1b[0m\r\n".encode())
+                                    for script in category_scripts:
+                                        script['_category'] = category
+                                        script['_manifest_name'] = manifest_name
+                                        script['_manifest_type'] = 'local'
+                                        script['_base_path'] = repository_url
+                                        local_scripts.append(script)
+                        else:
+                            # Flat list
+                            if hasattr(self, 'terminal'):
+                                self.terminal.feed(f"\x1b[36m[*] Processing {len(scripts)} scripts (flat structure)\x1b[0m\r\n".encode())
+                            for script in scripts:
+                                script['_manifest_name'] = manifest_name
+                                script['_manifest_type'] = 'local'
+                                script['_base_path'] = repository_url
+                                local_scripts.append(script)
+                            
+                    except Exception as e:
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[31m[!] Error loading {manifest_file.name}: {e}\x1b[0m\r\n".encode())
+                            import traceback
+                            error_trace = traceback.format_exc()
+                            self.terminal.feed(f"\x1b[31m{error_trace}\x1b[0m\r\n".encode())
+            
+            if not local_scripts:
+                if hasattr(self, 'terminal'):
+                    self.terminal.feed(b"\x1b[33m[!] No scripts found in local repositories\x1b[0m\r\n")
+                    self.terminal.feed(b"\x1b[36m[i] Make sure your local repository has a valid manifest.json\x1b[0m\r\n")
+                return
+            
+            # Add scripts to tree
+            for script in local_scripts:
+                script_id = script.get('id', '')
+                name = script.get('name', 'Unknown')
+                version = script.get('version', '1.0')
+                category = script.get('_category', script.get('category', 'tools'))
+                manifest_name = script.get('_manifest_name', 'Unknown')
+                base_path = script.get('_base_path', '')
+                
+                # Build full local path
+                # Try multiple methods to get the script path
+                full_path = None
+                
+                # Method 1: Check for download_url (file:// URL)
+                download_url = script.get('download_url', '')
+                if download_url and download_url.startswith('file://'):
+                    full_path = download_url.replace('file://', '')
+                
+                # Method 2: Use file_name + base_path + category
+                if not full_path:
+                    file_name = script.get('file_name', '')
+                    if file_name and base_path:
+                        full_path = str(Path(base_path) / category / file_name)
+                
+                # Method 3: Try just file_name as relative path from base_path
+                if not full_path:
+                    file_name = script.get('file_name', '')
+                    if file_name and base_path:
+                        full_path = str(Path(base_path) / file_name)
+                
+                if full_path:
+                    # Check if file exists and get size
+                    try:
+                        path_obj = Path(full_path)
+                        if path_obj.exists():
+                            stat_info = path_obj.stat()
+                            size_kb = round(stat_info.st_size / 1024, 1)
+                            size_text = f"{size_kb} KB"
+                        else:
+                            size_text = "Missing"
+                            full_path = f"{full_path} (NOT FOUND)"
+                    except Exception as e:
+                        size_text = "Error"
+                        if hasattr(self, 'terminal'):
+                            self.terminal.feed(f"\x1b[33m[!] Error checking path for {name}: {e}\x1b[0m\r\n".encode())
+                else:
+                    full_path = "Path not available"
+                    size_text = "-"
+                
+                # Add to store: [selected, id, name, version, path, category, source, size]
+                self.local_repo_store.append([
+                    False,
+                    script_id,
+                    name,
+                    version,
+                    full_path,
+                    category.capitalize(),
+                    manifest_name,
+                    size_text
+                ])
+            
+            # Display summary
+            total_count = len(self.local_repo_store)
+            if hasattr(self, 'terminal'):
+                self.terminal.feed(f"\x1b[32m[*] Local Repositories: {total_count} scripts from file-based manifests\x1b[0m\r\n".encode())
+                
+        except Exception as e:
+            print(f"Error populating local repository tree: {e}")
             import traceback
             traceback.print_exc()
     
@@ -2119,7 +2536,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 "No scripts are currently available to download.\n\n"
                 "Please configure a manifest source:\n"
                 "• Enable Public Repository in settings, or\n"
-                "• Add a Custom Manifest in the Custom Manifests tab"
+                "• Add a Custom Manifest in the Sources tab"
             )
             dialog.run()
             dialog.destroy()
@@ -2305,7 +2722,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         content.pack_start(use_public_repo, False, False, 0)
         
         public_repo_note = Gtk.Label()
-        public_repo_note.set_markup("<small><i>Note: Custom manifests can be configured in the 'Custom Manifests' tab.\nThis includes both local directory scanning and online manifest URLs.</i></small>")
+        public_repo_note.set_markup("<small><i>Note: Custom manifests can be configured in the 'Sources' tab.\nThis includes both local directory scanning and online manifest URLs.</i></small>")
         public_repo_note.set_line_wrap(True)
         public_repo_note.set_xalign(0)
         content.pack_start(public_repo_note, False, False, 0)
@@ -2711,6 +3128,638 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         except Exception as e:
             print(f"Error in silent UI refresh: {e}")
             return False
+    
+    # ========================================================================
+    # LOCAL REPOSITORY OPERATIONS (Direct execution, no cache)
+    # ========================================================================
+    
+    def _on_local_script_toggled(self, cell_renderer, path):
+        """Handle local script checkbox toggle"""
+        iter = self.local_repo_store.get_iter(path)
+        current_value = self.local_repo_store.get_value(iter, 0)
+        self.local_repo_store.set_value(iter, 0, not current_value)
+    
+    def _on_local_select_all(self, button):
+        """Select all scripts in the local repository view"""
+        for row in self.local_repo_store:
+            row[0] = True
+    
+    def _on_local_select_none(self, button):
+        """Deselect all scripts in the local repository view"""
+        for row in self.local_repo_store:
+            row[0] = False
+    
+    def _on_refresh_local_repos(self, button):
+        """Refresh the local repository list"""
+        self.terminal.feed(b"\x1b[32m[*] Refreshing local repositories...\x1b[0m\r\n")
+        self._populate_local_repository_tree()
+        GLib.timeout_add(500, self._complete_terminal_operation)
+    
+    def _on_execute_selected_local(self, button):
+        """Execute selected local scripts (direct execution, no caching)"""
+        selected_scripts = []
+        
+        # Collect selected scripts
+        for row in self.local_repo_store:
+            if row[0]:  # If checkbox is selected
+                script_name = row[2]
+                script_path = row[4]
+                selected_scripts.append((script_name, script_path))
+        
+        if not selected_scripts:
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text="No Scripts Selected"
+            )
+            dialog.format_secondary_text("Please select at least one script to execute.")
+            dialog.run()
+            dialog.destroy()
+            return
+        
+        # Confirmation dialog
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Execute Selected Scripts"
+        )
+        dialog.format_secondary_text(
+            f"Execute {len(selected_scripts)} selected script(s) directly from source?\n\n"
+            "Scripts will run from their local repository location."
+        )
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response != Gtk.ResponseType.YES:
+            return
+        
+        # Clear terminal and execute scripts
+        self.terminal.feed(b"\x1b[2J\x1b[H")
+        self.terminal.feed(b"\x1b[32m[*] Executing selected local scripts...\x1b[0m\r\n\r\n")
+        
+        success_count = 0
+        failed_count = 0
+        
+        for script_name, script_path in selected_scripts:
+            # Check if path contains "(NOT FOUND)" indicator
+            if "(NOT FOUND)" in script_path or "not available" in script_path.lower():
+                self.terminal.feed(f"  ✗ {script_name} - File not found\r\n".encode())
+                failed_count += 1
+                continue
+            
+            # Execute script directly (no caching)
+            try:
+                path_obj = Path(script_path)
+                if not path_obj.exists():
+                    self.terminal.feed(f"  ✗ {script_name} - File does not exist: {script_path}\r\n".encode())
+                    failed_count += 1
+                    continue
+                
+                self.terminal.feed(f"  ▶️ Executing: {script_name}...\r\n".encode())
+                
+                # Make executable
+                import stat
+                current_permissions = path_obj.stat().st_mode
+                path_obj.chmod(current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                
+                # Execute in terminal
+                cmd = f"bash {shlex.quote(str(path_obj))}\n"
+                self.terminal.feed_child(cmd.encode())
+                
+                success_count += 1
+                
+            except Exception as e:
+                self.terminal.feed(f"  ✗ {script_name} - Error: {e}\r\n".encode())
+                failed_count += 1
+        
+        self.terminal.feed(f"\x1b[32m[*] Execution queued: {success_count} scripts, {failed_count} failed\x1b[0m\r\n".encode())
+        GLib.timeout_add(1000, self._complete_terminal_operation)
+    
+    def _on_local_repo_row_activated(self, tree_view, path, column):
+        """Handle double-click on local repository script (execute directly)"""
+        model = tree_view.get_model()
+        iter = model.get_iter(path)
+        
+        script_name = model.get_value(iter, 2)
+        script_path = model.get_value(iter, 4)
+        
+        # Check if path is valid
+        if "(NOT FOUND)" in script_path or "not available" in script_path.lower():
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Script Not Found"
+            )
+            dialog.format_secondary_text(f"The script file does not exist:\n{script_path}")
+            dialog.run()
+            dialog.destroy()
+            return
+        
+        # Execute directly
+        self.terminal.feed(b"\x1b[2J\x1b[H")
+        self.terminal.feed(f"\x1b[32m[*] Executing local script: {script_name}\x1b[0m\r\n\r\n".encode())
+        
+        try:
+            path_obj = Path(script_path)
+            if not path_obj.exists():
+                self.terminal.feed(f"\x1b[31m[!] File not found: {script_path}\x1b[0m\r\n".encode())
+                return
+            
+            # Make executable
+            import stat
+            current_permissions = path_obj.stat().st_mode
+            path_obj.chmod(current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            
+            # Execute in terminal
+            cmd = f"bash {shlex.quote(str(path_obj))}\n"
+            self.terminal.feed_child(cmd.encode())
+            
+            GLib.timeout_add(1000, self._complete_terminal_operation)
+            
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[!] Error executing script: {e}\x1b[0m\r\n".encode())
+    
+    def _on_install_ollama(self, button):
+        """Guide user through Ollama installation"""
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Install Ollama AI Engine"
+        )
+        dialog.format_secondary_markup(
+            "<b>Ollama</b> provides local AI-powered script analysis.\n\n"
+            "<b>Installation:</b>\n"
+            "1. Run: <tt>curl https://ollama.ai/install.sh | sh</tt>\n"
+            "2. Pull a model: <tt>ollama pull llama3.2</tt>\n"
+            "3. Restart this application\n\n"
+            "<b>Benefits:</b>\n"
+            "• Automatic script categorization\n"
+            "• AI-generated descriptions\n"
+            "• Dependency detection\n"
+            "• Security analysis\n\n"
+            "Would you like to install Ollama now in the terminal?"
+        )
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            # Clear terminal and run installation
+            self.terminal.feed(b"\x1b[2J\x1b[H")
+            self.terminal.feed(b"\x1b[32m[*] Installing Ollama...\x1b[0m\r\n\r\n")
+            self.terminal.feed(b"curl https://ollama.ai/install.sh | sh\n")
+            self.terminal.feed_child(b"curl https://ollama.ai/install.sh | sh\n")
+            
+            # Show next steps dialog after a delay
+            GLib.timeout_add(3000, self._show_ollama_next_steps)
+    
+    def _show_ollama_next_steps(self):
+        """Show Ollama post-installation steps"""
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text="Ollama Installation Next Steps"
+        )
+        dialog.format_secondary_markup(
+            "After Ollama installation completes:\n\n"
+            "<b>1. Pull an AI model:</b>\n"
+            "   <tt>ollama pull llama3.2</tt> (recommended, ~2GB)\n"
+            "   Or: <tt>ollama pull codellama</tt> (code-focused, ~4GB)\n\n"
+            "<b>2. Test the installation:</b>\n"
+            "   <tt>ollama list</tt>\n\n"
+            "<b>3. Restart this application</b> to enable AI features\n\n"
+            "Visit <a href='https://ollama.ai'>ollama.ai</a> for more information."
+        )
+        dialog.run()
+        dialog.destroy()
+        return False
+    
+    def _on_ai_analyze_scripts(self, button):
+        """Analyze selected scripts using AI"""
+        # Collect selected scripts
+        selected_scripts = []
+        for row in self.local_repo_store:
+            if row[0]:  # If checkbox is selected
+                script_name = row[2]
+                script_path = row[4]
+                script_id = row[1]
+                if "(NOT FOUND)" not in script_path and "not available" not in script_path.lower():
+                    selected_scripts.append((script_id, script_name, script_path))
+        
+        if not selected_scripts:
+            self.terminal.feed(b"\x1b[33m[!] No scripts selected for analysis\x1b[0m\r\n")
+            self.terminal.feed(b"Please select at least one script from the Repository (Local) tab\r\n")
+            return
+        
+        # Output to terminal instead of showing confirmation dialog
+        self.terminal.feed(b"\r\n\x1b[36m" + b"="*70 + b"\x1b[0m\r\n")
+        self.terminal.feed(f"\x1b[36m  Starting AI analysis of {len(selected_scripts)} script(s)...\x1b[0m\r\n".encode())
+        self.terminal.feed(b"\x1b[36m" + b"="*70 + b"\x1b[0m\r\n\r\n")
+        
+        # Start analysis directly
+        self._run_ai_analysis(selected_scripts)
+    
+    def _run_ai_analysis(self, scripts):
+        """Run AI analysis on scripts - all output to terminal"""
+        import threading
+        from lib.ai_analyzer import OllamaAnalyzer
+        
+        # Shared state for thread
+        state = {
+            'results': [],
+            'cancelled': False,
+            'script_data': scripts  # Store script metadata for manifest updates
+        }
+        
+        def analysis_complete():
+            """Called when analysis finishes"""
+            if not state['cancelled'] and state['results']:
+                try:
+                    # Output results to terminal
+                    self.terminal.feed(b"\r\n")
+                    self.terminal.feed(b"\x1b[32m" + b"="*70 + b"\x1b[0m\r\n")
+                    self.terminal.feed(b"\x1b[32m  AI ANALYSIS RESULTS\x1b[0m\r\n")
+                    self.terminal.feed(b"\x1b[32m" + b"="*70 + b"\x1b[0m\r\n\r\n")
+                    
+                    for script_name, analysis in state['results']:
+                        self.terminal.feed(f"\x1b[36m\u25cf {script_name}\x1b[0m\r\n".encode())
+                        
+                        if 'error' in analysis:
+                            error = analysis['error']
+                            self.terminal.feed(f"  \x1b[31mError: {error}\x1b[0m\r\n\r\n".encode())
+                        else:
+                            category = analysis.get('category', 'unknown')
+                            description = analysis.get('description', 'N/A')
+                            safety = analysis.get('safety', 'unknown')
+                            deps = analysis.get('dependencies', [])
+                            
+                            # Color-code safety
+                            safety_colors = {
+                                'safe': '\x1b[32m',
+                                'caution': '\x1b[33m',
+                                'requires_review': '\x1b[31m'
+                            }
+                            safety_color = safety_colors.get(safety, '\x1b[37m')
+                            
+                            self.terminal.feed(f"  Category: \x1b[1m{category}\x1b[0m\r\n".encode())
+                            self.terminal.feed(f"  Description: {description}\r\n".encode())
+                            self.terminal.feed(f"  Safety: {safety_color}{safety}\x1b[0m\r\n".encode())
+                            
+                            if deps:
+                                deps_str = ', '.join(deps[:5])
+                                if len(deps) > 5:
+                                    deps_str += f" (+{len(deps)-5} more)"
+                                self.terminal.feed(f"  Dependencies: {deps_str}\r\n".encode())
+                            
+                            self.terminal.feed(b"\r\n")
+                    
+                    self.terminal.feed(b"\x1b[32m" + b"="*70 + b"\x1b[0m\r\n")
+                    self.terminal.feed(f"\x1b[32m  Analysis complete: {len(state['results'])} script(s) processed\x1b[0m\r\n".encode())
+                    self.terminal.feed(b"\x1b[32m" + b"="*70 + b"\x1b[0m\r\n\r\n")
+                    
+                    # Update manifests with AI results - call directly, not via timeout
+                    if ManifestManager and state.get('script_data'):
+                        self._update_manifests_from_ai(state['script_data'], state['results'])
+                        return False  # Don't repeat
+                    
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[31m[!] Error displaying results: {e}\x1b[0m\r\n".encode())
+                    import traceback
+                    self.terminal.feed(traceback.format_exc().encode())
+            elif state['cancelled']:
+                try:
+                    self.terminal.feed(b"\x1b[33m[*] AI analysis cancelled by user\x1b[0m\r\n")
+                except:
+                    pass
+            return False
+        
+        def run_analysis():
+            """Background thread for AI analysis"""
+            try:
+                analyzer = OllamaAnalyzer()
+                total = len(scripts)
+                
+                for i, (script_id, script_name, script_path) in enumerate(scripts):
+                    if state['cancelled']:
+                        break
+                    
+                    # Show progress in terminal
+                    GLib.idle_add(lambda i=i, n=script_name, t=total: self.terminal.feed(
+                        f"\x1b[36m[{i+1}/{t}] Analyzing: {n}\x1b[0m\r\n".encode()
+                    ))
+                    
+                    # Run analysis (blocking operation in background thread)
+                    try:
+                        analysis = analyzer.analyze_script(script_path)
+                        if analysis and 'error' not in analysis:
+                            category = analysis.get('category', 'tools')
+                            safety = analysis.get('safety', 'unknown')
+                            state['results'].append((script_name, analysis))
+                            GLib.idle_add(lambda c=category, s=safety: self.terminal.feed(
+                                f"  \u2713 Category: {c}, Safety: {s}\r\n".encode()
+                            ))
+                        else:
+                            error = analysis.get('error', 'Unknown error') if analysis else 'Analysis failed'
+                            state['results'].append((script_name, {'error': error}))
+                            GLib.idle_add(lambda e=error: self.terminal.feed(
+                                f"  \u2717 Error: {e}\r\n".encode()
+                            ))
+                    except Exception as e:
+                        error_msg = str(e)
+                        state['results'].append((script_name, {'error': error_msg}))
+                        GLib.idle_add(lambda e=error_msg: self.terminal.feed(
+                            f"  \u2717 Error: {e}\r\n".encode()
+                        ))
+                
+            except Exception as e:
+                GLib.idle_add(lambda: self.terminal.feed(
+                    f"\x1b[31m[!] Analysis error: {e}\x1b[0m\r\n".encode()
+                ))
+            finally:
+                GLib.idle_add(analysis_complete)
+        
+        # Start analysis in background thread
+        thread = threading.Thread(target=run_analysis, daemon=True)
+        thread.start()
+    
+    def _update_manifests_from_ai(self, script_data, results):
+        """
+        Update local repository manifests with AI analysis results
+        
+        Args:
+            script_data: List of (script_id, script_name, script_path) tuples
+            results: List of (script_name, analysis_dict) tuples
+        """
+        if not ManifestManager:
+            return
+        
+        try:
+            self.terminal.feed(b"\r\n\x1b[36m" + b"="*70 + b"\x1b[0m\r\n")
+            self.terminal.feed(b"\x1b[36m  UPDATING MANIFEST FILES\x1b[0m\r\n")
+            self.terminal.feed(b"\x1b[36m" + b"="*70 + b"\x1b[0m\r\n\r\n")
+            
+            # Map script names to their data
+            script_map = {name: (sid, path) for sid, name, path in script_data}
+            results_map = {name: analysis for name, analysis in results}
+            
+            # Find local repository manifests
+            manifests_dir = Path.home() / '.lv_linux_learn' / 'custom_manifests'
+            
+            updated_count = 0
+            for script_name, analysis in results:
+                if 'error' in analysis:
+                    continue
+                
+                if script_name not in script_map:
+                    continue
+                
+                script_id, script_path = script_map[script_name]
+                
+                # Find which manifest this script belongs to
+                # Extract repo name from script path or ID
+                manifest_path = None
+                
+                # Try to find manifest based on script path
+                if 'local_test_repo' in script_path or 'local_test_repo' in script_id:
+                    manifest_path = manifests_dir / 'local_test_repo' / 'manifest.json'
+                else:
+                    # Try to detect from path
+                    path_parts = Path(script_path).parts
+                    for i, part in enumerate(path_parts):
+                        if part == 'custom_manifests' and i + 1 < len(path_parts):
+                            repo_name = path_parts[i + 1]
+                            manifest_path = manifests_dir / repo_name / 'manifest.json'
+                            break
+                
+                if not manifest_path or not manifest_path.exists():
+                    self.terminal.feed(f"\x1b[33m[!] Could not find manifest for: {script_name}\x1b[0m\r\n".encode())
+                    continue
+                
+                # Update the manifest
+                try:
+                    manager = ManifestManager(str(manifest_path))
+                    success = manager.update_script_from_ai_analysis(script_id, analysis)
+                    
+                    if success:
+                        new_category = analysis.get('category', 'custom')
+                        self.terminal.feed(f"\x1b[32m\u2713 {script_name}: moved to '{new_category}' category\x1b[0m\r\n".encode())
+                        updated_count += 1
+                    else:
+                        self.terminal.feed(f"\x1b[31m\u2717 {script_name}: update failed\x1b[0m\r\n".encode())
+                
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[31m\u2717 {script_name}: {e}\x1b[0m\r\n".encode())
+            
+            self.terminal.feed(b"\r\n")
+            self.terminal.feed(f"\x1b[32mManifest updates complete: {updated_count} script(s) updated\x1b[0m\r\n\r\n".encode())
+            
+            if updated_count > 0:
+                # Reload the application to show scripts in new categories
+                self.terminal.feed(b"\x1b[36m[*] Reloading scripts to reflect new categories...\x1b[0m\r\n")
+                # Force immediate reload without GLib timeout
+                self._reload_scripts_and_tabs()
+        
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[!] Error updating manifests: {e}\x1b[0m\r\n".encode())
+    
+    def _reload_scripts_and_tabs(self):
+        """Reload scripts from manifests and refresh all tabs"""
+        try:
+            global _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, NON_STANDARD_CATEGORIES
+            global SCRIPTS, SCRIPT_NAMES, DESCRIPTIONS, TOOLS_SCRIPTS, TOOLS_NAMES, TOOLS_DESCRIPTIONS
+            global EXERCISES_SCRIPTS, EXERCISES_NAMES, EXERCISES_DESCRIPTIONS
+            global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
+            global _SCRIPT_ID_MAP
+            
+            # CRITICAL: Clear ALL manifest cache files to force fresh reload from disk
+            config_dir = Path.home() / '.lv_linux_learn'
+            cache_files_cleared = 0
+            
+            # Delete all manifest_*.json files (these are cached manifests)
+            for cache_file in config_dir.glob('manifest_*.json'):
+                try:
+                    cache_file.unlink()
+                    cache_files_cleared += 1
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[33m[!] Could not clear {cache_file.name}: {e}\x1b[0m\r\n".encode())
+            
+            # Also clear manifest.json (legacy cache)
+            manifest_cache = config_dir / 'manifest.json'
+            if manifest_cache.exists():
+                try:
+                    manifest_cache.unlink()
+                    cache_files_cleared += 1
+                except Exception:
+                    pass
+            
+            if cache_files_cleared > 0:
+                self.terminal.feed(f"\x1b[36m[*] Cleared {cache_files_cleared} manifest cache file(s)\x1b[0m\r\n".encode())
+            
+            # Reload scripts with repository instance
+            if manifest_loader and self.repository:
+                _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, _SCRIPT_ID_MAP = \
+                    manifest_loader.load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
+                
+                # Update global arrays
+                SCRIPTS[:] = _SCRIPTS_DICT.get('install', [])
+                SCRIPT_NAMES[:] = _NAMES_DICT.get('install', [])
+                DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('install', [])
+                
+                TOOLS_SCRIPTS[:] = _SCRIPTS_DICT.get('tools', [])
+                TOOLS_NAMES[:] = _NAMES_DICT.get('tools', [])
+                TOOLS_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('tools', [])
+                
+                EXERCISES_SCRIPTS[:] = _SCRIPTS_DICT.get('exercises', [])
+                EXERCISES_NAMES[:] = _NAMES_DICT.get('exercises', [])
+                EXERCISES_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('exercises', [])
+                
+                UNINSTALL_SCRIPTS[:] = _SCRIPTS_DICT.get('uninstall', [])
+                UNINSTALL_NAMES[:] = _NAMES_DICT.get('uninstall', [])
+                UNINSTALL_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('uninstall', [])
+                
+                # Debug output
+                self.terminal.feed(f"\x1b[36m[DEBUG] Loaded scripts - Install: {len(SCRIPTS)}, Tools: {len(TOOLS_SCRIPTS)}, Exercises: {len(EXERCISES_SCRIPTS)}, Uninstall: {len(UNINSTALL_SCRIPTS)}\x1b[0m\r\n".encode())
+                if SCRIPTS:
+                    self.terminal.feed(f"\x1b[36m[DEBUG] Install scripts: {[s.get('name', 'unknown') for s in SCRIPTS]}\x1b[0m\r\n".encode())
+                
+                # Update non-standard categories
+                NON_STANDARD_CATEGORIES.clear()
+                for category in _SCRIPTS_DICT.keys():
+                    if category not in ['install', 'tools', 'exercises', 'uninstall']:
+                        NON_STANDARD_CATEGORIES[category] = {
+                            'scripts': _SCRIPTS_DICT.get(category, []),
+                            'names': _NAMES_DICT.get(category, []),
+                            'descriptions': _DESCRIPTIONS_DICT.get(category, [])
+                        }
+                
+                # Refresh all tabs (this updates the UI)
+                self._refresh_script_tabs()
+                
+                # Also refresh local repository tab
+                if hasattr(self, 'local_repo_store'):
+                    self._populate_local_repository_tree()
+                
+                # Force UI refresh
+                self.install_filter.refilter()
+                self.tools_filter.refilter()
+                self.exercises_filter.refilter()
+                self.uninstall_filter.refilter()
+                
+                self.terminal.feed("\x1b[32m[✓] Scripts reloaded successfully - UI refreshed\x1b[0m\r\n\r\n".encode())
+                
+                # Complete the terminal operation after a brief delay
+                GLib.timeout_add(500, self._complete_terminal_operation)
+        
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[!] Error reloading scripts: {e}\x1b[0m\r\n".encode())
+            # Still complete the operation even on error
+            GLib.timeout_add(500, self._complete_terminal_operation)
+    
+    def _refresh_script_tabs(self):
+        """Refresh all script tab liststores with updated data"""
+        try:
+            self.terminal.feed(f"\x1b[36m[*] Refreshing UI tabs...\x1b[0m\r\n".encode())
+            
+            # Refresh Install tab
+            if hasattr(self, 'install_liststore'):
+                self.terminal.feed(f"\x1b[36m  - Install tab: {len(SCRIPTS)} scripts\x1b[0m\r\n".encode())
+                self.install_liststore.clear()
+                for i, script_path in enumerate(SCRIPTS):
+                    if i < len(SCRIPT_NAMES) and i < len(DESCRIPTIONS):
+                        metadata = self._build_script_metadata(script_path, 'install', SCRIPT_NAMES[i])
+                        script_id = metadata.get('script_id', '')
+                        is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category='install')
+                        icon = "\u2713" if is_cached else "\u2601\ufe0f"
+                        
+                        path_to_store = script_path
+                        if is_cached and self.repository and script_id:
+                            cached_path = self.repository.get_cached_script_path(script_id)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        
+                        self.install_liststore.append([icon, SCRIPT_NAMES[i], path_to_store, DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+            
+            # Refresh Tools tab
+            if hasattr(self, 'tools_liststore'):
+                self.terminal.feed(f"\x1b[36m  - Tools tab: {len(TOOLS_SCRIPTS)} scripts\x1b[0m\r\n".encode())
+                self.tools_liststore.clear()
+                for i, script_path in enumerate(TOOLS_SCRIPTS):
+                    if i < len(TOOLS_NAMES) and i < len(TOOLS_DESCRIPTIONS):
+                        metadata = self._build_script_metadata(script_path, 'tools', TOOLS_NAMES[i])
+                        script_id = metadata.get('script_id', '')
+                        is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category='tools')
+                        icon = "\u2713" if is_cached else "\u2601\ufe0f"
+                        
+                        path_to_store = script_path
+                        if is_cached and self.repository and script_id:
+                            cached_path = self.repository.get_cached_script_path(script_id)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        
+                        self.tools_liststore.append([icon, TOOLS_NAMES[i], path_to_store, TOOLS_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+            
+            # Refresh Exercises tab
+            if hasattr(self, 'exercises_liststore'):
+                self.terminal.feed(f"\x1b[36m  - Exercises tab: {len(EXERCISES_SCRIPTS)} scripts\x1b[0m\r\n".encode())
+                self.exercises_liststore.clear()
+                for i, script_path in enumerate(EXERCISES_SCRIPTS):
+                    if i < len(EXERCISES_NAMES) and i < len(EXERCISES_DESCRIPTIONS):
+                        metadata = self._build_script_metadata(script_path, 'exercises', EXERCISES_NAMES[i])
+                        script_id = metadata.get('script_id', '')
+                        is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category='exercises')
+                        icon = "\u2713" if is_cached else "\u2601\ufe0f"
+                        
+                        path_to_store = script_path
+                        if is_cached and self.repository and script_id:
+                            cached_path = self.repository.get_cached_script_path(script_id)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        
+                        self.exercises_liststore.append([icon, EXERCISES_NAMES[i], path_to_store, EXERCISES_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+            
+            # Refresh Uninstall tab
+            if hasattr(self, 'uninstall_liststore'):
+                self.terminal.feed(f"\x1b[36m  - Uninstall tab: {len(UNINSTALL_SCRIPTS)} scripts\x1b[0m\r\n".encode())
+                self.uninstall_liststore.clear()
+                for i, script_path in enumerate(UNINSTALL_SCRIPTS):
+                    if i < len(UNINSTALL_NAMES) and i < len(UNINSTALL_DESCRIPTIONS):
+                        metadata = self._build_script_metadata(script_path, 'uninstall', UNINSTALL_NAMES[i])
+                        script_id = metadata.get('script_id', '')
+                        is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category='uninstall')
+                        icon = "\u2713" if is_cached else "\u2601\ufe0f"
+                        
+                        path_to_store = script_path
+                        if is_cached and self.repository and script_id:
+                            cached_path = self.repository.get_cached_script_path(script_id)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        
+                        self.uninstall_liststore.append([icon, UNINSTALL_NAMES[i], path_to_store, UNINSTALL_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+            
+            self.terminal.feed("\x1b[32m[✓] All script tabs refreshed\x1b[0m\r\n".encode())
+        
+        except Exception as e:
+            self.terminal.feed(f"[!] Error refreshing tabs: {e}\r\n".encode())
+
     
     def _update_repo_status(self):
         """Update repository status display and cache statistics"""

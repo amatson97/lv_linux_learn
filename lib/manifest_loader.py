@@ -55,6 +55,10 @@ def fetch_manifest(
     default_url = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
     manifest_url = os.environ.get('CUSTOM_MANIFEST_URL', default_url)
     
+    # Ensure cache directory exists FIRST
+    cache_dir = C.CONFIG_DIR if C else Path.home() / '.lv_linux_learn'
+    cache_dir.mkdir(exist_ok=True)
+    
     # Check repository config
     if repository:
         try:
@@ -70,23 +74,31 @@ def fetch_manifest(
                 custom_name = config.get('custom_manifest_name', 'Custom Repository')
                 manifests_to_load.append((custom_url, custom_name))
             
+            # CRITICAL: Scan for local repository manifests in custom_manifests directory
+            custom_manifests_dir = cache_dir / 'custom_manifests'
+            if custom_manifests_dir.exists():
+                for manifest_file in custom_manifests_dir.glob('*/manifest.json'):
+                    # Get repository name from directory
+                    repo_name = manifest_file.parent.name
+                    local_manifest_url = f"file://{manifest_file}"
+                    manifests_to_load.append((local_manifest_url, repo_name))
+                    if terminal_widget:
+                        _terminal_output(terminal_widget, f"[*] Found local repository: {repo_name}")
+            
         except Exception as e:
             print(f"[!] Error loading repository config: {e}")
-            manifests_to_load.append((manifest_url, 'Default'))
+            # Don't add default manifest on error - respect user configuration
             
     else:
-        # No repository instance, use global MANIFEST_URL
-        manifests_to_load.append((manifest_url, 'Default'))
+        # No repository instance - only load if public repository would be enabled by default
+        # Don't force-load manifests when repository system isn't available
+        pass
     
     # If no manifests configured, show error
     if not manifests_to_load:
-        error_msg = C.ERROR_NO_MANIFESTS if C else "No manifests configured"
+        error_msg = C.ERROR_NO_MANIFESTS if C else "No manifests configured. Enable public repository or add local repositories."
         _terminal_output(terminal_widget, f"[!] {error_msg}")
         raise Exception(error_msg)
-    
-    # Ensure cache directory exists
-    cache_dir = C.CONFIG_DIR if C else Path.home() / '.lv_linux_learn'
-    cache_dir.mkdir(exist_ok=True)
     
     # Fetch and cache each manifest
     loaded_manifests = []
@@ -190,6 +202,9 @@ def load_scripts_from_manifest(
         # Global script ID mapping for metadata building
         script_id_map = {}
         
+        # Track script IDs to prevent duplicates
+        seen_script_ids = set()
+        
         for manifest_path, source_name in manifests:
             _terminal_output(terminal_widget, f"\n[*] Processing manifest: {source_name}")
             
@@ -205,8 +220,26 @@ def load_scripts_from_manifest(
                 if repository_url:
                     _terminal_output(terminal_widget, f"[*] Repository URL: {repository_url}")
                 
-                # Load scripts from manifest
-                manifest_scripts = manifest_data.get('scripts', [])
+                # Load scripts from manifest - handle both flat and nested structures
+                manifest_scripts_raw = manifest_data.get('scripts', [])
+                manifest_scripts = []
+                
+                # Check if scripts is a dict (nested by category) or list (flat)
+                if isinstance(manifest_scripts_raw, dict):
+                    # Nested structure: {"category": [scripts]}
+                    _terminal_output(terminal_widget, f"[*] Processing nested manifest structure")
+                    for cat, cat_scripts in manifest_scripts_raw.items():
+                        if isinstance(cat_scripts, list):
+                            _terminal_output(terminal_widget, f"[*] Processing {len(cat_scripts)} scripts in category '{cat}'")
+                            for script in cat_scripts:
+                                # CRITICAL: In nested structure, the category key is authoritative
+                                # Always set category from the dict key, overriding any field value
+                                script['category'] = cat
+                                manifest_scripts.append(script)
+                else:
+                    # Flat structure: [scripts]
+                    manifest_scripts = manifest_scripts_raw
+                
                 total_scripts = len(manifest_scripts)
                 cached_count = 0
                 
@@ -233,12 +266,28 @@ def load_scripts_from_manifest(
                     download_url = script_entry.get('download_url', '')
                     description = script_entry.get('description', 'No description available')
                     
-                    # Determine script path based on cache status
-                    script_path = relative_path
+                    # Skip duplicates - check if script ID already processed
+                    if script_id and script_id in seen_script_ids:
+                        _terminal_output(terminal_widget, f"[*] Skipping duplicate: {script_name} (ID: {script_id})")
+                        continue
                     
-                    # Check if script is cached (if repository is available)
+                    # Mark as seen
+                    if script_id:
+                        seen_script_ids.add(script_id)
+                    
+                    # Determine script path based on source type
+                    script_path = relative_path
                     is_cached = False
-                    if repo and script_id:
+                    is_local = False
+                    
+                    # Check if this is a local file:// URL (from local repository)
+                    if download_url and download_url.startswith('file://'):
+                        # Local file - use the file path directly
+                        script_path = download_url.replace('file://', '')
+                        is_local = True
+                        _terminal_output(terminal_widget, f"[*] Local script: {script_name} -> {script_path}")
+                    elif repo and script_id:
+                        # Check if script is cached (online repositories)
                         cached_path = repo.get_cached_script_path(script_id)
                         if cached_path and os.path.exists(cached_path):
                             script_path = cached_path
@@ -246,13 +295,12 @@ def load_scripts_from_manifest(
                             cached_count += 1
                     
                     # Build display name with source tag
-                    if is_cached:
-                        base_name = script_name
-                    else:
-                        base_name = script_name
+                    base_name = script_name
                     
                     # Add source identifier to name
-                    if source_name == 'Public Repository':
+                    if is_local:
+                        display_name = f"{base_name} [Local: {source_name}]"
+                    elif source_name == 'Public Repository':
                         display_name = f"{base_name} [Public Repository]"
                     else:
                         display_name = f"{base_name} [Custom: {source_name}]"
