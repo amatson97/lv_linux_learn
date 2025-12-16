@@ -71,8 +71,36 @@ def fetch_manifest(
             # Check for custom manifest
             custom_url = config.get('custom_manifest_url', '')
             if custom_url:
-                custom_name = config.get('custom_manifest_name', 'Custom Repository')
-                manifests_to_load.append((custom_url, custom_name))
+                # Validate that local files actually exist before trying to load
+                if custom_url.startswith('file://'):
+                    local_path = custom_url.replace('file://', '')
+                    if not os.path.exists(local_path):
+                        _terminal_output(terminal_widget, f"[!] Custom manifest not found: {local_path}")
+                        _terminal_output(terminal_widget, f"[!] Clearing invalid manifest from configuration")
+                        # Clear the invalid configuration
+                        config['custom_manifest_url'] = ''
+                        config['custom_manifest_name'] = ''
+                        if repository:
+                            repository.save_config(config)
+                    else:
+                        custom_name = config.get('custom_manifest_name', 'Custom Repository')
+                        manifests_to_load.append((custom_url, custom_name))
+                elif os.path.isfile(custom_url):
+                    # Direct path without file:// prefix
+                    if not os.path.exists(custom_url):
+                        _terminal_output(terminal_widget, f"[!] Custom manifest not found: {custom_url}")
+                        _terminal_output(terminal_widget, f"[!] Clearing invalid manifest from configuration")
+                        config['custom_manifest_url'] = ''
+                        config['custom_manifest_name'] = ''
+                        if repository:
+                            repository.save_config(config)
+                    else:
+                        custom_name = config.get('custom_manifest_name', 'Custom Repository')
+                        manifests_to_load.append((custom_url, custom_name))
+                else:
+                    # Remote URL - add without validation (will fail later if unreachable)
+                    custom_name = config.get('custom_manifest_name', 'Custom Repository')
+                    manifests_to_load.append((custom_url, custom_name))
             
             # CRITICAL: Scan for local repository manifests in custom_manifests directory
             custom_manifests_dir = cache_dir / 'custom_manifests'
@@ -102,12 +130,9 @@ def fetch_manifest(
     
     # Fetch and cache each manifest
     loaded_manifests = []
-    _terminal_output(terminal_widget, f"[*] Loading {len(manifests_to_load)} manifest(s)...")
     
     for manifest_url, source_name in manifests_to_load:
         try:
-            _terminal_output(terminal_widget, f"[*] Fetching manifest from: {source_name}")
-            
             # Create cache filename based on source
             cache_filename = f"manifest_{source_name.lower().replace(' ', '_')}.json"
             cache_path = cache_dir / cache_filename
@@ -120,28 +145,23 @@ def fetch_manifest(
                 age = time.time() - cache_path.stat().st_mtime
                 if age < max_age:
                     use_cache = True
-                    _terminal_output(terminal_widget, f"[*] Using cached manifest (age: {int(age)}s)")
             
             if not use_cache:
                 # Fetch from URL - handle both remote URLs and local file:// paths
                 if manifest_url.startswith('file://'):
                     # Local file path
                     local_path = manifest_url[7:]  # Remove 'file://' prefix
-                    _terminal_output(terminal_widget, f"[*] Loading local manifest from {local_path}")
                     manifest_content = Path(local_path).read_text()
                 elif os.path.isfile(manifest_url):
                     # Direct file path (no file:// prefix)
-                    _terminal_output(terminal_widget, f"[*] Loading local manifest from {manifest_url}")
                     manifest_content = Path(manifest_url).read_text()
                 else:
                     # Remote URL (http/https)
-                    _terminal_output(terminal_widget, f"[*] Downloading from {manifest_url}")
                     response = urlopen(manifest_url, timeout=10)
                     manifest_content = response.read().decode('utf-8')
                 
-                # Save to cache
+                # Save to cache (no output message)
                 cache_path.write_text(manifest_content)
-                _terminal_output(terminal_widget, f"[✓] Cached manifest: {cache_path.name}")
             
             loaded_manifests.append((cache_path, source_name))
             
@@ -206,19 +226,13 @@ def load_scripts_from_manifest(
         seen_script_ids = set()
         
         for manifest_path, source_name in manifests:
-            _terminal_output(terminal_widget, f"\n[*] Processing manifest: {source_name}")
-            
             try:
                 with open(manifest_path, 'r') as f:
                     manifest_data = json.load(f)
                 
-                # Get manifest version and repository_url
+                # Get manifest version and repository_url (for internal use, no output)
                 manifest_version = manifest_data.get('version', 'unknown')
                 repository_url = manifest_data.get('repository_url', '')
-                _terminal_output(terminal_widget, f"[*] Manifest version: {manifest_version}")
-                
-                if repository_url:
-                    _terminal_output(terminal_widget, f"[*] Repository URL: {repository_url}")
                 
                 # Load scripts from manifest - handle both flat and nested structures
                 manifest_scripts_raw = manifest_data.get('scripts', [])
@@ -316,10 +330,11 @@ def load_scripts_from_manifest(
                 total_scripts_all += total_scripts
                 total_cached_all += cached_count
                 
-                _terminal_output(terminal_widget, f"[*] {source_name}: {cached_count}/{total_scripts} scripts cached")
+                # Concise per-source summary
+                _terminal_output(terminal_widget, f"[✓] {source_name}: {total_scripts} scripts ({cached_count} cached)")
                 
             except Exception as e:
-                _terminal_output(terminal_widget, f"[!] Error processing manifest {source_name}: {e}")
+                _terminal_output(terminal_widget, f"[!] {source_name}: Failed - {e}")
                 continue
         
         # Ensure all standard categories exist even if empty
@@ -329,15 +344,9 @@ def load_scripts_from_manifest(
                 names[cat] = []
                 descriptions[cat] = []
         
-        # Display summary
-        _terminal_output(terminal_widget, f"\n[*] Total: {total_scripts_all} scripts from {len(manifests)} source(s)")
-        _terminal_output(terminal_widget, f"[*] Cache status: {total_cached_all}/{total_scripts_all} scripts cached")
-        
-        # Display per-category breakdown
-        _terminal_output(terminal_widget, "[*] Script breakdown by category:")
-        for category in sorted(scripts.keys()):
-            count = len(scripts[category])
-            _terminal_output(terminal_widget, f"    • {category}: {count} scripts")
+        # Display concise summary
+        categories_summary = ", ".join([f"{cat}:{len(scripts[cat])}" for cat in sorted(scripts.keys()) if len(scripts[cat]) > 0])
+        _terminal_output(terminal_widget, f"\n[✓] Loaded {total_scripts_all} scripts from {len(manifests)} source(s) - {categories_summary}")
         
         return scripts, names, descriptions, script_id_map
         

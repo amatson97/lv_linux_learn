@@ -40,14 +40,16 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 ## 📚 What's Inside
 
-### 🎯 Core Features
-- **🖥️ Interactive Menus** — GUI and CLI interfaces with hierarchical navigation
-- **☁️ Multi-Repository System** — Support for custom script repositories and libraries
-- **📦 Installation Scripts** — Automated setup for Docker, Chrome, Git, VPN, and more
+### 🎯 Core Features (v2.2.2)
+- **🖥️ Dual Interface** — GTK GUI and CLI with unified functionality
+- **☁️ Multi-Repository System** — Public, custom online, and local file-based repositories
+- **🗂️ Smart Categorization** — AI-powered script organization into Install/Tools/Exercises/Uninstall
+- **📦 Repository Views** — Separate tabs for online and local script sources
 - **🎓 Learning Exercises** — Interactive bash tutorials for beginners
 - **🛠️ Utility Tools** — File conversion, extraction, and system utilities
-- **🤖 AI Integration** — Perplexity CLI with streaming and context support
+- **🤖 AI Integration** — Ollama-powered script analysis and intelligent categorization
 - **🌐 Network Tools** — ZeroTier VPN monitoring and management
+- **💾 Cache-First Execution** — Automatic download and caching for online scripts
 - **🔒 Security Focused** — Best practices for localhost development environments
 
 ### 📦 Installation Scripts

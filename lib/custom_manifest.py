@@ -18,7 +18,7 @@ class ScriptScanner:
         self.executable_patterns = ['#!/bin/bash', '#!/bin/sh', '#!/usr/bin/env bash']
     
     def is_executable_script(self, file_path: Path) -> bool:
-        """Check if file is an executable shell script"""
+        """Check if file is a shell script (doesn't require execute permission)"""
         if not file_path.is_file():
             return False
             
@@ -26,11 +26,7 @@ class ScriptScanner:
         if file_path.suffix not in self.script_extensions:
             return False
         
-        # Check if file is executable
-        if not os.access(file_path, os.X_OK):
-            return False
-        
-        # Check shebang line
+        # Check shebang line (scripts will be executed with bash, so executable bit not required)
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 first_line = f.readline().strip()
@@ -172,13 +168,9 @@ class CustomManifestCreator:
             if not name or not name.replace('_', '').replace('-', '').isalnum():
                 return False, "Manifest name must contain only letters, numbers, hyphens, and underscores"
             
-            # Create manifest directory
+            # Create manifest directory (only need manifest storage, not script copies)
             manifest_dir = self.custom_manifests_dir / name
             manifest_dir.mkdir(exist_ok=True)
-            
-            # Create scripts directory for this manifest
-            scripts_dir = self.custom_scripts_dir / name
-            scripts_dir.mkdir(exist_ok=True)
             
             # Scan all provided directories
             all_scripts = []
@@ -197,29 +189,19 @@ class CustomManifestCreator:
             if not all_scripts:
                 return False, "No executable scripts found in specified directories"
             
-            # Copy scripts to custom scripts directory and update paths
+            # Create manifest with file:// URLs pointing to original locations
+            # DO NOT copy scripts - they should execute from their original paths
             manifest_scripts = {}
+            
+            # Use the first scan directory as the repository_url base
+            # This ensures relative path resolution works correctly
+            primary_scan_dir = Path(scan_directories[0]).expanduser().resolve()
             
             for script in all_scripts:
                 source_path = Path(script['file_path'])
                 
-                # Create unique filename to avoid conflicts
-                dest_filename = f"{script['id']}.sh"
-                counter = 1
-                while (scripts_dir / dest_filename).exists():
-                    dest_filename = f"{script['id']}_{counter}.sh"
-                    counter += 1
-                
-                dest_path = scripts_dir / dest_filename
-                
-                # Copy script file
-                shutil.copy2(source_path, dest_path)
-                
-                # Make sure it's executable
-                dest_path.chmod(0o755)
-                
-                # Calculate checksum of copied file
-                checksum = self.calculate_file_checksum(dest_path)
+                # Calculate checksum of original file
+                checksum = self.calculate_file_checksum(source_path)
                 
                 # Update script info for manifest
                 category = script['category']
@@ -231,7 +213,7 @@ class CustomManifestCreator:
                     "name": script['name'],
                     "description": script['description'],
                     "version": script['version'],
-                    "download_url": f"file://{dest_path}",
+                    "download_url": f"file://{source_path}",  # Point to ORIGINAL location
                     "checksum": checksum,
                     "size": script['size'],
                     "last_modified": script['modified']
@@ -242,7 +224,7 @@ class CustomManifestCreator:
                 "manifest_version": "2.1.0",
                 "repository_name": name,
                 "repository_description": description or f"Custom script collection: {name}",
-                "repository_url": f"file://{scripts_dir}",
+                "repository_url": f"file://{primary_scan_dir}",  # Point to actual script directory
                 "version": "1.0.0",
                 "created": datetime.now().isoformat(),
                 "total_scripts": len(all_scripts),
@@ -358,7 +340,12 @@ class CustomManifestCreator:
         return sorted(manifests, key=lambda x: x['name'])
     
     def delete_custom_manifest(self, name: str) -> Tuple[bool, str]:
-        """Delete a custom manifest and its scripts"""
+        """Delete a custom manifest and its associated data
+        
+        Note: For local manifests created with v2.1.1+, scripts remain in their
+        original location. Only the manifest metadata is deleted.
+        For older manifests, any copied scripts are also removed.
+        """
         try:
             # Check for directory-based manifest (from directory scanning)
             manifest_dir = self.custom_manifests_dir / name
@@ -371,7 +358,8 @@ class CustomManifestCreator:
             
             # Delete directory-based manifest
             if manifest_dir.exists():
-                # Remove scripts directory
+                # Remove scripts directory if it exists (backward compatibility)
+                # Note: v2.1.1+ doesn't create this, but older versions did
                 if scripts_dir.exists():
                     shutil.rmtree(scripts_dir)
                 
@@ -658,6 +646,9 @@ class CustomManifestCreator:
                     
                     # Rename directories
                     old_manifest_dir.rename(new_manifest_dir)
+                    
+                    # Rename scripts directory if it exists (backward compatibility)
+                    # Note: v2.1.1+ doesn't create this, but older versions did
                     if (self.custom_scripts_dir / old_name).exists():
                         (self.custom_scripts_dir / old_name).rename(new_scripts_dir)
                     

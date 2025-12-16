@@ -462,11 +462,12 @@ class ScriptRepository:
             dest_path.chmod(0o755)
             
             logging.info(f"Downloaded successfully: {dest_path}")
-            return True, download_url
+            return True, download_url, None
             
         except Exception as e:
-            logging.error(f"Failed to download {script_id}: {e}")
-            return False, download_url
+            error_msg = str(e)
+            logging.error(f"Failed to download {script_id}: {error_msg}")
+            return False, download_url, error_msg
     
     def _calculate_checksum(self, filepath):
         """Calculate SHA256 checksum of a file"""
