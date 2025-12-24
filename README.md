@@ -30,6 +30,11 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 # 3. Run the menu (auto-detects GUI or CLI)
 ./launcher.sh
+
+# 4. (Optional) Set up Remote Assistance
+# Join the Linux learning network via ZeroTier VPN
+./scripts/new_vpn.sh
+# Then enable: Settings > System > Remote Desktop
 ```
 
 **Or run specific interface:**
