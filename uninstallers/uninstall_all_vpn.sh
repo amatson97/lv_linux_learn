@@ -28,19 +28,10 @@ main() {
     echo "  - LogMeIn Hamachi"
     echo ""
     
-    # GUI confirmation using zenity if available (for menu.py compatibility)
-    if command -v zenity &> /dev/null; then
-        if ! zenity --question \
-            --title="Confirm VPN Uninstall" \
-            --text="This will uninstall all VPN tools:\n\n• ZeroTier VPN\n• NordVPN\n• LogMeIn Hamachi\n\nAre you sure you want to continue?" \
-            --width=400 2>/dev/null; then
-            green_echo "[*] Uninstall cancelled."
-            return 0
-        fi
-    else
-        green_echo "[!] WARNING: About to remove all VPN software!"
-        green_echo "[*] Press Ctrl+C within 5 seconds to cancel..."
-        sleep 5
+    # Use universal confirmation helper from main.sh
+    if ! confirm_action "This will uninstall all VPN tools:\n\n• ZeroTier VPN\n• NordVPN\n• LogMeIn Hamachi\n\nAre you sure you want to continue?" "Confirm VPN Uninstall"; then
+        green_echo "[*] Uninstall cancelled."
+        return 0
     fi
     
     # Uninstall ZeroTier

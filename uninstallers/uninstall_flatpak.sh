@@ -32,7 +32,11 @@ main() {
     flatpak list 2>/dev/null || true
     
     echo ""
-    read -rp "Do you want to remove all Flatpak applications? [y/N]: " remove_apps
+    if confirm_action "Do you want to remove all Flatpak applications?\n\nThis will uninstall all Flatpak apps before removing Flatpak itself." "Remove Flatpak Apps"; then
+        remove_apps="y"
+    else
+        remove_apps="n"
+    fi
     if [[ "$remove_apps" =~ ^[Yy]$ ]]; then
         green_echo "[*] Removing all Flatpak applications..."
         flatpak uninstall --all -y 2>/dev/null || true

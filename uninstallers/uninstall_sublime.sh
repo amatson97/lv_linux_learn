@@ -97,16 +97,14 @@ if [ "$sublime_text_installed" -eq 1 ]; then
   if command -v subl &>/dev/null; then
     subl_path=$(which subl)
     green_echo "[!] Binary still exists at: $subl_path"
-    read -rp "Remove binary manually? [y/N]: " remove_bin
-    if [[ "${remove_bin,,}" == "y" ]]; then
+    if confirm_action "Remove binary manually at $subl_path?" "Remove Sublime Binary"; then
       sudo rm -f "$subl_path"
     fi
   fi
   
   # Remove user config (optional - ask user)
   if [ -d "$HOME/.config/sublime-text" ]; then
-    read -rp "Remove Sublime Text configuration files? [y/N]: " remove_config
-    if [[ "${remove_config,,}" == "y" ]]; then
+    if confirm_action "Remove Sublime Text configuration files?\n\nThis will delete settings, packages, and themes." "Remove Sublime Config"; then
       green_echo "[*] Removing Sublime Text configuration..."
       rm -rf "$HOME/.config/sublime-text"
     fi
@@ -198,8 +196,7 @@ else
   if command -v smerge &>/dev/null; then
     smerge_path=$(which smerge)
     green_echo "[!] Binary still exists at: $smerge_path"
-    read -rp "Remove binary manually? [y/N]: " remove_bin
-    if [[ "${remove_bin,,}" == "y" ]]; then
+    if confirm_action "Remove binary manually at $smerge_path?" "Remove Sublime Merge Binary"; then
       sudo rm -f "$smerge_path"
     fi
   fi
@@ -208,8 +205,7 @@ else
   for dir in /opt/sublime_merge /usr/share/sublime_merge /usr/local/sublime_merge; do
     if [ -d "$dir" ]; then
       green_echo "[!] Found installation directory: $dir"
-      read -rp "Remove directory $dir? [y/N]: " remove_dir
-      if [[ "${remove_dir,,}" == "y" ]]; then
+      if confirm_action "Remove directory $dir?" "Remove Installation Directory"; then
         sudo rm -rf "$dir"
       fi
     fi
@@ -225,8 +221,7 @@ else
   
   # Remove user config (optional - ask user)
   if [ -d "$HOME/.config/sublime-merge" ]; then
-    read -rp "Remove Sublime Merge configuration files? [y/N]: " remove_config
-    if [[ "${remove_config,,}" == "y" ]]; then
+    if confirm_action "Remove Sublime Merge configuration files?\n\nThis will delete settings and preferences." "Remove Sublime Merge Config"; then
       green_echo "[*] Removing Sublime Merge configuration..."
       rm -rf "$HOME/.config/sublime-merge"
     fi
@@ -234,8 +229,7 @@ else
   
   # Remove local user installation
   if [ -d "$HOME/.local/share/sublime_merge" ]; then
-    read -rp "Remove local Sublime Merge installation? [y/N]: " remove_local
-    if [[ "${remove_local,,}" == "y" ]]; then
+    if confirm_action "Remove local Sublime Merge installation?" "Remove Local Installation"; then
       rm -rf "$HOME/.local/share/sublime_merge"
     fi
   fi

@@ -32,19 +32,10 @@ main() {
     echo "WARNING: This will remove Docker and all containers, images, volumes, and networks!"
     echo ""
     
-    # GUI confirmation using zenity if available (for menu.py compatibility)
-    if command -v zenity &> /dev/null; then
-        if ! zenity --question \
-            --title="Confirm Docker Uninstall" \
-            --text="⚠️ WARNING: This will remove Docker and ALL data:\n\n• All containers\n• All images\n• All volumes\n• All networks\n\nAre you sure you want to continue?" \
-            --width=400 2>/dev/null; then
-            green_echo "[*] Uninstall cancelled."
-            return 0
-        fi
-    else
-        green_echo "[!] WARNING: About to remove Docker and all data!"
-        green_echo "[*] Press Ctrl+C within 5 seconds to cancel..."
-        sleep 5
+    # Use universal confirmation helper from main.sh
+    if ! confirm_action "⚠️ WARNING: This will remove Docker and ALL data:\n\n• All containers\n• All images\n• All volumes\n• All networks\n\nAre you sure you want to continue?" "Confirm Docker Uninstall"; then
+        green_echo "[*] Uninstall cancelled."
+        return 0
     fi
     
     # Stop all containers

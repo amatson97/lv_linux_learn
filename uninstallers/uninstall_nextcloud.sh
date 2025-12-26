@@ -37,7 +37,11 @@ main() {
     sudo rm -f /etc/apt/sources.list.d/nextcloud*.list
     
     # Remove user data (optional)
-    read -rp "Do you want to remove Nextcloud configuration? [y/N]: " remove_data
+    if confirm_action "Do you want to remove Nextcloud configuration?\n\nThis will delete saved accounts and settings." "Remove Nextcloud Config"; then
+        remove_data="y"
+    else
+        remove_data="n"
+    fi
     if [[ "$remove_data" =~ ^[Yy]$ ]]; then
         green_echo "[*] Removing Nextcloud configuration..."
         rm -rf "$HOME/.config/Nextcloud"

@@ -5,6 +5,54 @@ green_echo() {
   echo -e $'\e[32m'"$1"$'\e[0m'
 }
 
+# Universal confirmation prompt that works in GUI (menu.py), terminal, and non-interactive environments
+# Usage: confirm_action "Question text?" "Dialog Title" && do_something
+# Returns: 0 if confirmed, 1 if cancelled
+confirm_action() {
+  local question="${1:-Are you sure you want to continue?}"
+  local title="${2:-Confirm Action}"
+  local default_no="${3:-yes}"  # "yes" = default to No, "no" = default to Yes
+  
+  # Smart confirmation: GUI dialog > interactive prompt > auto-confirm
+  if command -v zenity &> /dev/null && [ -n "$DISPLAY" ]; then
+    # GUI environment with zenity available (menu.py)
+    if zenity --question --title="$title" --text="$question" --width=400 2>/dev/null; then
+      return 0  # Yes/OK clicked
+    else
+      return 1  # No/Cancel clicked
+    fi
+  elif [ -t 0 ]; then
+    # Interactive terminal (stdin is a tty)
+    local prompt="$question [y/N]: "
+    if [ "$default_no" = "no" ]; then
+      prompt="$question [Y/n]: "
+    fi
+    
+    read -rp "$prompt" response
+    if [ "$default_no" = "no" ]; then
+      # Default yes - anything except explicit 'n' is yes
+      if [[ "$response" =~ ^[Nn]$ ]]; then
+        return 1
+      else
+        return 0
+      fi
+    else
+      # Default no - only explicit 'y' is yes
+      if [[ "$response" =~ ^[Yy]$ ]]; then
+        return 0
+      else
+        return 1
+      fi
+    fi
+  else
+    # Non-interactive environment (automated script/pipe)
+    green_echo "[!] Non-interactive mode: auto-confirming after 3 seconds..."
+    green_echo "[*] Press Ctrl+C to cancel..."
+    sleep 3
+    return 0  # Auto-confirm in non-interactive mode
+  fi
+}
+
 user_in_nordvpn_group() {
   id -nG "$USER" | grep -qw "nordvpn"
 }
@@ -448,9 +496,7 @@ show_menu() {
 # Uninstaller helper functions
 confirm_uninstall() {
   local package_name="$1"
-  echo ""
-  read -rp "Are you sure you want to uninstall $package_name? [y/N]: " confirm
-  [[ "$confirm" =~ ^[Yy]$ ]]
+  confirm_action "Are you sure you want to uninstall $package_name?" "Confirm Uninstall"
 }
 
 check_installed() {

@@ -37,7 +37,11 @@ main() {
     sudo rm -f /etc/apt/sources.list.d/google-chrome.list
     
     # Remove user data (optional)
-    read -rp "Do you want to remove Chrome user data? [y/N]: " remove_data
+    if confirm_action "Do you want to remove Chrome user data?\n\nThis will delete bookmarks, history, passwords, etc." "Remove Chrome Data"; then
+        remove_data="y"
+    else
+        remove_data="n"
+    fi
     if [[ "$remove_data" =~ ^[Yy]$ ]]; then
         green_echo "[*] Removing Chrome user data..."
         rm -rf "$HOME/.config/google-chrome"

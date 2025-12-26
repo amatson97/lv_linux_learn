@@ -37,7 +37,11 @@ main() {
     sudo rm -f /etc/apt/sources.list.d/winehq*.list
     
     # Remove user data (optional)
-    read -rp "Do you want to remove Wine prefix data (~/.wine)? [y/N]: " remove_data
+    if confirm_action "Do you want to remove Wine prefix data (~/.wine)?\n\nThis will delete all Windows application data." "Remove Wine Data"; then
+        remove_data="y"
+    else
+        remove_data="n"
+    fi
     if [[ "$remove_data" =~ ^[Yy]$ ]]; then
         green_echo "[*] Removing Wine prefix data..."
         rm -rf "$HOME/.wine"
