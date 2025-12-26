@@ -25,6 +25,9 @@ class ScriptRepository:
         self.script_cache_dir = self.config_dir / "script_cache"
         self.log_file = self.config_dir / "logs" / "repository.log"
         
+        # Detect if running from local repository
+        self.local_repo_root = self._detect_local_repository()
+        
         # Initialize
         self._ensure_directories()
         self._init_config()
@@ -82,6 +85,68 @@ class ScriptRepository:
         """Refresh the repository URL from current configuration"""
         self.config = self.load_config()
         self.repo_url = self.get_effective_repository_url()
+    
+    def _detect_local_repository(self):
+        """Detect if running from a local git repository of lv_linux_learn
+        
+        Returns:
+            Path object if local repo detected, None otherwise
+        """
+        # Check common locations for local repository
+        possible_paths = [
+            Path.home() / "lv_linux_learn",
+            Path.cwd(),
+            Path(__file__).parent.parent,  # lib/../ = repo root
+        ]
+        
+        for path in possible_paths:
+            if path.exists():
+                # Check for manifest.json and scripts/ directory as indicators
+                if (path / "manifest.json").exists() and (path / "scripts").exists():
+                    logging.info(f"Local repository detected at: {path}")
+                    return path
+        
+        return None
+    
+    def _get_local_script_path(self, script_id, manifest_path=None):
+        """Get path to script in local repository if available
+        
+        Args:
+            script_id: Script ID to find
+            manifest_path: Optional specific manifest
+            
+        Returns:
+            Path object if found, None otherwise
+        """
+        if not self.local_repo_root:
+            return None
+        
+        # Get script info from manifest
+        script = self.get_script_by_id(script_id, manifest_path=manifest_path)
+        if not script:
+            return None
+        
+        # Build local path
+        file_name = script.get('file_name')
+        category = script.get('category')
+        
+        if category == 'install':
+            local_path = self.local_repo_root / "scripts" / file_name
+        elif category == 'tools':
+            local_path = self.local_repo_root / "tools" / file_name
+        elif category == 'exercises':
+            local_path = self.local_repo_root / "bash_exercises" / file_name
+        elif category == 'uninstall':
+            local_path = self.local_repo_root / "uninstallers" / file_name
+        elif category == 'includes':
+            local_path = self.local_repo_root / "includes" / file_name
+        else:
+            return None
+        
+        if local_path.exists():
+            return local_path
+        
+        return None
     
     def calculate_script_checksum(self, script_id):
         """Download a script and calculate its checksum (for manifest generation)"""
@@ -413,8 +478,31 @@ class ScriptRepository:
         
         dest_path = self.script_cache_dir / category / filename
         
+        # Try to use local repository file first (skip GitHub CDN cache issues)
+        local_script_path = self._get_local_script_path(script_id, manifest_path=manifest_path)
+        if local_script_path and local_script_path.exists():
+            try:
+                logging.info(f"Using local repository file: {local_script_path}")
+                with open(local_script_path, 'rb') as f:
+                    content = f.read()
+                
+                # Save to cache
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(dest_path, 'wb') as f:
+                    f.write(content)
+                
+                # Make executable
+                os.chmod(str(dest_path), 0o755)
+                logging.info(f"Successfully copied local script to cache: {script_id}")
+                return True, str(local_script_path)
+                
+            except Exception as e:
+                logging.warning(f"Failed to copy local file, falling back to download: {e}")
+                # Fall through to download
+        
         try:
-            # Download script
+            # Download script from remote URL
+            logging.info(f"Downloading from remote: {download_url}")
             with urllib.request.urlopen(download_url, timeout=30) as response:
                 content = response.read()
             
