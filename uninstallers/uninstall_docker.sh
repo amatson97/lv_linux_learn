@@ -30,11 +30,21 @@ main() {
     # Warning about data loss
     echo ""
     echo "WARNING: This will remove Docker and all containers, images, volumes, and networks!"
-    read -rp "Are you sure you want to continue? [y/N]: " confirm
+    echo ""
     
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        green_echo "[*] Uninstall cancelled."
-        return 0
+    # GUI confirmation using zenity if available (for menu.py compatibility)
+    if command -v zenity &> /dev/null; then
+        if ! zenity --question \
+            --title="Confirm Docker Uninstall" \
+            --text="⚠️ WARNING: This will remove Docker and ALL data:\n\n• All containers\n• All images\n• All volumes\n• All networks\n\nAre you sure you want to continue?" \
+            --width=400 2>/dev/null; then
+            green_echo "[*] Uninstall cancelled."
+            return 0
+        fi
+    else
+        green_echo "[!] WARNING: About to remove Docker and all data!"
+        green_echo "[*] Press Ctrl+C within 5 seconds to cancel..."
+        sleep 5
     fi
     
     # Stop all containers
