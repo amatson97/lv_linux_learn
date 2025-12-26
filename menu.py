@@ -1136,6 +1136,59 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             print(f"Warning: Failed to parse script metadata: {e}")
         return {}
 
+    def _prompt_for_script_inputs(self, script_name: str, script_path: str) -> dict:
+        """
+        Prompt for required environment variables based on script name.
+        Returns dict of environment variables to set.
+        """
+        env_vars = {}
+        
+        # Check if this is a ZeroTier/VPN script that needs network ID
+        if 'vpn' in script_name.lower() or 'zerotier' in script_name.lower():
+            # Check if ZEROTIER_NETWORK_ID is already set
+            if 'ZEROTIER_NETWORK_ID' not in os.environ:
+                dialog = Gtk.MessageDialog(
+                    transient_for=self,
+                    flags=0,
+                    message_type=Gtk.MessageType.QUESTION,
+                    buttons=Gtk.ButtonsType.OK_CANCEL,
+                    text="ZeroTier Network ID Required"
+                )
+                dialog.format_secondary_text(
+                    "This script requires a ZeroTier Network ID.\n\n"
+                    "How to find your Network ID:\n"
+                    "1. Log in to ZeroTier Central: https://my.zerotier.com/\n"
+                    "2. Select your network from the list\n"
+                    "3. The Network ID is at the top (16-character hex string)\n"
+                    "   Example: 8bd5124fd60a971f\n\n"
+                    "Enter your ZeroTier Network ID:"
+                )
+                
+                # Add entry field
+                content_area = dialog.get_content_area()
+                entry = Gtk.Entry()
+                entry.set_placeholder_text("e.g., 8bd5124fd60a971f")
+                entry.set_max_length(16)
+                content_area.pack_start(entry, False, False, 5)
+                dialog.show_all()
+                
+                response = dialog.run()
+                network_id = entry.get_text().strip()
+                dialog.destroy()
+                
+                if response == Gtk.ResponseType.OK and network_id:
+                    # Validate format (16 hex characters)
+                    import re
+                    if re.match(r'^[0-9a-fA-F]{16}$', network_id):
+                        env_vars['ZEROTIER_NETWORK_ID'] = network_id
+                    else:
+                        self.show_error_dialog("Invalid Network ID format.\nMust be 16 hexadecimal characters.")
+                        return None  # Indicate cancellation
+                elif response != Gtk.ResponseType.OK:
+                    return None  # User cancelled
+        
+        return env_vars
+
     def _execute_script_unified(self, script_path: str, metadata: dict = None) -> bool:
         """
         Centralized script execution logic handling all manifest types.
@@ -1156,13 +1209,26 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         source_type = metadata.get("source_type", "unknown")
         source_name = metadata.get("source_name", "Unknown Source")
         
+        # Check for required environment variables and prompt if needed
+        env_vars = self._prompt_for_script_inputs(script_name, script_path)
+        if env_vars is None:  # User cancelled
+            self.terminal.feed(b"\x1b[33m[*] Script execution cancelled by user\x1b[0m\r\n")
+            return False
+        
+        # Build environment variable exports
+        env_exports = ""
+        if env_vars:
+            for key, value in env_vars.items():
+                env_exports += f"export {key}='{value}'; "
+                self.terminal.feed(f"\x1b[36m[*] Setting {key}\x1b[0m\r\n".encode())
+        
         # Handle local custom files - execute directly from original location (no caching)
         if script_type == "local" or source_type == "custom_local":
             file_path = script_path[7:] if script_path.startswith('file://') else script_path
             if os.path.isfile(file_path):
                 abs_path = os.path.abspath(file_path)
                 # Use source instead of bash subshell for interactive scripts
-                command = f"source '{abs_path}'\n"
+                command = f"{env_exports}source '{abs_path}'\n"
                 self.terminal.feed(f"\x1b[33m[*] Executing Local Custom script: {script_name}\x1b[0m\r\n".encode())
                 self.terminal.feed(f"\x1b[36m[*] Source: {source_name}\x1b[0m\r\n".encode())
                 self.terminal.feed_child(command.encode())
@@ -1177,7 +1243,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 self._ensure_includes_available()
                 cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
                 # Use source instead of bash subshell for interactive scripts
-                command = f"cd '{cache_root}' && source '{script_path}'\n"
+                command = f"{env_exports}cd '{cache_root}' && source '{script_path}'\n"
                 
                 # Show appropriate message based on source
                 if source_type == "public_repo":
