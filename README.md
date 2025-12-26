@@ -14,7 +14,18 @@
 
 ## 🚀 Quick Start
 
-**New to Linux? Get started in 3 steps:**
+**⚡ One-Command Install (Recommended):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/install.sh | bash
+```
+This automated installer will:
+- ✅ Verify Ubuntu 24.04 LTS compatibility
+- ✅ Install all dependencies (Python, GTK, Git)
+- ✅ Clone the repository to `~/lv_linux_learn`
+- ✅ Make scripts executable
+- ✅ Optionally launch GUI or CLI menu
+
+**Or manually set up in 3 steps:**
 
 ```bash
 # 1. Clone this repository
