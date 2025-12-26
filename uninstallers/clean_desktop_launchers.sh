@@ -24,7 +24,7 @@ main() {
     
     # Remove desktop icons
     green_echo "[*] Removing desktop icons..."
-    rm -f "$HOME/Desktop/ZeroTierInfo.desktop"
+    rm -f "$HOME/Desktop/ShowZerotierInfo.desktop"
     rm -f "$HOME/Desktop/ShowMeshnetInfo.desktop"
     rm -f "$HOME/Desktop/ShowNordVPNInfo.desktop"
     rm -f "$HOME/Desktop/ShowHamachiInfo.desktop"
