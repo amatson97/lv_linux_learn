@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.2.2",
-  "last_updated": "2025-12-26T23:33:40+00:00",
+  "last_updated": "2025-12-26T23:40:00+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -50,7 +50,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -66,7 +66,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -82,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -98,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -114,7 +114,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -130,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -146,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -162,7 +162,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -178,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:40+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -194,7 +194,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -210,7 +210,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -226,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:00+00:00"
     }
 ,
     {
@@ -242,7 +242,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -258,7 +258,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -274,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -290,7 +290,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -306,7 +306,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -322,7 +322,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -338,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -354,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -370,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -386,7 +386,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -402,7 +402,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -418,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -434,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -450,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -466,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -482,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -493,12 +493,12 @@
       "file_name": "clean_desktop_launchers.sh",
       "relative_path": "uninstallers/clean_desktop_launchers.sh",
       "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/clean_desktop_launchers.sh",
-      "checksum": "sha256:2cdc16e9f8a248a3124735ce1425a0e58827b65f65e9e8bd1a7b20be3593b1b3",
+      "checksum": "sha256:e5e8ba773f6657b0b8cb66c9dc4af3d132dbdccfe2bfd6159f145aa5bb5e94db",
       "description": "Remove desktop launchers and helper scripts created by lv_linux_learn",
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -514,7 +514,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -530,7 +530,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -546,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -562,7 +562,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -578,7 +578,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -594,7 +594,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -610,7 +610,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -626,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -642,7 +642,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -658,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -674,7 +674,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
 ,
     {
@@ -690,7 +690,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2025-12-26T23:33:41+00:00"
+      "last_modified": "2025-12-26T23:40:01+00:00"
     }
   ]
 }
