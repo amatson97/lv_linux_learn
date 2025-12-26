@@ -1161,7 +1161,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             file_path = script_path[7:] if script_path.startswith('file://') else script_path
             if os.path.isfile(file_path):
                 abs_path = os.path.abspath(file_path)
-                command = f"bash '{abs_path}'\n"
+                # Use source instead of bash subshell for interactive scripts
+                command = f"source '{abs_path}'\n"
                 self.terminal.feed(f"\x1b[33m[*] Executing Local Custom script: {script_name}\x1b[0m\r\n".encode())
                 self.terminal.feed(f"\x1b[36m[*] Source: {source_name}\x1b[0m\r\n".encode())
                 self.terminal.feed_child(command.encode())
@@ -1175,7 +1176,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             if os.path.isfile(script_path):
                 self._ensure_includes_available()
                 cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-                command = f"cd '{cache_root}' && bash '{script_path}'\n"
+                # Use source instead of bash subshell for interactive scripts
+                command = f"cd '{cache_root}' && source '{script_path}'\n"
                 
                 # Show appropriate message based on source
                 if source_type == "public_repo":
@@ -3302,8 +3304,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 current_permissions = path_obj.stat().st_mode
                 path_obj.chmod(current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
                 
-                # Execute in terminal
-                cmd = f"bash {shlex.quote(str(path_obj))}\n"
+                # Execute in terminal using source for interactive scripts
+                cmd = f"source {shlex.quote(str(path_obj))}\n"
                 self.terminal.feed_child(cmd.encode())
                 
                 success_count += 1
@@ -3352,8 +3354,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             current_permissions = path_obj.stat().st_mode
             path_obj.chmod(current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             
-            # Execute in terminal
-            cmd = f"bash {shlex.quote(str(path_obj))}\n"
+            # Execute in terminal using source for interactive scripts
+            cmd = f"source {shlex.quote(str(path_obj))}\n"
             self.terminal.feed_child(cmd.encode())
             
             GLib.timeout_add(1000, self._complete_terminal_operation)
@@ -5322,7 +5324,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Fallback: try to execute as local script if it exists
         if os.path.isfile(script_path):
             abs_path = os.path.abspath(script_path)
-            command = f"bash '{abs_path}'\n"
+            # Use source instead of bash subshell for interactive scripts
+            command = f"source '{abs_path}'\n"
             self.terminal.feed(f"\x1b[33m[*] Executing local script\x1b[0m\r\n".encode())
             self.terminal.feed_child(command.encode())
         else:
