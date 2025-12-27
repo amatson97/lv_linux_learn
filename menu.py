@@ -105,6 +105,24 @@ except ImportError:
     get_local_repository_manifests = None
 
 try:
+    from lib.script_execution import (
+        ScriptEnvironmentManager,
+        ScriptExecutionContext,
+        ScriptValidator,
+        get_script_env_requirements,
+        validate_script_env_var,
+        build_script_command
+    )
+except ImportError:
+    print("Warning: Script execution module not available")
+    ScriptEnvironmentManager = None
+    ScriptExecutionContext = None
+    ScriptValidator = None
+    get_script_env_requirements = None
+    validate_script_env_var = None
+    build_script_command = None
+
+try:
     # optional nicer icons / pixbuf usage if available
     from gi.repository import GdkPixbuf
 except Exception:
@@ -1139,59 +1157,102 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     def _prompt_for_script_inputs(self, script_name: str, script_path: str) -> dict:
         """
         Prompt for required environment variables based on script name.
-        Returns dict of environment variables to set.
+        Returns dict of environment variables to set, or None if user cancelled.
+        
+        Business logic delegated to ScriptEnvironmentManager for testability.
         """
+        # Use business logic module if available, otherwise fallback
+        if ScriptEnvironmentManager:
+            env_manager = ScriptEnvironmentManager()
+            env_requirements = env_manager.get_required_env_vars(script_name)
+        else:
+            # Fallback: inline logic
+            env_requirements = {}
+            if 'vpn' in script_name.lower() or 'zerotier' in script_name.lower():
+                env_requirements['ZEROTIER_NETWORK_ID'] = {
+                    'required': True,
+                    'prompt': 'Enter your ZeroTier Network ID',
+                    'description': 'ZeroTier network identifier (16 hex characters)',
+                    'help_url': 'https://my.zerotier.com/',
+                    'example': '8bd5124fd60a971f'
+                }
+        
+        if not env_requirements:
+            return {}
+        
         env_vars = {}
         
-        # Check if this is a ZeroTier/VPN script that needs network ID
-        if 'vpn' in script_name.lower() or 'zerotier' in script_name.lower():
-            # Check if ZEROTIER_NETWORK_ID is already set
-            if 'ZEROTIER_NETWORK_ID' not in os.environ:
-                dialog = Gtk.MessageDialog(
-                    transient_for=self,
-                    flags=0,
-                    message_type=Gtk.MessageType.QUESTION,
-                    buttons=Gtk.ButtonsType.OK_CANCEL,
-                    text="ZeroTier Network ID Required"
-                )
-                dialog.format_secondary_text(
-                    "This script requires a ZeroTier Network ID.\n\n"
-                    "How to find your Network ID:\n"
-                    "1. Log in to ZeroTier Central: https://my.zerotier.com/\n"
-                    "2. Select your network from the list\n"
-                    "3. The Network ID is at the top (16-character hex string)\n"
-                    "   Example: 8bd5124fd60a971f\n\n"
-                    "Enter your ZeroTier Network ID:"
-                )
-                
-                # Add entry field
-                content_area = dialog.get_content_area()
-                entry = Gtk.Entry()
-                entry.set_placeholder_text("e.g., 8bd5124fd60a971f")
+        # Process each required environment variable
+        for var_name, requirements in env_requirements.items():
+            # Check if already set in environment
+            if ScriptEnvironmentManager:
+                if env_manager.is_env_var_set(var_name):
+                    continue
+            else:
+                if var_name in os.environ and os.environ[var_name]:
+                    continue
+            
+            # Show GTK dialog to prompt for value
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.QUESTION,
+                buttons=Gtk.ButtonsType.OK_CANCEL,
+                text=f"{var_name} Required"
+            )
+            
+            # Build secondary text with help information
+            secondary_text = requirements.get('description', f"This script requires {var_name}.")
+            if 'help_url' in requirements:
+                secondary_text += f"\n\nFind your value at: {requirements['help_url']}"
+            if 'example' in requirements:
+                secondary_text += f"\nExample: {requirements['example']}"
+            secondary_text += f"\n\n{requirements.get('prompt', 'Enter value:')}"
+            
+            dialog.format_secondary_text(secondary_text)
+            
+            # Add entry field
+            content_area = dialog.get_content_area()
+            entry = Gtk.Entry()
+            entry.set_placeholder_text(requirements.get('example', ''))
+            if var_name == 'ZEROTIER_NETWORK_ID':
                 entry.set_max_length(16)
-                content_area.pack_start(entry, False, False, 5)
-                dialog.show_all()
-                
-                response = dialog.run()
-                network_id = entry.get_text().strip()
-                dialog.destroy()
-                
-                if response == Gtk.ResponseType.OK and network_id:
-                    # Validate format (16 hex characters)
+            content_area.pack_start(entry, False, False, 5)
+            dialog.show_all()
+            
+            response = dialog.run()
+            value = entry.get_text().strip()
+            dialog.destroy()
+            
+            if response != Gtk.ResponseType.OK:
+                return None  # User cancelled
+            
+            # Validate the input using business logic
+            if ScriptEnvironmentManager:
+                is_valid, error_msg = env_manager.validate_env_var(var_name, value)
+            else:
+                # Fallback validation
+                if var_name == 'ZEROTIER_NETWORK_ID':
                     import re
-                    if re.match(r'^[0-9a-fA-F]{16}$', network_id):
-                        env_vars['ZEROTIER_NETWORK_ID'] = network_id
-                    else:
-                        self.show_error_dialog("Invalid Network ID format.\nMust be 16 hexadecimal characters.")
-                        return None  # Indicate cancellation
-                elif response != Gtk.ResponseType.OK:
-                    return None  # User cancelled
+                    is_valid = bool(re.match(r'^[0-9a-fA-F]{16}$', value))
+                    error_msg = "Invalid Network ID format. Must be 16 hexadecimal characters."
+                else:
+                    is_valid = bool(value)
+                    error_msg = f"{var_name} cannot be empty."
+            
+            if not is_valid:
+                self.show_error_dialog(error_msg)
+                return None  # Validation failed
+            
+            env_vars[var_name] = value
         
         return env_vars
 
     def _execute_script_unified(self, script_path: str, metadata: dict = None) -> bool:
         """
         Centralized script execution logic handling all manifest types.
+        
+        Business logic delegated to script_execution module for testability.
         
         Logic:
         - Local Custom (custom_local): Execute directly from original location
@@ -1205,15 +1266,52 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         if not metadata:
             metadata = {"type": "remote" if not os.path.isfile(script_path) else "local"}
         
-        script_type = metadata.get("type", "remote")
-        source_type = metadata.get("source_type", "unknown")
-        source_name = metadata.get("source_name", "Unknown Source")
-        
         # Check for required environment variables and prompt if needed
         env_vars = self._prompt_for_script_inputs(script_name, script_path)
         if env_vars is None:  # User cancelled
             self.terminal.feed(b"\x1b[33m[*] Script execution cancelled by user\x1b[0m\r\n")
             return False
+        
+        # Use business logic module if available
+        if build_script_command:
+            command, status = build_script_command(script_path, metadata, env_vars)
+            
+            if not command:
+                # Not ready to execute - show status message
+                self.terminal.feed(f"\x1b[33m[*] {status}\x1b[0m\r\n".encode())
+                return False
+            
+            # Determine display message based on metadata
+            script_type = metadata.get("type", "remote")
+            source_type = metadata.get("source_type", "unknown")
+            source_name = metadata.get("source_name", "Unknown Source")
+            
+            # Show appropriate execution message
+            if script_type == "local" or source_type == "custom_local":
+                self.terminal.feed(f"\x1b[33m[*] Executing Local Custom script: {script_name}\x1b[0m\r\n".encode())
+                self.terminal.feed(f"\x1b[36m[*] Source: {source_name}\x1b[0m\r\n".encode())
+            elif script_type == "cached":
+                if source_type == "public_repo":
+                    self.terminal.feed(f"\x1b[33m[*] Executing Online Public script: {script_name}\x1b[0m\r\n".encode())
+                elif source_type == "custom_repo":
+                    self.terminal.feed(f"\x1b[33m[*] Executing Online Custom script: {script_name}\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[36m[*] Source: {source_name}\x1b[0m\r\n".encode())
+                else:
+                    self.terminal.feed(f"\x1b[33m[*] Executing cached script: {script_name}\x1b[0m\r\n".encode())
+            
+            # Show env var settings
+            if env_vars:
+                for key in env_vars.keys():
+                    self.terminal.feed(f"\x1b[36m[*] Setting {key}\x1b[0m\r\n".encode())
+            
+            # Execute command in terminal
+            self.terminal.feed_child(command.encode())
+            return True
+        
+        # Fallback: inline implementation (original code)
+        script_type = metadata.get("type", "remote")
+        source_type = metadata.get("source_type", "unknown")
+        source_name = metadata.get("source_name", "Unknown Source")
         
         # Build environment variable exports
         env_exports = ""
