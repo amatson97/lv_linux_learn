@@ -2199,10 +2199,66 @@ search_scripts() {
   sleep 1
 }
 
+prompt_for_script_inputs() {
+  local script_name="$1"
+  
+  # Check if this is a ZeroTier/VPN script that needs network ID
+  if [[ "$script_name" == *"vpn"* ]] || [[ "$script_name" == *"zerotier"* ]]; then
+    # Check if ZEROTIER_NETWORK_ID is already set
+    if [ -z "${ZEROTIER_NETWORK_ID:-}" ]; then
+      echo
+      green_echo "=== ZeroTier Network ID Required ==="
+      echo
+      echo "This script requires a ZeroTier Network ID."
+      echo
+      echo "How to find your Network ID:"
+      echo "  1. Log in to ZeroTier Central: https://my.zerotier.com/"
+      echo "  2. Select your network from the list"
+      echo "  3. The Network ID is at the top (16-character hex string)"
+      echo "     Example: 8bd5124fd60a971f"
+      echo
+      read -rp "Enter your ZeroTier Network ID (or 'cancel' to abort): " network_id
+      
+      if [[ "$network_id" == "cancel" ]] || [[ "$network_id" == "back" ]]; then
+        green_echo "[*] Script execution cancelled"
+        return 1
+      fi
+      
+      if [ -z "$network_id" ]; then
+        green_echo "[!] Error: No network ID provided"
+        sleep 2
+        return 1
+      fi
+      
+      # Validate format (16 hex characters)
+      if ! [[ "$network_id" =~ ^[0-9a-fA-F]{16}$ ]]; then
+        green_echo "[!] Error: Invalid network ID format (should be 16 hex characters)"
+        sleep 2
+        return 1
+      fi
+      
+      # Export the environment variable
+      export ZEROTIER_NETWORK_ID="$network_id"
+      green_echo "[*] Setting ZEROTIER_NETWORK_ID environment variable"
+      echo
+    else
+      green_echo "[*] Using ZEROTIER_NETWORK_ID from environment"
+      echo
+    fi
+  fi
+  
+  return 0
+}
+
 run_script() {
   local script="$1"
   local script_name
   script_name="$(basename "$script")"
+  
+  # Check for required environment variables and prompt if needed
+  if ! prompt_for_script_inputs "$script_name"; then
+    return 1
+  fi
   
   # Priority 1: Always check if script is available in cache first
   if [ "$REPO_ENABLED" = "true" ] && command -v get_cached_script_path &> /dev/null; then
