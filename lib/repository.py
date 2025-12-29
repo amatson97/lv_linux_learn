@@ -794,8 +794,10 @@ class ScriptRepository:
             
         origin_file = includes_dir / ".origin"
         timestamp_file = includes_dir / ".timestamp"
+        main_file = includes_dir / "main.sh"
         
-        if not (origin_file.exists() and timestamp_file.exists()):
+        # CRITICAL: Check that actual include files exist, not just metadata
+        if not (origin_file.exists() and timestamp_file.exists() and main_file.exists()):
             return False
             
         try:
