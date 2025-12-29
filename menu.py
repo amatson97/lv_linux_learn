@@ -882,12 +882,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     cached_path = self.repository.get_cached_script_path(script_id)
                     script_path = str(cached_path) if cached_path else f"cache://pending/{script_id}"
                 
+                # Determine script type: local, cached, or remote
+                if source_type == 'local':
+                    script_type = "local"
+                elif os.path.isfile(script_path):
+                    script_type = "cached"  # Script is already in cache
+                else:
+                    script_type = "remote"  # Script needs to be downloaded
+                
                 # Create metadata
                 metadata = {
                     "script_id": script_id,
                     "source_type": f"{source_type}_repo",
                     "source_name": source_name,
-                    "type": "local" if source_type == 'local' else "remote",
+                    "type": script_type,
                     "file_exists": os.path.isfile(script_path) if not script_path.startswith("cache://") else False
                 }
                 
