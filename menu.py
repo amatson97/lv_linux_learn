@@ -83,8 +83,6 @@ except ImportError:
     print("Warning: UI helpers module not available")
     UI = None
 
-RepoOps = None  # Deprecated
-
 try:
     from lib.ai_categorizer import OllamaAnalyzer, check_ollama_available
 except ImportError:
@@ -5329,7 +5327,6 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     
     def _restart_application(self):
         """Restart the application"""
-        print("[DEBUG] Restarting application...")
         import sys
         python = sys.executable
         script = os.path.abspath(__file__)

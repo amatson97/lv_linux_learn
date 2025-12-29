@@ -382,7 +382,6 @@ class CustomManifestCreator:
             cached_manifest = config_dir / cache_filename
             if cached_manifest.exists():
                 cached_manifest.unlink()
-                print(f"[DEBUG] Deleted cached manifest: {cached_manifest}")
             
             # Check if this was the active manifest and clear it
             config = self._load_config()
