@@ -38,6 +38,9 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 
+# Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
+DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+
 # Import repository management
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 try:
@@ -942,7 +945,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         """
         # Use script_manager module if available
         if script_manager:
-            return script_manager.is_script_cached(self.repository, script_id, script_path, category)
+            result = script_manager.is_script_cached(self.repository, script_id, script_path, category)
+            return result
         
         # Fallback implementation
         if not self.repository or not self.repository.script_cache_dir:
@@ -951,12 +955,14 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Method 1: Use script_id (most reliable)
         if script_id:
             cached_path = self.repository.get_cached_script_path(script_id)
-            if cached_path and os.path.isfile(cached_path):
+            exists = cached_path and os.path.isfile(cached_path)
+            if exists:
                 return True
         
         # Method 2: Check if script_path IS a cache path
         if script_path and str(self.repository.script_cache_dir) in str(script_path):
-            return os.path.isfile(script_path)
+            exists = os.path.isfile(script_path)
+            return exists
         
         # Method 3: Construct cache path from script_path and category
         if script_path and category:
@@ -966,7 +972,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 filename = os.path.basename(script_path)
             
             cache_path = self.repository.script_cache_dir / category / filename
-            if cache_path.exists():
+            exists = cache_path.exists()
+            if exists:
                 return True
         
         return False
@@ -1092,7 +1099,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             return metadata
         
         # CRITICAL: Check cache using centralized cache checker (only for online repositories)
-        if self._is_script_cached(script_id=metadata["script_id"], script_path=script_path, category=category):
+        is_cached = self._is_script_cached(script_id=metadata["script_id"], script_path=script_path, category=category)
+        if is_cached:
             metadata["type"] = "cached"
             metadata["file_exists"] = True
             metadata["source_type"] = source_type if source_type != "unknown" else "public_repo"
@@ -1535,16 +1543,23 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category=tab_name)
                 icon = "✓" if is_cached else "☁️"
                 
-                if is_cached and self.repository and script_id:
-                    cached_path = self.repository.get_cached_script_path(script_id)
+                # Default to provided path
+                path_to_store = script_path
+                
+                # If cached, resolve to actual cached path
+                if is_cached and self.repository:
+                    cached_path = None
+                    if script_id:
+                        cached_path = self.repository.get_cached_script_path(script_id)
+                    else:
+                        # Fallback: resolve by category + filename when script_id is missing
+                        filename = os.path.basename(script_path)
+                        cached_path = self.repository.get_cached_script_path(category=tab_name, filename=filename)
                     if cached_path and os.path.exists(cached_path):
                         path_to_store = str(cached_path)
                         metadata["type"] = "cached"
                         metadata["file_exists"] = True
-                    else:
-                        path_to_store = script_path
-                else:
-                    path_to_store = script_path
+                        pass  # removed debug log
             
             liststore.append([icon, display_name, path_to_store, description, False, json.dumps(metadata), script_id])
 
@@ -3784,7 +3799,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 self.terminal.feed(f"\x1b[36m[*] Cleared {cache_files_cleared} manifest cache file(s)\x1b[0m\r\n".encode())
             
             # Reload scripts with repository instance
-            if manifest_loader and self.repository:
+            if manifest_service and self.repository:
                 _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, _SCRIPT_ID_MAP = \
                     manifest_service.load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
                 
@@ -3860,12 +3875,19 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             icon = "\u2713" if is_cached else "\u2601\ufe0f"
                         
                         path_to_store = script_path
-                        if is_cached and self.repository and script_id:
-                            cached_path = self.repository.get_cached_script_path(script_id)
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                # Fallback: resolve by category + filename when script_id is missing
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category='install', filename=filename)
                             if cached_path and os.path.exists(cached_path):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
+                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: install cached path={path_to_store} name={SCRIPT_NAMES[i]}")
                         
                         self.install_liststore.append([icon, SCRIPT_NAMES[i], path_to_store, DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3888,12 +3910,18 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             icon = "\u2713" if is_cached else "\u2601\ufe0f"
                         
                         path_to_store = script_path
-                        if is_cached and self.repository and script_id:
-                            cached_path = self.repository.get_cached_script_path(script_id)
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category='tools', filename=filename)
                             if cached_path and os.path.exists(cached_path):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
+                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: tools cached path={path_to_store} name={TOOLS_NAMES[i]}")
                         
                         self.tools_liststore.append([icon, TOOLS_NAMES[i], path_to_store, TOOLS_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3916,12 +3944,18 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             icon = "\u2713" if is_cached else "\u2601\ufe0f"
                         
                         path_to_store = script_path
-                        if is_cached and self.repository and script_id:
-                            cached_path = self.repository.get_cached_script_path(script_id)
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category='exercises', filename=filename)
                             if cached_path and os.path.exists(cached_path):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
+                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: exercises cached path={path_to_store} name={EXERCISES_NAMES[i]}")
                         
                         self.exercises_liststore.append([icon, EXERCISES_NAMES[i], path_to_store, EXERCISES_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3944,12 +3978,18 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             icon = "\u2713" if is_cached else "\u2601\ufe0f"
                         
                         path_to_store = script_path
-                        if is_cached and self.repository and script_id:
-                            cached_path = self.repository.get_cached_script_path(script_id)
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category='uninstall', filename=filename)
                             if cached_path and os.path.exists(cached_path):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
+                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: uninstall cached path={path_to_store} name={UNINSTALL_NAMES[i]}")
                         
                         self.uninstall_liststore.append([icon, UNINSTALL_NAMES[i], path_to_store, UNINSTALL_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -5264,7 +5304,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         script_id = metadata.get('script_id', '')
                         is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category="install")
                         icon = "✓" if is_cached else "☁️"
-                        self.install_liststore.append([icon, SCRIPT_NAMES[i], script_path, DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+                        # Prefer cached full path when available
+                        path_to_store = script_path
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category="install", filename=filename)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        self.install_liststore.append([icon, SCRIPT_NAMES[i], path_to_store, DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
             # Clear and repopulate tools tab  
             if hasattr(self, 'tools_liststore'):
@@ -5275,7 +5328,19 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         script_id = metadata.get('script_id', '')
                         is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category="tools")
                         icon = "✓" if is_cached else "☁️"
-                        self.tools_liststore.append([icon, TOOLS_NAMES[i], script_path, TOOLS_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+                        path_to_store = script_path
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category="tools", filename=filename)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        self.tools_liststore.append([icon, TOOLS_NAMES[i], path_to_store, TOOLS_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
             # Clear and repopulate exercises tab
             if hasattr(self, 'exercises_liststore'):
@@ -5286,7 +5351,19 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         script_id = metadata.get('script_id', '')
                         is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category="exercises")
                         icon = "✓" if is_cached else "☁️"
-                        self.exercises_liststore.append([icon, EXERCISES_NAMES[i], script_path, EXERCISES_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+                        path_to_store = script_path
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category="exercises", filename=filename)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        self.exercises_liststore.append([icon, EXERCISES_NAMES[i], path_to_store, EXERCISES_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
             # Clear and repopulate uninstall tab
             if hasattr(self, 'uninstall_liststore'):
@@ -5297,7 +5374,19 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         script_id = metadata.get('script_id', '')
                         is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category="uninstall")
                         icon = "✓" if is_cached else "☁️"
-                        self.uninstall_liststore.append([icon, UNINSTALL_NAMES[i], script_path, UNINSTALL_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
+                        path_to_store = script_path
+                        if is_cached and self.repository:
+                            cached_path = None
+                            if script_id:
+                                cached_path = self.repository.get_cached_script_path(script_id)
+                            else:
+                                filename = os.path.basename(script_path)
+                                cached_path = self.repository.get_cached_script_path(category="uninstall", filename=filename)
+                            if cached_path and os.path.exists(cached_path):
+                                path_to_store = cached_path
+                                metadata["type"] = "cached"
+                                metadata["file_exists"] = True
+                        self.uninstall_liststore.append([icon, UNINSTALL_NAMES[i], path_to_store, UNINSTALL_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
                         
         except Exception as e:
             print(f"Error repopulating tab stores: {e}")
@@ -5397,13 +5486,27 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         metadata = self._get_script_metadata(model, treeiter)
         script_name = os.path.basename(script_path)
         
+        # DEBUG
+        import sys
+        if 'exercises' in metadata.get('source_type', ''):
+            print(f"DEBUG on_run_clicked: Exercise {script_name}", file=sys.stderr)
+            print(f"  script_path={script_path}", file=sys.stderr)
+            print(f"  metadata type={metadata.get('type')}", file=sys.stderr)
+            print(f"  os.path.isfile={os.path.isfile(script_path)}", file=sys.stderr)
+        
         # Use centralized execution logic
         success = self._execute_script_unified(script_path, metadata)
         
-        # If remote/uncached, offer to download
+        # If remote/uncached, auto-download then execute
         if not success and metadata.get("type") == "remote":
             if self.repository and self.repo_enabled:
-                manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
+                # Prefer metadata-provided script_id; fallback to pending path id; then name/path lookup
+                manifest_script_id = metadata.get("script_id") or (
+                    script_path.split("/")[-1] if str(script_path).startswith("cache://pending/") else None
+                )
+                manifest_path = None
+                if not manifest_script_id:
+                    manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
                 
                 if manifest_script_id:
                     # Auto-download without confirmation dialog
@@ -5460,7 +5563,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # If remote/uncached, offer to download
         if not success and metadata.get("type") == "remote":
             if self.repository and self.repo_enabled:
-                manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
+                # Prefer metadata script_id or pending path id
+                manifest_script_id = metadata.get("script_id") or (
+                    script_path.split("/")[-1] if str(script_path).startswith("cache://pending/") else None
+                )
+                manifest_path = None
+                if not manifest_script_id:
+                    manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
                 
                 if manifest_script_id:
                     dialog = Gtk.MessageDialog(
@@ -5562,7 +5671,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Check if this is an online script (Public or Custom) that needs to be cached first
         if self.repository and self.repo_enabled:
-            manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
+            # Prefer metadata script_id or pending path id; fallback to name/path lookup
+            manifest_script_id = metadata.get("script_id") or (
+                script_path.split("/")[-1] if str(script_path).startswith("cache://pending/") else None
+            )
+            manifest_path = None
+            if not manifest_script_id:
+                manifest_script_id, manifest_path = self._get_manifest_script_id(script_name, script_path)
             
             if manifest_script_id:
                 cached_path = self.repository.get_cached_script_path(manifest_script_id)
@@ -6417,6 +6532,14 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         """
         if not self.repository:
             return None, None
+
+        # Fast-path: pending cache URI encodes the script id
+        try:
+            sp = str(script_path)
+            if sp.startswith("cache://pending/"):
+                return sp.split("/")[-1], None
+        except Exception:
+            pass
         
         # Strip status icons and source tags from name for matching
         clean_name = script_name
@@ -6435,8 +6558,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             import re
             clean_name = re.sub(r'\[Custom:.*?\]', '', clean_name).strip()
         
-        # Get the script filename from path
+        # Get the script filename from path and possible id from pending path
         script_filename = os.path.basename(script_path)
+        pending_id = script_filename if str(script_path).startswith("cache://pending/") else None
         
         # If source is public or unspecified, try public manifest first
         if source_type == 'public' or source_type is None:
@@ -6452,9 +6576,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         scripts = all_scripts
                     
                     for script in scripts:
-                        # Match by name or filename
-                        if (script.get('name') == clean_name or 
-                            script.get('file_name') == script_filename):
+                        # Match by id, name or filename
+                        if ((pending_id and script.get('id') == pending_id) or
+                            (script.get('name') == clean_name) or
+                            (script.get('file_name') == script_filename)):
                             # Return with None manifest_path for public repo
                             return script.get('id'), None
             except Exception as e:

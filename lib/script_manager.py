@@ -10,6 +10,9 @@ import re
 from pathlib import Path
 from typing import Optional, Dict, Tuple
 
+# Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
+DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+
 try:
     from lib import config as C
 except ImportError:
@@ -252,28 +255,34 @@ class ScriptCache:
             True if script is in cache, False otherwise
         """
         if not repository or not repository.script_cache_dir:
+            pass  # removed debug log
             return False
         
         # Method 1: Use script_id (most reliable)
         if script_id:
             cached_path = repository.get_cached_script_path(script_id)
-            return cached_path is not None and os.path.exists(cached_path)
+            result = cached_path is not None and os.path.exists(cached_path) if cached_path else False
+            pass  # removed debug log
+            return result
         
         # Method 2: Check if script_path IS a cache path
         if script_path and str(repository.script_cache_dir) in str(script_path):
-            return os.path.exists(script_path)
+            exists = os.path.exists(script_path)
+            pass  # removed debug log
+            return exists
         
         # Method 3: Construct cache path from script_path and category
         if script_path and category:
             script_name = os.path.basename(script_path)
             potential_cache_path = repository.script_cache_dir / category / script_name
-            if potential_cache_path.exists():
-                return True
-            # Also check without category subdirectory
-            potential_cache_path = repository.script_cache_dir / script_name
-            if potential_cache_path.exists():
+            exists_cat = potential_cache_path.exists()
+            potential_cache_path2 = repository.script_cache_dir / script_name
+            exists_root = potential_cache_path2.exists()
+            pass  # removed debug log
+            if exists_cat or exists_root:
                 return True
         
+        pass  # removed debug log
         return False
 
 

@@ -10,6 +10,9 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import logging
 
+# Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
+DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+
 class ChecksumVerificationError(Exception):
     """Raised when checksum verification fails"""
     pass
@@ -638,34 +641,47 @@ class ScriptRepository:
         # If category and filename provided directly, skip manifest lookup
         if category and filename:
             cached_path = self.script_cache_dir / category / filename
+            try:
+                exists = cached_path.exists()
+                pass  # removed debug log
+            except Exception as e:
+                pass  # removed debug log
             if cached_path.exists():
                 return str(cached_path)
             return None
         
         # Otherwise, look up script by ID
         if not script_id:
+            pass  # removed debug log
             return None
             
         script = self.get_script_by_id(script_id, manifest_path=manifest_path)
         if not script:
+            pass  # removed debug log
             return None
         
         category = script.get('category')
         filename = script.get('file_name')
         
         if not category or not filename:
+            pass  # removed debug log
             return None
         
         cached_path = self.script_cache_dir / category / filename
         
-        if cached_path.exists():
+        exists = cached_path.exists()
+        pass  # removed debug log
+        if exists:
             return str(cached_path)
         
         return None
     
     def is_script_cached(self, script_id):
         """Check if script is cached locally"""
-        return self.get_cached_script_path(script_id) is not None
+        path = self.get_cached_script_path(script_id)
+        result = path is not None
+        pass  # removed debug log
+        return result
     
     def list_cached_scripts(self):
         """Get list of cached scripts"""
@@ -678,18 +694,22 @@ class ScriptRepository:
                     if script:
                         cached.append(script)
         
+        pass  # removed debug log
         return cached
     
     def clear_cache(self):
         """Clear all cached scripts"""
         import shutil
         
+        removed = 0
         for category_dir in self.script_cache_dir.iterdir():
             if category_dir.is_dir():
                 for script_file in category_dir.glob("*.sh"):
                     script_file.unlink()
+                    removed += 1
         
         logging.info("Cache cleared by user")
+        pass  # removed debug log
         return True
         
     def get_repository_url(self):
@@ -706,9 +726,11 @@ class ScriptRepository:
         """Ensure includes are available for the current repository"""
         manifest = self.load_local_manifest()
         if not manifest:
+            pass  # removed debug log
             return False
             
         repo_url = manifest.get('repository_url', self.repo_url)
+        pass  # removed debug log
         return self._download_repository_includes(repo_url)
     
     def _download_repository_includes(self, repo_url):
@@ -718,12 +740,14 @@ class ScriptRepository:
             
             # Check if includes are already fresh for this repository
             if self._are_includes_fresh(repo_url, includes_cache_dir):
+                pass  # removed debug log
                 return True
                 
             # Create includes cache directory
             includes_cache_dir.mkdir(parents=True, exist_ok=True)
             
             logging.info(f"Downloading includes from {repo_url}")
+            pass  # removed debug log
             
             # Get includes files list from manifest (if available)
             includes_files = self._get_includes_files_list()
@@ -744,6 +768,7 @@ class ScriptRepository:
                 logging.info("Downloaded main.sh successfully")
             except Exception as e:
                 logging.error(f"Failed to download main.sh: {e}")
+                pass  # removed debug log
                 return False
             
             # Download additional includes files
@@ -762,17 +787,21 @@ class ScriptRepository:
                         f.write(content)
                     file_path.chmod(0o644)
                     logging.info(f"Downloaded {filename} successfully")
+                    pass  # removed debug log
                 except Exception as e:
                     logging.warning(f"Optional file {filename} not available: {e}")
+                    pass  # removed debug log
             
             # Mark the includes as fresh for this repository
             self._mark_includes_fresh(repo_url, includes_cache_dir)
             
             logging.info(f"Successfully downloaded includes from {repo_url}")
+            pass  # removed debug log
             return True
             
         except Exception as e:
             logging.error(f"Failed to download includes from {repo_url}: {e}")
+            pass  # removed debug log
             return False
             
     def _get_includes_files_list(self):
@@ -790,6 +819,7 @@ class ScriptRepository:
     def _are_includes_fresh(self, repo_url, includes_dir):
         """Check if cached includes are fresh for the specified repository"""
         if not includes_dir.exists():
+            pass  # removed debug log
             return False
             
         origin_file = includes_dir / ".origin"
@@ -797,7 +827,11 @@ class ScriptRepository:
         main_file = includes_dir / "main.sh"
         
         # CRITICAL: Check that actual include files exist, not just metadata
-        if not (origin_file.exists() and timestamp_file.exists() and main_file.exists()):
+        origin_exists = origin_file.exists()
+        timestamp_exists = timestamp_file.exists()
+        main_exists = main_file.exists()
+        if not (origin_exists and timestamp_exists and main_exists):
+            pass  # removed debug log
             return False
             
         try:
@@ -805,6 +839,7 @@ class ScriptRepository:
             with open(origin_file, 'r') as f:
                 cached_origin = f.read().strip()
             if cached_origin != repo_url:
+                pass  # removed debug log
                 return False
                 
             # Check if timestamp is less than 24 hours old
@@ -813,9 +848,12 @@ class ScriptRepository:
             current_time = int(time.time())
             
             # 24 hour cache
-            return (current_time - cache_time) < 86400
+            fresh = (current_time - cache_time) < 86400
+            pass  # removed debug log
+            return fresh
             
-        except Exception:
+        except Exception as e:
+            pass  # removed debug log
             return False
     
     def _mark_includes_fresh(self, repo_url, includes_dir):
@@ -829,9 +867,11 @@ class ScriptRepository:
                 
             with open(timestamp_file, 'w') as f:
                 f.write(str(int(time.time())))
+            pass  # removed debug log
                 
         except Exception as e:
             logging.error(f"Failed to mark includes as fresh: {e}")
+            pass  # removed debug log
     
     def count_cached_scripts(self):
         """Count number of cached scripts"""
@@ -839,6 +879,7 @@ class ScriptRepository:
         for category_dir in self.script_cache_dir.iterdir():
             if category_dir.is_dir():
                 count += len(list(category_dir.glob("*.sh")))
+        pass  # removed debug log
         return count
     
     def resolve_script_path(self, filename):
@@ -846,15 +887,18 @@ class ScriptRepository:
         script = self.get_script_by_filename(filename)
         
         if not script:
+            pass  # removed debug log
             return None
         
         script_id = script.get('id')
         cached_path = self.get_cached_script_path(script_id)
         
         if cached_path:
+            pass  # removed debug log
             return cached_path
         
         # No bundled fallback per requirements
+        pass  # removed debug log
         return None
     
     def get_script_status(self, filename):
@@ -862,6 +906,7 @@ class ScriptRepository:
         script = self.get_script_by_filename(filename)
         
         if not script:
+            pass  # removed debug log
             return "unknown"
         
         category = script.get('category')
@@ -872,11 +917,11 @@ class ScriptRepository:
         if cached_path.exists():
             local_checksum = self._calculate_checksum(str(cached_path))
             
-            if local_checksum == remote_checksum:
-                return "cached"
-            else:
-                return "outdated"
+            status = "cached" if local_checksum == remote_checksum else "outdated"
+            pass  # removed debug log
+            return status
         else:
+            pass  # removed debug log
             return "not_installed"
     
     def get_script_version(self, filename):
@@ -907,4 +952,5 @@ class ScriptRepository:
                 failed += 1
         
         logging.info(f"Initial download: {downloaded} scripts downloaded")
+        pass  # removed debug log
         return downloaded, failed

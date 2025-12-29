@@ -10,6 +10,9 @@ import re
 from typing import Optional, Dict, Tuple
 from pathlib import Path
 
+# Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
+DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+
 
 class ScriptEnvironmentManager:
     """Manages environment variables required by scripts"""

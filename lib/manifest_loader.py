@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Optional, Callable
 from urllib.request import urlopen
 
+# Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
+DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+
 try:
     from lib import config as C
 except ImportError:
@@ -307,6 +310,9 @@ def load_scripts_from_manifest(
                             script_path = cached_path
                             is_cached = True
                             cached_count += 1
+                            pass  # removed debug log
+                        else:
+                            pass  # removed debug log
                     
                     # Build display name with source tag
                     base_name = script_name
@@ -332,6 +338,7 @@ def load_scripts_from_manifest(
                 
                 # Concise per-source summary
                 _terminal_output(terminal_widget, f"[✓] {source_name}: {total_scripts} scripts ({cached_count} cached)")
+                pass  # removed debug log
                 
             except Exception as e:
                 _terminal_output(terminal_widget, f"[!] {source_name}: Failed - {e}")
