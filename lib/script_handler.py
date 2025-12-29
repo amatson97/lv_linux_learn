@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    from lib import constants as C
+    from lib import config as C
 except ImportError:
     C = None
 
@@ -109,7 +109,7 @@ def build_script_metadata(
     
     # Check if this is a custom script from CustomScriptManager (user-added scripts)
     if custom_script_manager:
-        for custom_script in custom_script_manager.get_scripts():
+        for custom_script in custom_script_manager.list_scripts():
             if custom_script['path'] == script_path:
                 metadata["type"] = "local"
                 metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_SCRIPT if C else "custom_script"
@@ -148,6 +148,22 @@ def build_script_metadata(
             end = script_name.index("]", start)
             source_name = script_name[start:end].strip()
     
+    # CRITICAL: For scripts without explicit source, infer from path
+    if source_type == "unknown":
+        # Check if script path looks like it's from the repository
+        if not script_path.startswith('/') and not script_path.startswith('file://'):
+            # Relative path - likely from public repository manifest
+            source_type = C.SOURCE_TYPE_PUBLIC_REPO if C else "public_repo"
+            source_name = "Public Repository"
+        elif script_path.startswith('/home/') and '/lv_linux_learn/' in script_path:
+            # Absolute path in the repository directory - public repo
+            source_type = C.SOURCE_TYPE_PUBLIC_REPO if C else "public_repo"
+            source_name = "Public Repository"
+        elif 'scripts/' in script_path or 'tools/' in script_path or 'bash_exercises/' in script_path:
+            # Path contains typical repository subdirectories - public repo
+            source_type = C.SOURCE_TYPE_PUBLIC_REPO if C else "public_repo"
+            source_name = "Public Repository"
+    
     # CRITICAL: Check cache using centralized cache checker
     if is_script_cached(repository, script_id=metadata["script_id"], script_path=script_path, category=category):
         metadata["type"] = C.SCRIPT_TYPE_CACHED if C else "cached"
@@ -165,23 +181,36 @@ def build_script_metadata(
             metadata["file_exists"] = os.path.exists(script_path)
         return metadata
     
-    # Now check if it's a local file (not in cache)
+    # CRITICAL: Public repo and custom online repo scripts must be cached - treat as remote if not cached
+    if source_type in (
+        C.SOURCE_TYPE_PUBLIC_REPO if C else "public_repo",
+        C.SOURCE_TYPE_CUSTOM_REPO if C else "custom_repo"
+    ):
+        metadata["type"] = C.SCRIPT_TYPE_REMOTE if C else "remote"
+        metadata["source_type"] = source_type
+        metadata["source_name"] = source_name if source_name else "Public Repository"
+        return metadata
+    
+    # Now check if it's a local file (not in cache) - ONLY for custom_local or unknown sources
     if script_path.startswith('/') or script_path.startswith('file://'):
         file_path = script_path.replace('file://', '')
-        if os.path.exists(file_path):
-            # This is a local file-based manifest (custom_local)
-            metadata["type"] = C.SCRIPT_TYPE_LOCAL if C else "local"
-            metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
-            metadata["source_name"] = source_name if source_name else "Local Repository"
-            metadata["file_exists"] = True
-            return metadata
-        else:
-            # Local path specified but file doesn't exist
-            metadata["type"] = C.SCRIPT_TYPE_LOCAL if C else "local"
-            metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
-            metadata["source_name"] = source_name if source_name else "Local Repository"
-            metadata["file_exists"] = False
-            return metadata
+        
+        # Only treat as custom_local if source_type is actually custom_local or still unknown
+        if source_type in (C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local", "unknown"):
+            if os.path.exists(file_path):
+                # This is a local file-based manifest (custom_local)
+                metadata["type"] = C.SCRIPT_TYPE_LOCAL if C else "local"
+                metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
+                metadata["source_name"] = source_name if source_name else "Local Repository"
+                metadata["file_exists"] = True
+                return metadata
+            else:
+                # Local path specified but file doesn't exist
+                metadata["type"] = C.SCRIPT_TYPE_LOCAL if C else "local"
+                metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
+                metadata["source_name"] = source_name if source_name else "Local Repository"
+                metadata["file_exists"] = False
+                return metadata
     
     # Default to remote (not yet downloaded)
     metadata["type"] = C.SCRIPT_TYPE_REMOTE if C else "remote"

@@ -1509,36 +1509,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Use constants for column indices to prevent bugs
         # COL_ICON=0, COL_NAME=1, COL_PATH=2, COL_DESCRIPTION=3, COL_IS_CUSTOM=4, COL_METADATA=5, COL_SCRIPT_ID=6
         liststore = Gtk.ListStore(str, str, str, str, bool, str, str)
-        
-        # Add static scripts from manifest
-        for i, script_path in enumerate(scripts):
-            if i < len(names) and i < len(descriptions):
-                # Determine script metadata (pass script_name for source detection)
-                metadata = self._build_script_metadata(script_path, tab_name, names[i])
-                script_id = metadata.get('script_id', '')
-                source_type = metadata.get('source_type', '')
-                
-                # Local scripts don't use cache - show file icon
-                if source_type == 'custom_local':
-                    icon = "📄"  # Local file icon
-                    is_cached = False
-                    path_to_store = script_path
-                else:
-                    # Get cache status icon for online repositories
-                    is_cached = self._is_script_cached(script_id=script_id, script_path=script_path, category=tab_name)
-                    icon = "✓" if is_cached else "☁️"
-                    
-                    # CRITICAL: If script is cached, use the cached path instead of relative path
-                    path_to_store = script_path
-                    if is_cached and self.repository and script_id:
-                        cached_path = self.repository.get_cached_script_path(script_id)
-                        if cached_path and os.path.exists(cached_path):
-                            path_to_store = cached_path
-                            # Update metadata to reflect cached path
-                            metadata["type"] = "cached"
-                            metadata["file_exists"] = True
-                
-                liststore.append([icon, names[i], path_to_store, descriptions[i], False, json.dumps(metadata), script_id])
+
+
         
         # Add repository scripts (from online and local repositories)
         repo_scripts = self._get_all_repository_scripts()

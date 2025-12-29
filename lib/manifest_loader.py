@@ -12,12 +12,12 @@ from typing import Optional, Callable
 from urllib.request import urlopen
 
 try:
-    from lib import constants as C
+    from lib import config as C
 except ImportError:
     C = None
 
 try:
-    from lib.repository import ScriptRepository
+    from lib.repository_service import ScriptRepository
 except ImportError:
     ScriptRepository = None
 
@@ -122,10 +122,10 @@ def fetch_manifest(
         # Don't force-load manifests when repository system isn't available
         pass
     
-    # If no manifests configured, show error
+    # If no manifests configured, raise error silently (expected when public repo disabled)
     if not manifests_to_load:
         error_msg = C.ERROR_NO_MANIFESTS if C else "No manifests configured. Enable public repository or add local repositories."
-        _terminal_output(terminal_widget, f"[!] {error_msg}")
+        # Don't output to terminal - this is an expected state when public repo is disabled
         raise Exception(error_msg)
     
     # Fetch and cache each manifest
@@ -351,7 +351,10 @@ def load_scripts_from_manifest(
         return scripts, names, descriptions, script_id_map
         
     except Exception as e:
-        _terminal_output(terminal_widget, f"[!] Error loading manifests: {e}")
+        # Suppress "No manifests configured" error - it's expected when public repo is disabled
+        error_str = str(e)
+        if "No manifests configured" not in error_str:
+            _terminal_output(terminal_widget, f"[!] Error loading manifests: {e}")
         # Return empty structures
         default_categories = C.STANDARD_CATEGORIES if C else ['install', 'tools', 'exercises', 'uninstall']
         scripts = {cat: [] for cat in default_categories}
@@ -365,8 +368,12 @@ def load_scripts_from_manifest(
 # ============================================================================
 
 def _terminal_output(terminal_widget, msg: str):
-    """Helper function to output to terminal or stdout"""
-    if terminal_widget:
-        terminal_widget.feed(f"{msg}\r\n".encode())
-    else:
-        print(msg)
+    """Helper function to output to terminal or stdout - only errors displayed to terminal"""
+    # Only show error messages in terminal to avoid cluttering output during background refreshes
+    # Status/info messages are logged but not displayed
+    if msg.startswith("[!]") or msg.startswith("[✗]"):
+        if terminal_widget:
+            terminal_widget.feed(f"{msg}\r\n".encode())
+        else:
+            print(msg)
+    # All other messages silently logged (could be logged to file if needed)

@@ -157,7 +157,7 @@ class ScriptExecutionContext:
         script_type: str,
         source_type: str,
         env_exports: str = "",
-        use_source: bool = True
+        use_source: bool = False  # Changed to False to prevent terminal blocking
     ) -> str:
         """
         Build the command to execute a script.
@@ -172,17 +172,17 @@ class ScriptExecutionContext:
         Returns:
             Shell command string to execute
         """
-        executor = "source" if use_source else "bash"
+        executor = "bash" if not use_source else "source"  # Default to bash to prevent blocking
         
         # Local custom scripts - execute directly from original location
         if script_type == "local" or source_type == "custom_local":
             abs_path = os.path.abspath(script_path)
             return f"{env_exports}{executor} '{abs_path}'\n"
         
-        # Cached scripts - execute from cache with cd
+        # Cached scripts - execute from cache with cd (use subshell to prevent blocking)
         elif script_type == "cached":
             cache_root = os.path.expanduser("~/.lv_linux_learn/script_cache")
-            return f"{env_exports}cd '{cache_root}' && {executor} '{script_path}'\n"
+            return f"{env_exports}(cd '{cache_root}' && {executor} '{script_path}')\n"
         
         # Remote - shouldn't execute, return empty
         return ""
