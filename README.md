@@ -56,7 +56,7 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 ## 📚 What's Inside
 
-### 🎯 Core Features (v2.2.2)
+### 🎯 Core Features (v2.2.3)
 - **🖥️ Dual Interface** — GTK GUI and CLI with unified functionality
 - **☁️ Multi-Repository System** — Public, custom online, and local file-based repositories
 - **🗂️ Smart Categorization** — AI-powered script organization into Install/Tools/Exercises/Uninstall
