@@ -38,7 +38,20 @@ sudo journalctl -u ssh
 sudo journalctl -f
 ```
 
----
+### Application Logs (lv_linux_learn)
+
+The application writes repository operation logs to a local file:
+
+```bash
+# View recent repository operations
+tail -50 ~/.lv_linux_learn/logs/repository.log
+
+# Clear the repository log
+rm ~/.lv_linux_learn/logs/repository.log
+```
+
+Note: Verbose cache debug prints were removed in v2.2.3 to reduce noise. Use the repository log and the built-in test harness for troubleshooting.
+
 
 ## System Resource Monitoring
 

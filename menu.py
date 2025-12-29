@@ -3887,7 +3887,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
-                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: install cached path={path_to_store} name={SCRIPT_NAMES[i]}")
+                                pass  # removed debug log
                         
                         self.install_liststore.append([icon, SCRIPT_NAMES[i], path_to_store, DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3921,7 +3921,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
-                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: tools cached path={path_to_store} name={TOOLS_NAMES[i]}")
+                                pass  # removed debug log
                         
                         self.tools_liststore.append([icon, TOOLS_NAMES[i], path_to_store, TOOLS_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3955,7 +3955,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
-                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: exercises cached path={path_to_store} name={EXERCISES_NAMES[i]}")
+                                pass  # removed debug log
                         
                         self.exercises_liststore.append([icon, EXERCISES_NAMES[i], path_to_store, EXERCISES_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
@@ -3989,7 +3989,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                                 path_to_store = cached_path
                                 metadata["type"] = "cached"
                                 metadata["file_exists"] = True
-                                print(f"[CACHE-DEBUG] menu._refresh_script_tabs: uninstall cached path={path_to_store} name={UNINSTALL_NAMES[i]}")
+                                pass  # removed debug log
                         
                         self.uninstall_liststore.append([icon, UNINSTALL_NAMES[i], path_to_store, UNINSTALL_DESCRIPTIONS[i], False, json.dumps(metadata), script_id])
             
