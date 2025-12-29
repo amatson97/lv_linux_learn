@@ -5436,10 +5436,15 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             if success:
                                 if url:
                                     self.terminal.feed(f"\x1b[36m[*] URL: {url}\x1b[0m\r\n".encode())
-                                cached_path = self.repository.get_cached_script_path(manifest_script_id, manifest_path=manifest_path)
                                 # Debug output
-                                print(f"[DEBUG] cached_path={cached_path}")
-                                print(f"[DEBUG] os.path.isfile(cached_path)={os.path.isfile(cached_path) if cached_path else 'N/A'}")
+                                print(f"[DEBUG] After download - manifest_script_id={manifest_script_id}, manifest_path={manifest_path}")
+                                cached_path = self.repository.get_cached_script_path(manifest_script_id, manifest_path=manifest_path)
+                                print(f"[DEBUG] cached_path returned={cached_path}")
+                                if cached_path:
+                                    print(f"[DEBUG] File exists? {os.path.isfile(cached_path)}")
+                                    # Try to verify the actual download by checking cache directory
+                                    cache_dir = Path.home() / '.lv_linux_learn' / 'script_cache'
+                                    print(f"[DEBUG] Cache directory contents: {list(cache_dir.glob('*/*')) if cache_dir.exists() else 'Cache dir does not exist'}")
                                 if cached_path and os.path.isfile(cached_path):
                                     # Update metadata and execute
                                     updated_metadata = metadata.copy()
