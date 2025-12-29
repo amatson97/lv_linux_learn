@@ -1143,9 +1143,17 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         try:
             # COL_METADATA = 5 (not 4 which is COL_IS_CUSTOM)
             COL_METADATA = C.COL_METADATA if C else 5
+            COL_SCRIPT_ID = C.COL_SCRIPT_ID if C else 6
+            
             metadata_json = model[treeiter][COL_METADATA]
             if metadata_json:
-                return json.loads(metadata_json)
+                metadata = json.loads(metadata_json)
+                # Also include script_id from column 6 if not already in metadata
+                if 'script_id' not in metadata or not metadata['script_id']:
+                    script_id = model[treeiter][COL_SCRIPT_ID]
+                    if script_id:
+                        metadata['script_id'] = script_id
+                return metadata
         except (IndexError, json.JSONDecodeError) as e:
             print(f"Warning: Failed to parse script metadata: {e}")
         return {}
@@ -1269,13 +1277,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Use business logic module if available
         if build_script_command:
-            print(f"[DEBUG] _execute_script_unified: script_path={script_path}")
-            print(f"[DEBUG] _execute_script_unified: metadata={metadata}")
             command, status = build_script_command(script_path, metadata, env_vars)
             
             if not command:
                 # Not ready to execute - show status message
-                print(f"[DEBUG] build_script_command returned no command: {status}")
                 self.terminal.feed(f"\x1b[33m[*] {status}\x1b[0m\r\n".encode())
                 return False
             
@@ -5436,25 +5441,15 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             if success:
                                 if url:
                                     self.terminal.feed(f"\x1b[36m[*] URL: {url}\x1b[0m\r\n".encode())
-                                # Debug output
-                                print(f"[DEBUG] After download - manifest_script_id={manifest_script_id}, manifest_path={manifest_path}")
                                 cached_path = self.repository.get_cached_script_path(manifest_script_id, manifest_path=manifest_path)
-                                print(f"[DEBUG] cached_path returned={cached_path}")
-                                if cached_path:
-                                    print(f"[DEBUG] File exists? {os.path.isfile(cached_path)}")
-                                    # Try to verify the actual download by checking cache directory
-                                    cache_dir = Path.home() / '.lv_linux_learn' / 'script_cache'
-                                    print(f"[DEBUG] Cache directory contents: {list(cache_dir.glob('*/*')) if cache_dir.exists() else 'Cache dir does not exist'}")
                                 if cached_path and os.path.isfile(cached_path):
                                     # Update metadata and execute
                                     updated_metadata = metadata.copy()
                                     updated_metadata["type"] = "cached"
-                                    print(f"[DEBUG] Executing cached script: {cached_path}")
                                     self._execute_script_unified(str(cached_path), updated_metadata)
                                     GLib.timeout_add(500, self._refresh_ui_silent)
                                 else:
-                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script: {cached_path or 'path is None'}\x1b[0m\r\n".encode())
-                                    print(f"[DEBUG] Failed - cached_path={cached_path}, exists={os.path.isfile(cached_path) if cached_path else False}")
+                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script\x1b[0m\r\n".encode())
                             else:
                                 if url:
                                     self.terminal.feed(f"\x1b[36m[*] URL: {url}\x1b[0m\r\n".encode())
