@@ -1269,10 +1269,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Use business logic module if available
         if build_script_command:
+            print(f"[DEBUG] _execute_script_unified: script_path={script_path}")
+            print(f"[DEBUG] _execute_script_unified: metadata={metadata}")
             command, status = build_script_command(script_path, metadata, env_vars)
             
             if not command:
                 # Not ready to execute - show status message
+                print(f"[DEBUG] build_script_command returned no command: {status}")
                 self.terminal.feed(f"\x1b[33m[*] {status}\x1b[0m\r\n".encode())
                 return False
             
@@ -5434,14 +5437,19 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                                 if url:
                                     self.terminal.feed(f"\x1b[36m[*] URL: {url}\x1b[0m\r\n".encode())
                                 cached_path = self.repository.get_cached_script_path(manifest_script_id, manifest_path=manifest_path)
+                                # Debug output
+                                print(f"[DEBUG] cached_path={cached_path}")
+                                print(f"[DEBUG] os.path.isfile(cached_path)={os.path.isfile(cached_path) if cached_path else 'N/A'}")
                                 if cached_path and os.path.isfile(cached_path):
                                     # Update metadata and execute
                                     updated_metadata = metadata.copy()
                                     updated_metadata["type"] = "cached"
+                                    print(f"[DEBUG] Executing cached script: {cached_path}")
                                     self._execute_script_unified(str(cached_path), updated_metadata)
                                     GLib.timeout_add(500, self._refresh_ui_silent)
                                 else:
-                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script\x1b[0m\r\n".encode())
+                                    self.terminal.feed(f"\x1b[31m[✗] Failed to locate cached script: {cached_path or 'path is None'}\x1b[0m\r\n".encode())
+                                    print(f"[DEBUG] Failed - cached_path={cached_path}, exists={os.path.isfile(cached_path) if cached_path else False}")
                             else:
                                 if url:
                                     self.terminal.feed(f"\x1b[36m[*] URL: {url}\x1b[0m\r\n".encode())
