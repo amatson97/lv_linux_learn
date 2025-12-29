@@ -57,7 +57,7 @@ except ImportError:
     get_local_repository_manifests = None
 
 try:
-    from lib.custom_scripts import CustomScriptManager
+    from lib.user_scripts import CustomScriptManager
 except ImportError:
     print("Warning: Custom scripts module not available")
     CustomScriptManager = None
