@@ -959,9 +959,54 @@ class CustomManifestCreator:
             
             with open(config_file, 'r') as f:
                 config = json.load(f)
-            
-            if 'custom_manifests' not in config or manifest_name not in config['custom_manifests']:
-                raise Exception(f"Manifest '{manifest_name}' not found")
+
+            def _normalize(name: str) -> str:
+                return re.sub(r'[^a-zA-Z0-9_-]', '_', name).lower().strip()
+
+            # Align the requested name with the stored config entry (handles safe-name dirs)
+            target_norm = _normalize(manifest_name)
+
+            if 'custom_manifests' not in config:
+                config['custom_manifests'] = {}
+
+            if manifest_name not in config['custom_manifests']:
+                for stored_name in list(config['custom_manifests'].keys()):
+                    if _normalize(stored_name) == target_norm:
+                        manifest_name = stored_name
+                        break
+                else:
+                    # If not tracked in config, still perform best-effort cleanup by path
+                    manifest_name = None
+
+            manifest_entry = None if manifest_name is None else config['custom_manifests'].get(manifest_name)
+
+            # Best-effort removal when config entry is missing but directory exists
+            if manifest_entry is None:
+                config_dir = Path.home() / '.lv_linux_learn'
+                safe_name = target_norm
+                default_dir = config_dir / 'custom_manifests' / safe_name
+                if default_dir.exists():
+                    shutil.rmtree(default_dir, ignore_errors=True)
+
+                # Remove cache files that match the normalized name
+                cache_globs = [
+                    f"manifest_{safe_name}.json",
+                    f"temp_{safe_name}_manifest.json",
+                ]
+                for pattern in cache_globs:
+                    for cache_file in config_dir.glob(pattern):
+                        cache_file.unlink(missing_ok=True)
+
+                # Clear active manifest if it matches
+                active = config.get('active_custom_manifest')
+                if active and _normalize(active) == safe_name:
+                    config['active_custom_manifest'] = None
+
+                with open(config_file, 'w') as f:
+                    json.dump(config, f, indent=2)
+
+                message = f"Deleted manifest '{manifest_name or safe_name}' (not tracked in config)"
+                return (True, message)
 
             manifest_entry = config['custom_manifests'][manifest_name]
             manifest_path = manifest_entry.get('manifest_path')
@@ -1002,6 +1047,11 @@ class CustomManifestCreator:
                 # Remove all found cache files
                 for cache_file in set(cache_files):  # Use set to avoid duplicates
                     cache_file.unlink(missing_ok=True)
+
+                # Remove the default custom_manifests/<safe_name> directory if it exists
+                default_dir = config_dir / 'custom_manifests' / safe_name
+                if default_dir.exists():
+                    shutil.rmtree(default_dir, ignore_errors=True)
                 
                 # 3. Remove scripts from cache if they came from this manifest
                 # Scripts are cached under ~/.lv_linux_learn/script_cache/<category>/<script_id>

@@ -29,6 +29,7 @@ DEFAULT_MANIFEST_URL="https://raw.githubusercontent.com/amatson97/lv_linux_learn
 MANIFEST_URL="${CUSTOM_MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
 
 # Store original URL for reference
+# ORIGINAL_MANIFEST_URL kept for potential external use/debug (currently unused)
 ORIGINAL_MANIFEST_URL="$MANIFEST_URL"
 
 # Repository system variables
@@ -45,6 +46,7 @@ DYNAMIC_CATEGORY_MAP=""
 declare -a SCRIPTS=()
 declare -a DESCRIPTIONS=()
 declare -a MENU_SCRIPT_IDS=()
+declare -a CATEGORIES=()
 
 # Ensure cache directory exists
 mkdir -p "$CUSTOM_SCRIPTS_DIR"
@@ -137,178 +139,116 @@ fetch_manifest() {
   
   return 0
 }
-
-# Load scripts from manifest.json
 load_scripts_from_manifest() {
+  # Always start with empty arrays to avoid stale menu entries when sources change
+  clear_loaded_scripts
+
   # Fetch latest manifest
   fetch_manifest || {
     green_echo "[!] Warning: Could not fetch manifest. Using cached version if available."
   }
-  
+
   local manifest_path="$MANIFEST_CACHE"
-  
+
   if [ ! -f "$manifest_path" ]; then
     green_echo "[!] Error: No manifest file available (cached or downloaded)"
     green_echo "[!] Please check your internet connection and try again"
     return 1
   fi
-  
+
   # Check if jq is available
   if ! command -v jq &> /dev/null; then
     green_echo "[!] Warning: 'jq' not installed. Cannot load scripts from manifest."
     return 1
   fi
-  
+
   # Display manifest information
   local manifest_version repo_version last_updated total_scripts
   manifest_version=$(jq -r '.version // "unknown"' "$manifest_path" 2>/dev/null)
   repo_version=$(jq -r '.repository_version // .manifest_version // "unknown"' "$manifest_path" 2>/dev/null)
   last_updated=$(jq -r '.last_updated // .created // "unknown"' "$manifest_path" 2>/dev/null)
-  
+
   # Check if this is a nested (custom) or flat (public) manifest
   local is_nested
   is_nested=$(jq -r '.scripts | type' "$manifest_path" 2>/dev/null)
-  
+
   if [ "$is_nested" = "object" ]; then
-    # Custom manifest - nested by category
     total_scripts=$(jq '.total_scripts // 0' "$manifest_path" 2>/dev/null)
   else
-    # Public manifest - flat array
     total_scripts=$(jq '.scripts | length' "$manifest_path" 2>/dev/null || echo 0)
   fi
-  
+
   green_echo "[*] Loaded manifest version $manifest_version (repo: $repo_version)"
   green_echo "[*] Last updated: $last_updated"
   green_echo "[*] Processing $total_scripts scripts..."
-  
-  # Clear arrays
-  SCRIPTS=()
-  DESCRIPTIONS=()
-  MENU_SCRIPT_IDS=()
-  
-  # Track scripts per category
+
+  # Build script lists by category (flat for public, nested for custom)
   local install_count=0 tools_count=0 exercises_count=0 uninstall_count=0
   declare -A dynamic_category_counts
-  
-  # Get all categories from manifest (supports dynamic categories)
-  local all_categories
+  declare -A scripts_by_category
+
   if [ "$is_nested" = "object" ]; then
-    # Custom manifest - get categories from object keys
-    all_categories=$(jq -r '.scripts | keys[]' "$manifest_path" 2>/dev/null)
+    # Custom manifest: iterate keys and collect entries
+    while IFS= read -r category; do
+      [ -z "$category" ] && continue
+      scripts_by_category["$category"]=$(jq -c ".scripts.\"$category\"[]" "$manifest_path" 2>/dev/null)
+    done <<< "$(jq -r '.scripts | keys[]' "$manifest_path" 2>/dev/null)"
   else
-    # Public manifest - get unique categories from scripts
-    all_categories=$(jq -r '.scripts[].category' "$manifest_path" 2>/dev/null | sort -u)
+    # Public manifest: group by category
+    while IFS= read -r category; do
+      [ -z "$category" ] && continue
+      scripts_by_category["$category"]=$(jq -c ".scripts[] | select(.category == \"$category\")" "$manifest_path" 2>/dev/null)
+    done <<< "$(jq -r '.scripts[].category' "$manifest_path" 2>/dev/null | sort -u)"
   fi
-  
-  # Standard categories to process first
+
+  # Helper to append a script entry
+  append_script() {
+    local category="$1" json="$2"
+    local path name desc id
+    path=$(echo "$json" | jq -r '.relative_path // .download_url // .file_name // ""')
+    name=$(echo "$json" | jq -r '.name // .file_name // .relative_path // ""')
+    desc=$(echo "$json" | jq -r '.description // "No description"')
+    id=$(echo "$json" | jq -r '.id // ""')
+
+    if [ -z "$path" ]; then
+      return
+    fi
+    SCRIPTS+=("$path")
+    DESCRIPTIONS+=("$desc")
+    MENU_SCRIPT_IDS+=("$id")
+    CATEGORIES+=("$category")
+  }
+
+  # Append in standard category order first, then any others
   local standard_categories=("install" "tools" "exercises" "uninstall")
-  
-  # Process standard categories first, then dynamic categories
   for category in "${standard_categories[@]}"; do
-    if echo "$all_categories" | grep -q "^${category}$"; then
-      local category_scripts count=0
-      
-      if [ "$is_nested" = "object" ]; then
-        # Custom manifest - get scripts from nested structure
-        category_scripts=$(jq -r ".scripts.${category}[]?.relative_path // .scripts.${category}[]?.download_url" "$manifest_path" 2>/dev/null | sed 's|^file://||')
-      else
-        # Public manifest - filter by category
-        category_scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .relative_path" "$manifest_path" 2>/dev/null)
-      fi
-      
-      if [ -n "$category_scripts" ]; then
-        # Add scripts from this category
-        while IFS= read -r script_path; do
-          [ -z "$script_path" ] && continue
-          SCRIPTS+=("$script_path")
-          
-          # Get description and ID for this script
-          local desc script_id
-          if [ "$is_nested" = "object" ]; then
-            desc=$(jq -r ".scripts.${category}[]? | select(.relative_path == \"$script_path\" or .download_url | endswith(\"$script_path\")) | .description" "$manifest_path" 2>/dev/null)
-            script_id=$(jq -r ".scripts.${category}[]? | select(.relative_path == \"$script_path\" or .download_url | endswith(\"$script_path\")) | .id" "$manifest_path" 2>/dev/null)
-          else
-            desc=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .description" "$manifest_path" 2>/dev/null)
-            script_id=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .id" "$manifest_path" 2>/dev/null)
-          fi
-          
-          DESCRIPTIONS+=("$desc")
-          MENU_SCRIPT_IDS+=("$script_id")
-          count=$((count + 1))
-        done <<< "$category_scripts"
-        
-        # Update category counter
+    if [ -n "${scripts_by_category[$category]:-}" ]; then
+      while IFS= read -r entry; do
+        [ -z "$entry" ] && continue
+        append_script "$category" "$entry"
         case "$category" in
-          install) install_count=$count ;;
-          tools) tools_count=$count ;;
-          exercises) exercises_count=$count ;;
-          uninstall) uninstall_count=$count ;;
+          install) install_count=$((install_count + 1)) ;;
+          tools) tools_count=$((tools_count + 1)) ;;
+          exercises) exercises_count=$((exercises_count + 1)) ;;
+          uninstall) uninstall_count=$((uninstall_count + 1)) ;;
         esac
-        
-        # Add separator after each category (except last)
-        if [ "$category" != "uninstall" ]; then
-          SCRIPTS+=("")
-          MENU_SCRIPT_IDS+=("__separator__")
-          local separator_name
-          case "$category" in
-            install) separator_name="Utility Tools" ;;
-            tools) separator_name="Bash Exercises" ;;
-            exercises) separator_name="Uninstall" ;;
-          esac
-          DESCRIPTIONS+=("── $separator_name ──")
-        fi
-      fi
+      done <<< "${scripts_by_category[$category]}"
     fi
   done
-  
-  # Now process any non-standard (dynamic) categories
-  while IFS= read -r category; do
-    # Skip if it's a standard category
-    if [[ " ${standard_categories[*]} " =~ " ${category} " ]]; then
+
+  # Dynamic categories (anything else)
+  for category in "${!scripts_by_category[@]}"; do
+    if printf '%s\n' "install" "tools" "exercises" "uninstall" | grep -qx "$category"; then
       continue
     fi
-    
-    local category_scripts count=0
-    
-    if [ "$is_nested" = "object" ]; then
-      # Custom manifest - get scripts from nested structure
-      category_scripts=$(jq -r ".scripts.${category}[]?.relative_path // .scripts.${category}[]?.download_url" "$manifest_path" 2>/dev/null | sed 's|^file://||')
-    else
-      # Public manifest - filter by category
-      category_scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .relative_path" "$manifest_path" 2>/dev/null)
-    fi
-    
-    if [ -n "$category_scripts" ]; then
-      # Add separator for this dynamic category
-      SCRIPTS+=("")
-      MENU_SCRIPT_IDS+=("__separator__")
-      DESCRIPTIONS+=("── ${category^} ──")
-      
-      # Add scripts from this category
-      while IFS= read -r script_path; do
-        [ -z "$script_path" ] && continue
-        SCRIPTS+=("$script_path")
-        
-        # Get description and ID for this script
-        local desc script_id
-        if [ "$is_nested" = "object" ]; then
-          # For custom manifests, match by relative_path OR download_url
-          desc=$(jq -r ".scripts.${category}[]? | select(.relative_path == \"$script_path\" or (.download_url // \"\" | endswith(\"$script_path\"))) | .description" "$manifest_path" 2>/dev/null)
-          script_id=$(jq -r ".scripts.${category}[]? | select(.relative_path == \"$script_path\" or (.download_url // \"\" | endswith(\"$script_path\"))) | .id" "$manifest_path" 2>/dev/null)
-        else
-          desc=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .description" "$manifest_path" 2>/dev/null)
-          script_id=$(jq -r ".scripts[] | select(.relative_path == \"$script_path\") | .id" "$manifest_path" 2>/dev/null)
-        fi
-        
-        DESCRIPTIONS+=("$desc")
-        MENU_SCRIPT_IDS+=("$script_id")
-        count=$((count + 1))
-      done <<< "$category_scripts"
-      
-      # Track dynamic category count
-      dynamic_category_counts[$category]=$count
-    fi
-  done <<< "$all_categories"
+    local count=0
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      append_script "$category" "$entry"
+      count=$((count + 1))
+    done <<< "${scripts_by_category[$category]}"
+    dynamic_category_counts[$category]=$count
+  done
   
   # Display category breakdown
   green_echo "[*] Script breakdown:"
@@ -322,6 +262,7 @@ load_scripts_from_manifest() {
     green_echo "    ${category^}: ${dynamic_category_counts[$category]} scripts"
   done
   
+  refresh_script_counts
   return 0
 }
 
@@ -360,6 +301,8 @@ load_custom_scripts() {
       if [ -n "$script_path" ]; then
         SCRIPTS+=("$script_path")
         DESCRIPTIONS+=("📝 $desc")
+        MENU_SCRIPT_IDS+=("__custom__")
+        CATEGORIES+=("custom")
       fi
     done
   fi
@@ -376,12 +319,27 @@ reload_custom_scripts() {
 
 # Function to refresh script counts for main menu
 refresh_script_counts() {
+  CACHED_INSTALL_COUNT=0
+  CACHED_TOOLS_COUNT=0
+  CACHED_EXERCISES_COUNT=0
+  CACHED_UNINSTALL_COUNT=0
+
   if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
     CACHED_INSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
     CACHED_TOOLS_COUNT=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
     CACHED_EXERCISES_COUNT=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
     CACHED_UNINSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
   fi
+}
+
+# Clear all loaded script metadata (used when sources are unavailable)
+clear_loaded_scripts() {
+  SCRIPTS=()
+  DESCRIPTIONS=()
+  MENU_SCRIPT_IDS=()
+  DISPLAY_TO_INDEX=()
+  DYNAMIC_CATEGORY_MAP=""
+  CATEGORIES=()
 }
 
 # Initialize: Update manifest URL if custom URL is set
@@ -831,7 +789,7 @@ list_cached_scripts() {
     echo "  No scripts currently cached."
     echo "  Use 'Download All Scripts' option to populate the cache."
   else
-    echo "  \033[1mTotal cached scripts: $total_cached\033[0m"
+    printf "  \033[1mTotal cached scripts: %d\033[0m\n" "$total_cached"
     echo
     echo "  Legend: ✓ = Cached & Up-to-date  |  📥 = Update Available  |  ☁️ = Not Cached"
   fi
@@ -1187,6 +1145,132 @@ check_for_updates() {
   green_echo "[+] Found $updates potential updates"
 }
 
+show_sources_menu() {
+  while true; do
+    clear
+    echo "╔════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                       Manifest Sources                                         ║"
+    echo "╚════════════════════════════════════════════════════════════════════════════════╝"
+    echo
+    local use_public=$(get_config_value "use_public_repository" "true")
+    local custom_url=$(get_config_value "custom_manifest_url" "")
+    local custom_name=$(get_config_value "custom_manifest_name" "Custom Repository")
+    local manifests_dir="$HOME/.lv_linux_learn/custom_manifests"
+    local local_count=0
+    if [ -d "$manifests_dir" ]; then
+      local_count=$(find "$manifests_dir" -name "manifest.json" -maxdepth 2 2>/dev/null | wc -l)
+    fi
+    echo "  Current Sources:"
+    echo "  • Public repository: $use_public"
+    if [ -n "$custom_url" ]; then
+      echo "  • Active custom source: $custom_name"
+      echo "    → $custom_url"
+    else
+      echo "  • Active custom source: (none)"
+    fi
+    echo "  • Local manifests detected: $local_count (in ~/.lv_linux_learn/custom_manifests)"
+    echo
+    echo "  Options:"
+    echo "   1) Set online custom manifest URL"
+    echo "   2) Set local custom manifest path (file:// or absolute path)"
+    echo "   3) Clear custom manifest"
+    echo "   4) Toggle public repository"
+    echo "   5) List available local manifests"
+    echo
+    echo "  ──────────────────────────────────────────────────────────────────────────────"
+    echo "   b) Back to Repository Menu    0) Exit"
+    echo
+    read -rp "Enter your choice: " source_choice
+    case "$source_choice" in
+      1)
+        read -rp "Enter custom manifest URL (https://...): " new_url
+        if [ -n "$new_url" ]; then
+          set_config_value "custom_manifest_url" "$new_url"
+          set_config_value "custom_manifest_name" "Custom Repository"
+          export CUSTOM_MANIFEST_URL="$new_url"
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          load_scripts_from_manifest || true
+          green_echo "[+] Custom manifest URL saved."
+        else
+          green_echo "[!] No URL provided."
+        fi
+        refresh_script_counts
+        read -rp "Press Enter to continue..."
+        ;;
+      2)
+        read -rp "Enter local manifest path (file:// or absolute path): " local_path
+        if [ -n "$local_path" ]; then
+          # Normalize to file:// format for consistency
+          if [[ "$local_path" != file://* ]]; then
+            local_path="file://$local_path"
+          fi
+          set_config_value "custom_manifest_url" "$local_path"
+          set_config_value "custom_manifest_name" "Local Repository"
+          export CUSTOM_MANIFEST_URL="$local_path"
+          green_echo "[+] Local manifest configured: $local_path"
+        else
+          green_echo "[!] No path provided."
+        fi
+        rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+        load_scripts_from_manifest || true
+        refresh_script_counts
+        read -rp "Press Enter to continue..."
+        ;;
+      3)
+        unset_config_value "custom_manifest_url"
+        unset_config_value "custom_manifest_name"
+        unset CUSTOM_MANIFEST_URL || true
+        rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+        load_scripts_from_manifest || true
+        refresh_script_counts
+        green_echo "[+] Cleared custom manifest configuration."
+        read -rp "Press Enter to continue..."
+        ;;
+      4)
+        if [ "$use_public" = "true" ]; then
+          set_config_value "use_public_repository" "false"
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          CACHED_INSTALL_COUNT=0
+          CACHED_TOOLS_COUNT=0
+          CACHED_EXERCISES_COUNT=0
+          CACHED_UNINSTALL_COUNT=0
+          clear_loaded_scripts
+          green_echo "[*] Public repository disabled."
+        else
+          set_config_value "use_public_repository" "true"
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          load_scripts_from_manifest || true
+          refresh_script_counts
+          green_echo "[*] Public repository enabled."
+        fi
+        read -rp "Press Enter to continue..."
+        ;;
+      5)
+        clear
+        echo "Available local manifests (custom_manifests):"
+        if [ -d "$manifests_dir" ]; then
+          find "$manifests_dir" -name "manifest.json" -maxdepth 2 2>/dev/null | sed 's|^|  • |' || true
+        else
+          echo "  (none found)"
+        fi
+        echo
+        read -rp "Press Enter to continue..."
+        ;;
+      b|B)
+        return 0
+        ;;
+      0)
+        green_echo "Exiting. Goodbye!"
+        exit 0
+        ;;
+      *)
+        green_echo "[!] Invalid choice"
+        sleep 1
+        ;;
+    esac
+  done
+}
+
 show_repo_settings() {
   while true; do
     clear
@@ -1312,6 +1396,13 @@ show_repo_settings() {
         
         if [ "$use_public_repo" = "true" ]; then
           set_config_value "use_public_repository" "false"
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          if [ -n "$has_custom_manifest" ]; then
+            load_scripts_from_manifest || true
+          else
+            clear_loaded_scripts
+            refresh_script_counts
+          fi
           green_echo "[*] Public repository access disabled"
           
           if [ -n "$has_custom_manifest" ]; then
@@ -1321,6 +1412,9 @@ show_repo_settings() {
           fi
         else
           set_config_value "use_public_repository" "true"
+          rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+          load_scripts_from_manifest || true
+          refresh_script_counts
           green_echo "[*] Public repository access enabled"
           
           if [ -n "$has_custom_manifest" ]; then
@@ -1354,6 +1448,11 @@ show_repo_settings() {
 CURRENT_CATEGORY=""
 
 show_main_menu() {
+  # If counts are available but script arrays are empty (after a source toggle), reload them
+  if [ ${#SCRIPTS[@]} -eq 0 ] && [ -f "$MANIFEST_CACHE" ]; then
+    load_scripts_from_manifest || true
+  fi
+
   clear
   echo "╔════════════════════════════════════════════════════════════════════════════════╗"
   echo "║                       LV Script Manager - Main Menu                            ║"
@@ -1481,6 +1580,12 @@ show_main_menu() {
 
 show_menu() {
   local category="$1"
+
+  # If we have a manifest cached but arrays were cleared by a source toggle, reload them
+  if [ ${#SCRIPTS[@]} -eq 0 ] && [ -f "$MANIFEST_CACHE" ]; then
+    load_scripts_from_manifest || true
+  fi
+
   clear
   
   # Reset display-to-index mapping
@@ -1506,42 +1611,17 @@ show_menu() {
   echo
   
   local display_count=0
-  local start_idx=0 end_idx=0
-  
-  # Determine range based on category
-  case "$category" in
-    install)
-      start_idx=0; end_idx=8
-      ;;
-    tools)
-      start_idx=10; end_idx=20
-      ;;
-    exercises)
-      start_idx=22; end_idx=29
-      ;;
-    uninstall)
-      start_idx=31; end_idx=41
-      ;;
-    custom)
-      # Show only custom scripts
-      start_idx=43; end_idx=100
-      ;;
-  esac
-  
+
   for i in "${!SCRIPTS[@]}"; do
+    local script_category="${CATEGORIES[$i]:-}"
+
     # Filter by category if specified
     if [ -n "$category" ] && [ "$category" != "custom" ]; then
-      if [ "$i" -lt "$start_idx" ] || [ "$i" -gt "$end_idx" ]; then
-        continue
-      fi
+      [ "$script_category" != "$category" ] && continue
     elif [ "$category" = "custom" ]; then
-      # Only show custom scripts (after separator at index 42)
-      if [ "$i" -le 42 ]; then
-        continue
-      fi
+      [ "$script_category" != "custom" ] && continue
     fi
     
-    local num=$((i + 1))
     local script="${SCRIPTS[$i]}"
     local desc="${DESCRIPTIONS[$i]}"
     
@@ -1568,15 +1648,10 @@ show_menu() {
     local script_name
     script_name=$(basename "$script" 2>/dev/null || echo "unknown")
     
-    # Use display_count for category views, original index for full list
+    # Map display number to actual array index for selection handling
     local show_num
-    if [ -n "$category" ]; then
-      show_num=$display_count
-      # Map display number to actual array index
-      DISPLAY_TO_INDEX[$show_num]=$i
-    else
-      show_num=$num
-    fi
+    show_num=$display_count
+    DISPLAY_TO_INDEX[$show_num]=$i
     
     # Check cache status
     local cache_status=""
@@ -2049,25 +2124,34 @@ show_repository_menu() {
     echo "╚════════════════════════════════════════════════════════════════════════════════╝"
     echo
     
-    local total_scripts=$(jq -r '.scripts | length' "$MANIFEST_FILE" 2>/dev/null || echo "0")
-    local cached_count=$(count_cached_scripts)
+    local total_scripts; total_scripts=$(jq -r '.scripts | length' "$MANIFEST_FILE" 2>/dev/null || echo "0")
+    local cached_count; cached_count=$(count_cached_scripts)
     local updates="$REPO_UPDATES_AVAILABLE"
+    local public_enabled; public_enabled=$(get_config_value "use_public_repository" "true")
+    local active_custom; active_custom=$(get_config_value "custom_manifest_url" "")
     
     echo "  Repository Status:"
     echo "  • Available scripts: $total_scripts"
     echo "  • Cached locally:    $cached_count"
     echo "  • Updates available: $updates"
+    echo "  • Public repository: $public_enabled"
+    if [ -n "$active_custom" ]; then
+      echo "  • Active custom source: $active_custom"
+    else
+      echo "  • Active custom source: (none)"
+    fi
     echo
     echo "  ────────────────────────────────────────────────────────────────────────────"
     echo
     echo "  Options:"
-    printf "   \033[1;32m1)\033[0m Update All Scripts         ($updates updates)\n"
+    printf "   \033[1;32m1)\033[0m Update All Scripts         (%s updates)\n" "$updates"
     echo "   2) Download All Scripts        (bulk download)"
     echo "   3) Download Single Script      (browse and select)"
     echo "   4) View Cached Scripts         (list local cache)"
     echo "   5) Clear Script Cache          (remove all cached)"
     echo "   6) Check for Updates           (manual refresh)"
     echo "   7) Repository Settings"
+    echo "   8) Sources (manage manifests)"
     echo
     echo "  ──────────────────────────────────────────────────────────────────────────────"
     echo "   b) Back to Main Menu    0) Exit"
@@ -2110,6 +2194,9 @@ show_repository_menu() {
       7)
         show_repo_settings
         ;;
+      8)
+        show_sources_menu
+        ;;
       b|B)
         return 0
         ;;
@@ -2140,19 +2227,14 @@ show_help() {
   echo
   green_echo "USAGE"
   echo "  • Select a script number to run it"
-  echo "  • Press 'a' to add your own custom scripts"
   echo "  • Press 's' to search/filter scripts"
   echo "  • Press 'h' to see this help screen"
   echo "  • Press '0' to exit"
   echo
-  green_echo "CUSTOM SCRIPTS"
-  echo "  • Add your own scripts without editing code"
-  echo "  • Scripts are stored in: ~/.lv_linux_learn/"
-  echo "  • Custom scripts marked with 📝 emoji"
-  echo "  • Requires 'jq' package: sudo apt install jq"
-  echo
   green_echo "SCRIPT REPOSITORY"
   echo "  • Access via 'Script Repository' menu option"
+  echo "  • Manage sources: public repository and custom manifests (online or local)"
+  echo "  • Use 'Sources' inside Repository menu to add/remove custom manifests"
   echo "  • Download scripts to local cache for faster execution"
   echo "  • Download all scripts or select individual scripts"
   echo "  • Automatic update checking and version management"
@@ -2572,7 +2654,7 @@ import os
 sys.path.insert(0, os.path.join('$script_dir', 'lib'))
 
 try:
-    from custom_manifest import CustomManifestCreator
+    from manifest import CustomManifestCreator
     creator = CustomManifestCreator()
     
     directories = ['${directories[@]}']
@@ -2744,7 +2826,7 @@ import os
 sys.path.insert(0, os.path.join('$script_dir', 'lib'))
 
 try:
-    from custom_manifest import CustomManifestCreator
+    from manifest import CustomManifestCreator
     creator = CustomManifestCreator()
     
     success, message = creator.switch_to_custom_manifest('$selected_manifest')
@@ -2779,6 +2861,9 @@ except Exception as e:
       
       # Update environment variable
       export CUSTOM_MANIFEST_URL="file://$custom_manifests_dir/$selected_manifest/manifest.json"
+      clear_loaded_scripts
+      load_scripts_from_manifest || true
+      refresh_script_counts
     else
       green_echo "[!] ${result#ERROR: }"
     fi
@@ -2815,7 +2900,7 @@ import os
 sys.path.insert(0, os.path.join('$script_dir', 'lib'))
 
 try:
-    from custom_manifest import CustomManifestCreator
+    from manifest import CustomManifestCreator
     creator = CustomManifestCreator()
     
     success, message = creator.switch_to_default_manifest()
@@ -2848,6 +2933,9 @@ except Exception as e:
       if [ -f "$MANIFEST_CACHE" ]; then
         rm -f "$MANIFEST_CACHE"
       fi
+      clear_loaded_scripts
+      load_scripts_from_manifest || true
+      refresh_script_counts
     else
       green_echo "[!] ${result#ERROR: }"
     fi
@@ -2904,7 +2992,12 @@ delete_custom_manifest_interactive() {
   fi
   
   echo
-  read -rp "Select manifest to DELETE (1-$count, or 0 to cancel): " choice
+  read -rp "Select manifest to DELETE (number 1-$count, or 0 to cancel): " choice
+
+  # Accept inputs like "1-2" by trimming everything after the first dash
+  if [[ "$choice" =~ ^[0-9]+-[0-9]+$ ]]; then
+    choice="${choice%%-*}"
+  fi
   
   if [[ "$choice" == "0" ]]; then
     return 0
@@ -2938,7 +3031,7 @@ import os
 sys.path.insert(0, os.path.join('$script_dir', 'lib'))
 
 try:
-    from custom_manifest import CustomManifestCreator
+    from manifest import CustomManifestCreator
     creator = CustomManifestCreator()
     
     success, message = creator.delete_custom_manifest('$selected_manifest')
@@ -2955,14 +3048,20 @@ except Exception as e:
     exit(1)
 "
     
-    local result
-    result=$(python3 -c "$python_script" 2>&1)
-    local exit_code=$?
-    
-    if [ $exit_code -eq 0 ]; then
-      green_echo "[+] ${result#SUCCESS: }"
-    else
+    local result exit_code
+    if ! result=$(python3 -c "$python_script" 2>&1); then
+      exit_code=$?
       green_echo "[!] ${result#ERROR: }"
+    else
+      exit_code=0
+      green_echo "[+] ${result#SUCCESS: }"
+      # If we deleted an active custom manifest, fall back to default and refresh counts
+      rm -f "$MANIFEST_CACHE" 2>/dev/null || true
+      if [ -n "${CUSTOM_MANIFEST_URL:-}" ] && [[ "$CUSTOM_MANIFEST_URL" == file://$custom_manifests_dir/$selected_manifest/manifest.json ]]; then
+        unset CUSTOM_MANIFEST_URL
+      fi
+      load_scripts_from_manifest || true
+      refresh_script_counts
     fi
   else
     green_echo "[!] Error: Python3 is required for manifest deletion"
@@ -3087,23 +3186,20 @@ while true; do
           continue
         fi
         
-        green_echo "[!] Invalid choice. Select a valid option, or: h (help), s (search), 0 (exit)"
-        sleep 2
-        continue
+        # Fall-through to numeric validation
         ;;
     esac
   fi
 
-  # Handle numeric choices for script execution
   if [[ ! "$choice" =~ ^[0-9]+$ ]]; then
     green_echo "[!] Invalid choice. Use a number, s (search), b (back), or 0 (exit)"
     sleep 2
     continue
   fi
 
-  # Map display number to actual index if in a category view
+  # Map display number to actual index using the display map when available
   actual_index=""
-  if [ -n "$CURRENT_CATEGORY" ] && [ -n "${DISPLAY_TO_INDEX[$choice]}" ]; then
+  if [ -n "${DISPLAY_TO_INDEX[$choice]:-}" ]; then
     actual_index=${DISPLAY_TO_INDEX[$choice]}
   else
     actual_index=$((choice-1))

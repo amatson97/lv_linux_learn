@@ -91,6 +91,19 @@ set_config_value() {
   jq --arg key "$key" --arg val "$value" '.[$key] = $val' "$CONFIG_FILE" > "$temp_file" && mv "$temp_file" "$CONFIG_FILE"
 }
 
+unset_config_value() {
+  local key="$1"
+  if [ -z "$key" ]; then
+    return 1
+  fi
+  if [ ! -f "$CONFIG_FILE" ] || ! command -v jq &> /dev/null; then
+    return 0
+  fi
+  local temp_file
+  temp_file=$(mktemp)
+  jq --arg key "$key" 'del(.[$key])' "$CONFIG_FILE" > "$temp_file" && mv "$temp_file" "$CONFIG_FILE"
+}
+
 # ============================================================================
 # Logging
 # ============================================================================

@@ -34,8 +34,8 @@ echo -e "${GREEN}Cloned successfully${NC}"
 # Make executable
 chmod +x menu.sh menu.py dev_tools/*.sh 2>/dev/null || true
 
-# Verify core files[1][2][4]
-for file in menu.sh menu.py lib/repository.py lib/ui_helpers.py; do
+# Verify core files exist after clone
+for file in menu.sh menu.py lib/repository.py lib/script_execution.py; do
     [[ ! -f "$file" ]] && { echo -e "${RED}ERROR: Missing $file${NC}"; exit 1; }
 done
 echo -e "${GREEN}Core files verified: menu.py/sh, lib/ modules${NC}"
