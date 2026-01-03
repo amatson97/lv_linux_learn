@@ -143,17 +143,36 @@ class ManifestLoader:
 
                 # CRITICAL: Scan for local repository manifests in custom_manifests directory
                 # Always scan the directory so local repos work even if config lacks manifest_data
+                # BUT: Only load manifests that are truly local file-based repos, not cached online repos
                 custom_manifests_dir = cache_dir / 'custom_manifests'
-                if custom_manifests_dir.exists():
+                if custom_manifests_dir.exists() and has_custom_entries:
                     for manifest_file in custom_manifests_dir.glob('*/manifest.json'):
-                        repo_name = manifest_file.parent.name
-                        local_manifest_url = f"file://{manifest_file}"
+                        # Skip if already loaded
                         if str(manifest_file) in seen_manifest_paths:
                             continue
-                        manifests_to_load.append((local_manifest_url, repo_name))
-                        seen_manifest_paths.add(str(manifest_file))
-                        if terminal_widget:
+                        
+                        # CRITICAL: Check if this manifest is for a local file-based repo
+                        # by reading the repository_url field
+                        try:
+                            with open(manifest_file, 'r') as f:
+                                manifest_data = json.load(f)
+                            
+                            repo_url = manifest_data.get('repository_url', '')
+                            
+                            # Skip online repositories (http/https URLs)
+                            # These are cached manifests, not local file-based repos
+                            if repo_url.startswith(('http://', 'https://')):
+                                continue
+                            
+                            # This is a truly local file-based repository
+                            repo_name = manifest_file.parent.name
+                            local_manifest_url = f"file://{manifest_file}"
+                            manifests_to_load.append((local_manifest_url, repo_name))
+                            seen_manifest_paths.add(str(manifest_file))
                             _terminal_output(terminal_widget, f"[*] Found local repository: {repo_name}")
+                        except Exception as e:
+                            _terminal_output(terminal_widget, f"[!] Error checking manifest {manifest_file.name}: {e}")
+                            continue
                 
             except Exception as e:
                 print(f"[!] Error loading repository config: {e}")
@@ -162,17 +181,31 @@ class ManifestLoader:
         
         # If no manifests configured, raise error silently (expected when public repo disabled)
         if not manifests_to_load:
+            # CRITICAL: Clean up stale cached manifests when no sources are active
+            # This prevents old cached manifests from being loaded
+            if cache_dir.exists():
+                for stale_cache in cache_dir.glob("manifest_*.json"):
+                    try:
+                        stale_cache.unlink()
+                        _terminal_output(terminal_widget, f"[*] Removed stale cached manifest: {stale_cache.name}")
+                    except Exception:
+                        pass
+            
             error_msg = C.ERROR_NO_MANIFESTS if C else "No manifests configured. Enable public repository or add local repositories."
             raise Exception(error_msg)
         
         # Fetch and cache each manifest
         loaded_manifests = []
         
+        # Track which cache files are valid for current sources
+        valid_cache_files = set()
+        
         for manifest_url, source_name in manifests_to_load:
             try:
                 # Create cache filename based on source
                 cache_filename = f"manifest_{source_name.lower().replace(' ', '_')}.json"
                 cache_path = cache_dir / cache_filename
+                valid_cache_files.add(cache_filename)
                 
                 # Try to load from cache first
                 use_cache = False
@@ -209,6 +242,15 @@ class ManifestLoader:
         if not loaded_manifests:
             error_msg = C.ERROR_MANIFEST_LOAD_FAILED if C else "Failed to load any manifests"
             raise Exception(error_msg)
+        
+        # Clean up stale cached manifests that are no longer in active sources
+        try:
+            for cache_file in cache_dir.glob("manifest_*.json"):
+                if cache_file.name not in valid_cache_files:
+                    cache_file.unlink()
+                    _terminal_output(terminal_widget, f"[*] Removed stale cached manifest: {cache_file.name}")
+        except Exception as e:
+            _terminal_output(terminal_widget, f"[!] Error cleaning stale caches: {e}")
         
         return loaded_manifests
     
@@ -938,14 +980,27 @@ class CustomManifestCreator:
                         else:
                             mpath.unlink(missing_ok=True)
                 
-                # 2. Remove cached manifest files (manifest_<name>.json and temp_<name>_manifest.json)
+                # 2. Remove ALL cached manifest files related to this manifest
                 safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', manifest_name.lower().strip())
+                
+                # Multiple possible cache filename patterns
                 cache_files = [
                     config_dir / f"manifest_{safe_name}.json",
                     config_dir / f"temp_{manifest_name}_manifest.json",
-                    config_dir / f"manifest_{manifest_name.lower().replace(' ', '_')}.json"
+                    config_dir / f"manifest_{manifest_name.lower().replace(' ', '_')}.json",
+                    config_dir / f"temp_{manifest_name.lower().replace(' ', '_')}_manifest.json"
                 ]
-                for cache_file in cache_files:
+                
+                # Also scan for any cache files containing the manifest name
+                for cache_file in config_dir.glob("manifest_*.json"):
+                    if manifest_name.lower().replace(' ', '_') in cache_file.name.lower():
+                        cache_files.append(cache_file)
+                for cache_file in config_dir.glob("temp_*_manifest.json"):
+                    if manifest_name.lower().replace(' ', '_') in cache_file.name.lower():
+                        cache_files.append(cache_file)
+                
+                # Remove all found cache files
+                for cache_file in set(cache_files):  # Use set to avoid duplicates
                     cache_file.unlink(missing_ok=True)
                 
                 # 3. Remove scripts from cache if they came from this manifest

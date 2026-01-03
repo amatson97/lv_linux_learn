@@ -8,7 +8,7 @@ Complete guide for installing and configuring tools in the lv_linux_learn reposi
 3. [Installation Scripts](#installation-scripts)
 4. [Git Workflow Scripts](#git-workflow-scripts)
 5. [Uninstaller System](#uninstaller-system)
-6. [Custom Script Addition](#custom-script-addition)
+6. [Custom Script Management](#custom-script-management)
 
 ---
 
@@ -35,15 +35,13 @@ Automatically detects your environment and launches:
 - Search/filter functionality
 - Right-click context menu (copy/paste)
 - **✨ Multi-Repository System** - Support for custom script repositories
-  - Repository tab for script management
-  - Custom manifest URL configuration in settings
+  - Repository tab for online script management
+  - Repository (Local) tab for local file-based scripts
+  - Sources tab for managing custom manifest sources
+  - Custom manifest URL configuration
   - Automatic includes directory download
   - Cache-first script execution with user prompts
-- **✨ Custom Script Addition** - Add your own scripts to any tab without editing code
-  - Click **+** button on tab headers to add scripts
-  - Right-click custom scripts to edit or delete
-  - Persistent storage in `~/.lv_linux_learn/`
-  - See [Custom Script Addition](#custom-script-addition) for details
+  - See [Custom Script Management](#custom-script-management) for details
 
 **Requirements:** `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-vte-2.91`
 
@@ -55,7 +53,7 @@ Automatically detects your environment and launches:
 - **Hierarchical category navigation** - Browse by Install, Tools, Exercises, Uninstall, or dynamic categories
 - Text-based interactive menu with compact spacing
 - **Multi-Repository System** - Full repository management with custom manifest support
-- **Custom script addition** - Add your own scripts via GUI '+' button or CLI, scripts appear inline in categories
+- **Custom repositories** - Manage custom script sources via repository menu
 - **Repository menu** - Access repository management via option 6
 - Works over SSH and headless systems
 - No GUI dependencies required
@@ -269,76 +267,115 @@ See [uninstallers/README.md](../uninstallers/README.md) for detailed documentati
 
 ---
 
-## Custom Script Addition
+## Custom Script Management
 
-**Add your own scripts to both menu.py and menu.sh without editing code!**
+**Manage custom script repositories and sources without editing code!**
 
-### Quick Start (GUI)
+### Overview
 
-1. **Open menu.py** - Click the **+** button on any tab header
-2. **Fill in details:**
-   - Script Name (display name)
-   - Script Path (browse or enter path)
-   - Description (Markdown formatting supported)
-   - Requires sudo checkbox
-3. **Click OK** - Your script appears in the tab with 📝 prefix
+The system supports three types of script sources:
 
-### Quick Start (CLI)
+1. **Public Repository** - Default GitHub-hosted scripts (can be disabled)
+2. **Custom Online Repositories** - Your own online manifest URLs
+3. **Local File-Based Repositories** - Scripts on your local filesystem
 
-1. **Open menu.sh** - Press **'a'** from the main menu
-2. **Enter details** at each prompt:
-   - Script Name
-   - Script Path (absolute path)
-   - Category (1-4: Install, Tools, Exercises, Uninstall)
-   - Description (optional)
-   - Requires sudo? (y/n)
-3. **Type 'cancel' or 'back'** at any prompt to exit
-4. Your script appears in the selected category with 📝 prefix
+### Adding Custom Sources (GUI)
 
-### Managing Custom Scripts
+**Using the Sources Tab:**
 
-**GUI (menu.py):**
-- **Edit**: Right-click on 📝 script → "✏️ Edit Script"
-- **Delete**: Right-click → "🗑️ Delete Script" (confirms first)
-- **Run**: Double-click or use "Run Script in Terminal" button
+1. **Open menu.py** → Click **Sources** tab
+2. **Click "Add New Source"** button
+3. **Choose method:**
+   - **Directory Scan**: Scan local directories for bash scripts
+   - **Online Manifest**: Import from a remote manifest.json URL
+4. **Fill in details:**
+   - Repository Name
+   - Description
+   - Directory paths (for scan) OR Manifest URL (for online)
+5. **Click "Create"** - Your repository appears in Sources tab
 
-**CLI (menu.sh):**
-- **Add**: Press 'a' from main menu (supports cancel at any prompt)
-- **Run**: Custom scripts appear inline in their respective categories (marked with 📝), select script number
-- **Search**: Press 's' to search across all scripts including custom ones
-- **Edit/Delete**: Currently GUI-only (use menu.py for management)
+**Your scripts will appear in:**
+- **Repository** tab (if online source)
+- **Repository (Local)** tab (if directory scan)
+
+### Managing Sources (GUI)
+
+**Sources Tab Options:**
+- **Edit Selected**: Modify repository details
+- **Delete Selected**: Remove custom repositories
+- **Refresh List**: Reload all sources
+
+### Custom Repository via Settings
+
+**Alternative method for online repositories:**
+
+1. Open menu.py → Click **Settings** menu
+2. Configure:
+   - **Use Public Repository**: Enable/disable default GitHub scripts
+   - **Custom Manifest URL**: Enter your repository URL
+3. Click **OK** to save
+
+### CLI Management
+
+```bash
+./menu.sh
+# Select: 6) Script Repository
+# Select: 6) Repository Settings
+# Select: m) Set Custom Manifest URL
+# Enter your repository URL
+```
+
+### Custom Repository Format
+
+Your custom repository should have:
+
+```
+your-repo/
+├── manifest.json           # Required: Script definitions
+├── includes/              # Recommended: Shared functions
+│   └── main.sh
+└── scripts/               # Your scripts organized by category
+    ├── install/
+    ├── tools/
+    └── exercises/
+```
+
+**Example manifest.json:**
+```json
+{
+  "version": "1.0.0",
+  "name": "My Custom Scripts",
+  "description": "Personal script collection",
+  "repository_url": "https://raw.githubusercontent.com/youruser/yourrepo/main",
+  "scripts": [
+    {
+      "id": "custom-tool",
+      "name": "Custom Tool",
+      "file_name": "tool.sh",
+      "category": "tools",
+      "version": "1.0",
+      "download_url": "https://raw.githubusercontent.com/youruser/yourrepo/main/scripts/tools/tool.sh",
+      "checksum": "sha256:your_checksum_here"
+    }
+  ]
+}
+```
 
 ### Features
 
-- ✅ **No code editing** - GUI and CLI interfaces for management
-- ✅ **Persistent** - Scripts remain across restarts (stored in JSON)
-- ✅ **Organized** - Add to appropriate categories
-- ✅ **Visual distinction** - 📝 emoji marks custom scripts in both interfaces
-- ✅ **Professional integration** - Works seamlessly with built-in scripts
-- ✅ **Cancel support** - Type 'cancel' or 'back' at any prompt in CLI
-- ✅ **Cross-interface** - Scripts added in CLI appear in GUI and vice versa
+- ✅ **Multiple Sources** - Mix public, custom online, and local repositories
+- ✅ **AI Analysis** - Ollama-powered script categorization (if available)
+- ✅ **Security** - SHA256 checksum verification for online sources
+- ✅ **Cache Management** - Automatic download and caching
+- ✅ **Dual Interface** - Full support in both GUI and CLI
 
-### Storage Location
+### Storage Locations
 
-- Configuration: `~/.lv_linux_learn/custom_scripts.json`
-- Scripts: `~/.lv_linux_learn/scripts/` (optional)
+- Configuration: `~/.lv_linux_learn/config.json`
+- Custom manifests: `~/.lv_linux_learn/custom_manifests/`
+- Script cache: `~/.lv_linux_learn/script_cache/`
 
-### Script Requirements
-
-Your script must be:
-- **Executable**: `chmod +x your_script.sh`
-- **With shebang**: First line `#!/bin/bash`
-- **Formatted** (recommended): Use `green_echo` from `includes/main.sh`
-
-### Example Test Script
-
-Try adding this test script to get started:
-```bash
-# Use the included example
-/home/adam/lv_linux_learn/bash_exercises/test_custom_script.sh
-```
-
-**📖 Full Documentation:** [CUSTOM_SCRIPTS.md](CUSTOM_SCRIPTS.md)
+**📖 Full Documentation:** [CUSTOM_SCRIPTS.md](CUSTOM_SCRIPTS.md) | [SCRIPT_REPOSITORY.md](SCRIPT_REPOSITORY.md)
 
 ---
 

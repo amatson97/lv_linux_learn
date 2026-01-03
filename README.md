@@ -56,11 +56,12 @@ chmod +x scripts/*.sh includes/*.sh tools/*.sh zerotier_tools/*.sh ai_fun/*.sh *
 
 ## 📚 What's Inside
 
-### 🎯 Core Features (v2.2.3)
+### 🎯 Core Features (v2.3.0)
 - **🖥️ Dual Interface** — GTK GUI and CLI with unified functionality
 - **☁️ Multi-Repository System** — Public, custom online, and local file-based repositories
 - **🗂️ Smart Categorization** — AI-powered script organization into Install/Tools/Exercises/Uninstall
 - **📦 Repository Views** — Separate tabs for online and local script sources
+- **🔧 Utilities Framework** — Centralized path, terminal, timer, and file operations (NEW in v2.3.0)
 - **🎓 Learning Exercises** — Interactive bash tutorials for beginners
 - **🛠️ Utility Tools** — File conversion, extraction, and system utilities
 - **🤖 AI Integration** — Ollama-powered script analysis and intelligent categorization

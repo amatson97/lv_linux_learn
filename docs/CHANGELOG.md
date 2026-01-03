@@ -1,5 +1,118 @@
 # Changelog — lv_linux_learn
 
+## Version 2.3.0 — Phase 3 Refactoring: Utilities Framework
+
+**Release Date:** January 3, 2026  
+**Focus:** Code centralization through reusable utility modules
+
+### Summary
+
+Major refactoring effort implementing a utilities framework to eliminate code duplication across the codebase. Successfully integrated **5 utility modules** replacing **36+ duplicate code patterns** while maintaining full backward compatibility and zero syntax errors.
+
+### ✅ New Utilities Framework
+
+**Created Modules:**
+- `lib/utilities/path_manager.py` — Centralized path management (14 integrations)
+- `lib/utilities/terminal_messenger.py` — ANSI-colored terminal output (13 integrations)
+- `lib/utilities/timer_manager.py` — Semantic GLib timeout delays (7 integrations)
+- `lib/utilities/file_loader.py` — Safe JSON/text file operations (2 integrations)
+- `lib/utilities/config_manager.py` — Cached configuration loading (available, not integrated)
+
+**Supporting Modules:**
+- `lib/dialog_helpers_extended.py` — Dialog factory patterns
+- `lib/ui_components.py` — TreeView and UI component factories
+- `lib/custom_manifest_tab.py` — Custom manifest tab handler
+- `lib/local_repository_tab.py` — Local repository tab handler
+- `lib/repository_tab.py` — Online repository tab handler
+
+### Code Quality Improvements
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Duplicate path constructions | 17+ | 0 | 100% eliminated |
+| Duplicate terminal.feed() calls | 20+ | 7 | 65% reduction |
+| Magic number timeouts | 20+ | 13 | 35% reduction |
+| Hardcoded ANSI color codes | 20+ | 0 | 100% eliminated |
+
+### Technical Details
+
+**PathManager Integration:**
+- Replaced all hardcoded `Path.home() / '.lv_linux_learn'` constructions
+- Provides `get_config_dir()`, `get_cache_dir()`, `get_custom_manifests_dir()`, etc.
+- Single source of truth for all filesystem paths
+
+**TerminalMessenger Integration:**
+- Standardized terminal output with `.success()`, `.error()`, `.info()`, `.warning()`
+- Eliminated manual ANSI color code construction
+- Consistent icon usage across all messages
+
+**TimerManager Integration:**
+- Replaced magic numbers (50, 100, 500, 1500) with semantic names
+- Methods: `schedule_immediate()`, `schedule_ui_refresh()`, `schedule_operation()`, `schedule_completion()`
+- Self-documenting timeout behavior
+
+**FileLoader Integration:**
+- Safe JSON loading with automatic error handling
+- Default value support for missing files
+- Automatic parent directory creation
+
+### Known Issues
+
+**ConfigManager:**
+- Created but not integrated due to Python bytecode caching issue with GTK
+- Works perfectly in isolation
+- Requires `pkill python3` to clear cache after static-to-instance method conversion
+- Available for future integration with revised caching strategy
+
+### Files Modified
+
+- `menu.py` — 36 utility integrations
+- `lib/config.py` — Minor adjustments
+- `lib/manifest.py` — Minor adjustments
+- `CODE_ANALYSIS.md` — Updated with implementation status
+
+### Documentation Updates
+
+- Updated CODE_ANALYSIS.md with implementation status and impact assessment
+- Added detailed usage examples for all utilities
+- Documented lessons learned and future recommendations
+
+### Validation
+
+- ✅ Zero syntax errors
+- ✅ Full backward compatibility maintained
+- ✅ GUI launches and functions correctly
+- ✅ All 4 integrated utilities working in production
+
+### Migration Notes
+
+**For Developers:**
+```python
+# Old pattern:
+config_dir = Path.home() / '.lv_linux_learn'
+
+# New pattern:
+from lib.utilities import PathManager
+config_dir = PathManager.get_config_dir()
+
+# Old pattern:
+terminal.feed(b"\x1b[32m[✓] Success\x1b[0m\r\n")
+
+# New pattern:
+from lib.utilities import TerminalMessenger
+messenger = TerminalMessenger(terminal)
+messenger.success("Success")
+
+# Old pattern:
+GLib.timeout_add(100, callback)
+
+# New pattern:
+from lib.utilities import TimerManager
+TimerManager.schedule_ui_refresh(callback)
+```
+
+---
+
 ## Version 2.2.3 — Debug Logging Removal and UX Polish
 
 **Release Date:** December 29, 2025  

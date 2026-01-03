@@ -99,6 +99,16 @@ REPO_COL_NAME: Final[int] = 2         # Script name
 REPO_COL_CATEGORY: Final[int] = 3     # Category
 REPO_COL_DESCRIPTION: Final[int] = 4  # Description
 
+# Local repository tab column structure (8 columns)
+LOCAL_REPO_COL_SELECTED: Final[int] = 0  # Checkbox selection
+LOCAL_REPO_COL_ID: Final[int] = 1        # Script ID
+LOCAL_REPO_COL_NAME: Final[int] = 2      # Script name
+LOCAL_REPO_COL_VERSION: Final[int] = 3   # Version
+LOCAL_REPO_COL_PATH: Final[int] = 4      # File path
+LOCAL_REPO_COL_CATEGORY: Final[int] = 5  # Category
+LOCAL_REPO_COL_SOURCE: Final[int] = 6    # Source name
+LOCAL_REPO_COL_SIZE: Final[int] = 7      # File size
+
 # ============================================================================
 # SCRIPT CATEGORIES
 # ============================================================================
