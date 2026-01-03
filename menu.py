@@ -90,7 +90,8 @@ try:
         ScriptScanner,
         CustomManifestCreator,
         load_scripts_from_manifest,
-        fetch_manifest
+        fetch_manifest,
+        refresh_manifest_cache
     )
 except ImportError:
     print("Warning: Manifest module not available")
@@ -98,6 +99,7 @@ except ImportError:
     ScriptScanner = None
     CustomManifestCreator = None
     get_local_repository_manifests = None
+    refresh_manifest_cache = None
 
 # User scripts management
 try:
@@ -6755,11 +6757,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         file_item = Gtk.MenuItem(label="File")
         file_item.set_submenu(file_menu)
         
-        # Refresh Scripts
-        self.refresh_item = Gtk.MenuItem(label="Refresh Scripts")
-        self.refresh_item.connect("activate", self._on_refresh_scripts)
-        self.refresh_item.set_sensitive(self.repo_enabled)  # Enable/disable based on repository state
-        file_menu.append(self.refresh_item)
+        # Refresh Manifest Cache
+        refresh_manifest_item = Gtk.MenuItem(label="Refresh Manifest")
+        refresh_manifest_item.connect("activate", self._on_refresh_manifest_cache)
+        file_menu.append(refresh_manifest_item)
         
         # Separator
         separator = Gtk.SeparatorMenuItem()
@@ -6845,23 +6846,29 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         return False  # Remove from GLib timeout
     
-    def _on_refresh_scripts(self, widget=None):
-        """User-initiated script refresh from File menu"""
-        self.terminal.feed(b"\x1b[36m[*] Refreshing scripts from all sources...\x1b[0m\r\n")
+    def _on_refresh_manifest_cache(self, widget=None):
+        """Clear manifest cache and fetch fresh from configured URL"""
+        self.terminal.feed(b"\x1b[36m[*] Clearing and rebuilding manifest cache...\x1b[0m\r\n")
         
-        # Perform the refresh
-        self._refresh_all_script_data()
-        
-        # Show completion message
-        if TerminalMessenger:
-            TerminalMessenger(self.terminal).success("Scripts refreshed successfully")
-            self.terminal.feed(b"\r\n")
-        else:
-            self.terminal.feed("\x1b[32m[✓] Scripts refreshed successfully\x1b[0m\r\n\r\n".encode())
+        try:
+            # Terminal output callback
+            def terminal_output(msg):
+                self.terminal.feed(f"{msg}\r\n".encode())
+            
+            # Use library function to refresh cache
+            if refresh_manifest_cache(manifest_url=DEFAULT_MANIFEST_URL, terminal_callback=terminal_output):
+                # Reload scripts from fresh manifest
+                self.terminal.feed(b"\x1b[36m[*] Reloading scripts...\x1b[0m\r\n")
+                self._refresh_all_script_data()
+                self.terminal.feed(b"\x1b[32m[+] Manifest cache refreshed successfully\x1b[0m\r\n\r\n")
+            else:
+                self.terminal.feed(b"\x1b[31m[!] Failed to refresh manifest cache\x1b[0m\r\n\r\n")
+            
+        except Exception as e:
+            self.terminal.feed(f"\x1b[31m[!] Error refreshing manifest: {e}\x1b[0m\r\n\r\n".encode())
         
         # Return to prompt
         self.terminal.feed_child(b"\n")
-        
         return False
 
     def _show_about_dialog(self):

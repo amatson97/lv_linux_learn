@@ -436,6 +436,106 @@ class ManifestLoader:
 
 
 # ============================================================================
+# MANIFEST CACHE REFRESH
+# ============================================================================
+
+def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
+    """
+    Clear and refresh all cached manifests (public + custom online repos).
+    Downloads fresh copies from their configured URLs.
+    
+    Args:
+        manifest_url: Optional single URL to refresh (if None, refreshes all active manifests)
+        terminal_callback: Optional callback function(message) for terminal output
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    import subprocess
+    
+    def output(msg):
+        """Helper to send output to terminal or print"""
+        if terminal_callback:
+            terminal_callback(msg)
+        else:
+            print(msg)
+    
+    try:
+        cache_dir = Path(C.CONFIG_DIR if C else Path.home() / '.lv_linux_learn')
+        cache_dir.mkdir(exist_ok=True)
+        
+        # If specific URL provided, refresh only that one
+        if manifest_url:
+            cache_file = Path(C.MANIFEST_CACHE_FILE if C else (cache_dir / 'manifest.json'))
+            
+            if cache_file.exists():
+                cache_file.unlink()
+                output("[+] Removed cached manifest")
+            
+            output(f"[*] Downloading fresh manifest from {manifest_url}...")
+            
+            result = subprocess.run(
+                ['curl', '-sSfL', '-o', str(cache_file), manifest_url],
+                capture_output=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                output("[+] Manifest downloaded successfully")
+                return True
+            else:
+                output("[!] Failed to download manifest")
+                return False
+        
+        # Otherwise refresh all cached manifests (public + custom online repos)
+        output("[*] Clearing all cached manifests...")
+        
+        # Clear public repository manifest
+        public_manifest = cache_dir / 'manifest.json'
+        if public_manifest.exists():
+            public_manifest.unlink()
+            output("[+] Cleared public repository manifest")
+        
+        # Clear custom manifest caches
+        custom_manifests_dir = cache_dir / 'custom_manifests'
+        if custom_manifests_dir.exists():
+            manifest_count = 0
+            for manifest_file in custom_manifests_dir.glob('*.json'):
+                try:
+                    manifest_file.unlink()
+                    manifest_count += 1
+                except Exception as e:
+                    output(f"[!] Failed to remove {manifest_file.name}: {e}")
+            if manifest_count > 0:
+                output(f"[+] Cleared {manifest_count} custom manifest(s)")
+        
+        # Download fresh public repository manifest
+        default_url = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+        output(f"[*] Downloading fresh public repository manifest from {default_url}...")
+        
+        result = subprocess.run(
+            ['curl', '-sSfL', '-o', str(public_manifest), default_url],
+            capture_output=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            output("[+] Public repository manifest downloaded successfully")
+        else:
+            output("[!] Failed to download public repository manifest")
+            return False
+        
+        # Custom online repo manifests will be re-fetched on next load
+        output("[*] Custom online repository manifests will be refreshed on next load")
+        
+        return True
+            
+    except Exception as e:
+        output(f"[!] Error refreshing manifest cache: {e}")
+        return False
+
+
+# ============================================================================
 # MANIFEST MANAGEMENT
 # ============================================================================
 

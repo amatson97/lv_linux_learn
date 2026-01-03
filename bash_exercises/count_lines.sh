@@ -4,6 +4,7 @@
 # Educational script for learning file analysis using the 'wc' (word count) command.
 # Teaches file existence validation, user input handling, and text file statistics.
 # Demonstrates essential file processing concepts in shell scripting.
+# Line added: to Test checksum change for manifest.
 
 # Includes
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
