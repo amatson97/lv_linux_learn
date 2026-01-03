@@ -127,6 +127,7 @@ EOF
   local script_count=0
   
   # Define categories with directory mappings
+  # Note: /includes is included for user-facing files like main.sh
   declare -A categories=(
     ["scripts"]="install"
     ["tools"]="tools"
@@ -156,8 +157,8 @@ EOF
       
       local filename=$(basename "$script")
       
-      # Skip menu utility scripts and development tools
-      if [ "$filename" = "uninstall_menu.sh" ] || [ "$filename" = "generate_manifest.sh" ]; then
+      # Skip menu utility scripts, development tools, and repository.sh (infrastructure only)
+      if [ "$filename" = "uninstall_menu.sh" ] || [ "$filename" = "generate_manifest.sh" ] || [ "$filename" = "repository.sh" ]; then
         continue
       fi
       
@@ -170,21 +171,22 @@ EOF
         continue
       fi
       
-      # Handle includes files differently
+      # Build script metadata
+      local script_id=$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-')
+      local script_name=$(echo "$filename" | sed 's/_/ /g' | sed 's/.sh$//' | sed 's/\b\(.\)/\u\1/g')
+      local description=$(get_description "$script")
+      local sudo=$(requires_sudo "$script")
+      local version=$(get_script_version "$script")
+      local dependencies=$(get_includes_dependencies "$script")
+      
+      # Handle includes files with special naming
       if [ "$dir" = "includes" ]; then
-        local script_id="includes-$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-' | tr '.' '-')"
-        local script_name="Includes: $filename"
-        local description="Shared include file: $filename"
-        local sudo="false"
-        local version="1.0.0"
-        local dependencies="[]"
-      else
-        local script_id=$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-')
-        local script_name=$(echo "$filename" | sed 's/_/ /g' | sed 's/.sh$//' | sed 's/\b\(.\)/\u\1/g')
-        local description=$(get_description "$script")
-        local sudo=$(requires_sudo "$script")
-        local version=$(get_script_version "$script")
-        local dependencies=$(get_includes_dependencies "$script")
+        script_id="includes-$(echo "$filename" | sed 's/\.sh$//' | tr '_' '-' | tr '.' '-')"
+        script_name="Includes: $filename"
+        description="Shared include file: $filename"
+        sudo="false"
+        version="1.0.0"
+        dependencies="[]"
       fi
       
       # Comma separator
