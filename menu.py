@@ -6873,100 +6873,100 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
 
     def _show_about_dialog(self):
         """Show about dialog with application information"""
-        # Get dynamic script counts
-        install_count = len(SCRIPTS)
-        tools_count = len(TOOLS_SCRIPTS)
-        exercises_count = len(EXERCISES_SCRIPTS)
-        uninstall_count = len(UNINSTALL_SCRIPTS)
-        total_count = install_count + tools_count + exercises_count + uninstall_count
+        # Count scripts
+        counts = {
+            'install': len(SCRIPTS),
+            'tools': len(TOOLS_SCRIPTS),
+            'exercises': len(EXERCISES_SCRIPTS),
+            'uninstall': len(UNINSTALL_SCRIPTS),
+            'total': len(SCRIPTS) + len(TOOLS_SCRIPTS) + len(EXERCISES_SCRIPTS) + len(UNINSTALL_SCRIPTS)
+        }
         
-        # Create detailed about text
-        about_text = (
-            "<big><b>Linux Learning Setup Tool</b></big>\n"
-            "<i>Advanced Ubuntu Linux Setup &amp; Management Utility</i>\n\n"
-            f"<b>Version:</b> 2.2.2 (Multi-Repository System)\n"
-            f"<b>Repository:</b> lv_linux_learn ({total_count} total scripts)\n\n"
-            "<span size='large'><b>About</b></span>\n\n"
-            "This tool provides a modern, GitHub-integrated interface for installing and managing "
-            "software packages on Ubuntu Linux. It features an advanced caching system, "
-            "repository management, and streamlined script execution with enhanced user experience.\n\n"
-            "<b>🚀 Core Features:</b>\n"
-            "  • <b>GitHub Integration:</b> Scripts hosted on GitHub as Single Source of Truth\n"
-            "  • <b>Smart Caching:</b> Local cache management with selective download/removal\n"
-            "  • <b>Multi-Repository:</b> Support for public and custom script repositories\n"
-            "  • <b>Automatic Updates:</b> Check for script updates and apply selectively\n"
-            "  • <b>Custom Scripts:</b> Add and manage user-defined scripts\n"
-            "  • <b>Clean Terminal Integration:</b> Professional command execution with proper formatting\n\n"
-            "<b>📦 Application Categories:</b>\n"
-            f"  • <b>Install ({install_count} scripts):</b> Development tools, browsers, editors, package managers\n"
-            f"  • <b>Tools ({tools_count} scripts):</b> File extraction, media conversion, system utilities\n"
-            f"  • <b>Exercises ({exercises_count} scripts):</b> Bash learning scripts and practice tools\n"
-            f"  • <b>Uninstall ({uninstall_count} scripts):</b> Safe removal with complete cleanup\n\n"
-            "<b>🔧 Advanced Features:</b>\n"
-            "  • <b>Real-time Status:</b> Live cache indicators (✓ cached, ☁️ not cached)\n"
-            "  • <b>Bulk Operations:</b> Download all, remove all, or select individual scripts\n"
-            "  • <b>Directory Navigation:</b> Intelligent script directory access\n"
-            "  • <b>Search Functionality:</b> Filter scripts across all tabs\n"
-            "  • <b>Multi-Manifest Support:</b> Local and online repository sources\n\n"
-            "<span size='large'><b>Architecture</b></span>\n\n"
-            "<b>GitHub as SOT:</b> All scripts are hosted on GitHub with manifest.json for metadata\n"
-            "<b>Local Cache:</b> ~/.lv_linux_learn/script_cache/ with organized subdirectories\n"
-            "<b>Dual Interface:</b> GUI (menu.py) and CLI (menu.sh) with feature parity\n\n"
-            "<span size='large'><b>Credits</b></span>\n\n"
-            "<b>Developer:</b> Adam Matson\n"
-            "<b>GitHub:</b> <a href='https://github.com/amatson97'>@amatson97</a>\n"
-            "<b>Repository:</b> <a href='https://github.com/amatson97/lv_linux_learn'>lv_linux_learn</a>\n\n"
-            "<b>Target Platform:</b> Ubuntu Desktop 24.04.3 LTS\n"
-            "<b>License:</b> MIT License\n\n"
-            "<small><i>© 2025 Adam Matson. Built for the Linux learning community.</i></small>"
-        )
+        # Define sections
+        sections = [
+            ("LV Script Manager", "title"),
+            ("Advanced Ubuntu Linux Setup &amp; Management Utility", "subtitle"),
+            ("", "double_spacer"),
+            (f"<b>Version:</b> 2.2.2 (Multi-Repository System)   •   <b>Scripts:</b> {counts['total']} total", "info"),
+            ("", "spacer"),
+            ("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "divider"),
+            ("", "double_spacer"),
+            ("📋 About", "header"),
+            ("This tool provides a modern, GitHub-integrated interface for installing and managing software packages on Ubuntu Linux. It features an advanced caching system, repository management, and streamlined script execution.", "body"),
+            ("", "double_spacer"),
+            ("🚀 Core Features", "header"),
+            ("• <b>GitHub Integration:</b> Scripts hosted on GitHub as Single Source of Truth\n• <b>Smart Caching:</b> Local cache management with selective download/removal\n• <b>Multi-Repository:</b> Support for public and custom script repositories\n• <b>Automatic Updates:</b> Check for script updates and apply selectively\n• <b>Custom Scripts:</b> Add and manage user-defined scripts\n• <b>Terminal Integration:</b> Professional command execution with proper formatting", "body"),
+            ("", "double_spacer"),
+            ("📦 Available Categories", "header"),
+            (f"• <b>Install:</b> {counts['install']} scripts — Development tools, browsers, editors\n• <b>Tools:</b> {counts['tools']} scripts — File extraction, media conversion, utilities\n• <b>Exercises:</b> {counts['exercises']} scripts — Bash learning and practice tools\n• <b>Uninstall:</b> {counts['uninstall']} scripts — Safe removal with complete cleanup", "body"),
+            ("", "double_spacer"),
+            ("⚙️ Advanced Features", "header"),
+            ("• <b>Real-time Status:</b> Live cache indicators (✓ cached, ☁️ not cached)\n• <b>Bulk Operations:</b> Download all, remove all, or select individual scripts\n• <b>Directory Navigation:</b> Intelligent script directory access\n• <b>Search &amp; Filter:</b> Quick filtering across all tabs and categories\n• <b>Multi-Manifest Support:</b> Local and online repository sources", "body"),
+            ("", "double_spacer"),
+            ("🏗️ Architecture", "header"),
+            ("• <b>Source:</b> All scripts hosted on GitHub with manifest.json metadata\n• <b>Cache Location:</b> ~/.lv_linux_learn/script_cache/\n• <b>Interfaces:</b> GUI (menu.py) &amp; CLI (menu.sh) with feature parity", "body"),
+            ("", "double_spacer"),
+            ("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "divider"),
+            ("", "double_spacer"),
+            ("👨‍💼 Credits", "header"),
+            ("<b>Developer:</b> Adam Matson\n<b>GitHub:</b> <a href='https://github.com/amatson97'>@amatson97</a>\n<b>Repository:</b> <a href='https://github.com/amatson97/lv_linux_learn'>lv_linux_learn</a>\n<b>License:</b> MIT License\n<b>Platform:</b> Ubuntu Desktop 24.04.3 LTS", "body"),
+            ("", "double_spacer"),
+            ("© 2025 Adam Matson. Built for the Linux learning community.", "footer"),
+        ]
         
-        # Create a custom dialog instead of standard AboutDialog to support rich formatting
-        dialog = Gtk.Dialog(
-            title="About LV Script Manager",
-            transient_for=self,
-            modal=True
-        )
-        dialog.set_default_size(600, 500)
+        # Build markup from sections
+        markup_parts = []
+        style_map = {
+            'title': "<span size='32000' weight='bold'>{}</span>",
+            'subtitle': "<span size='large' style='italic'>{}</span>",
+            'header': "<span size='large' weight='bold'>{}</span>",
+            'body': "<span>{}</span>",
+            'info': "<span>{}</span>",
+            'divider': "<span>{}</span>",
+            'footer': "<span size='small' style='italic'>{}</span>",
+            'spacer': "\n",
+            'double_spacer': "\n\n",
+        }
+        
+        for content, style_type in sections:
+            if style_type in ('spacer', 'double_spacer'):
+                markup_parts.append(style_map[style_type])
+            else:
+                markup_parts.append(style_map[style_type].format(content))
+                markup_parts.append("\n")
+        
+        about_text = "".join(markup_parts)
+        
+        # Create dialog
+        dialog = Gtk.Dialog(title="About LV Script Manager", transient_for=self, modal=True)
+        dialog.set_default_size(700, 650)
         dialog.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK)
         
-        # Create scrollable content area
-        content_area = dialog.get_content_area()
-        content_area.set_spacing(10)
-        content_area.set_margin_top(10)
-        content_area.set_margin_bottom(10)
-        content_area.set_margin_start(10)
-        content_area.set_margin_end(10)
-        
-        # Add logo if available
-        try:
-            logo = GdkPixbuf.Pixbuf.new_from_file_at_scale("images/logo.png", 64, 64, True)
-            image = Gtk.Image.new_from_pixbuf(logo)
-            content_area.pack_start(image, False, False, 0)
-        except:
-            pass  # No logo file, that's fine
-        
-        # Create scrolled window for text
+        # Create scrolled label
         scroll = Gtk.ScrolledWindow()
-        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scroll.set_vexpand(True)
-        scroll.set_hexpand(True)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
-        # Create label with about text
         label = Gtk.Label()
         label.set_use_markup(True)
         label.set_line_wrap(True)
         label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         label.set_xalign(0)
         label.set_yalign(0)
-        label.set_margin_start(10)
-        label.set_margin_end(10)
+        label.set_margin_start(24)
+        label.set_margin_end(24)
+        label.set_margin_top(12)
+        label.set_margin_bottom(12)
+        label.set_name("about-label")
         label.set_markup(about_text)
         label.connect("activate-link", self.on_link_clicked)
         
-        scroll.add(label)
-        content_area.pack_start(scroll, True, True, 0)
+        # Apply CSS for white text
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b"#about-label { color: #ffffff; }")
+        label.get_style_context().add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         
+        scroll.add(label)
+        dialog.get_content_area().pack_start(scroll, True, True, 0)
         dialog.show_all()
         dialog.run()
         dialog.destroy()
