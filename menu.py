@@ -41,51 +41,67 @@ import uuid
 # Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
 DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
 
-# Import repository management
+# Import library modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
+
+# Repository management (consolidated)
 try:
-    from lib.repository_service import ScriptRepository, ChecksumVerificationError
+    from lib.repository import ScriptRepository, ChecksumVerificationError
+    from lib.repository import (
+        download_script_with_feedback,
+        update_script_with_feedback,
+        remove_script_with_feedback,
+        download_all_scripts_with_feedback,
+        update_all_scripts_with_feedback,
+        remove_all_scripts_with_feedback,
+        clear_cache_with_feedback,
+        get_cache_stats
+    )
 except ImportError:
-    print("Warning: Repository service module not available")
+    print("Warning: Repository module not available")
     ScriptRepository = None
     ChecksumVerificationError = Exception
 
+# Manifest management (consolidated)
 try:
-    from lib.manifest_service import CustomManifestCreator, ScriptScanner, ManifestManager, get_local_repository_manifests
+    from lib.manifest import (
+        ManifestLoader,
+        ManifestManager,
+        get_local_repository_manifests,
+        ScriptScanner,
+        CustomManifestCreator,
+        load_scripts_from_manifest,
+        fetch_manifest
+    )
 except ImportError:
-    print("Warning: Manifest service module not available")
-    CustomManifestCreator = None
-    ScriptScanner = None
+    print("Warning: Manifest module not available")
     ManifestManager = None
+    ScriptScanner = None
+    CustomManifestCreator = None
     get_local_repository_manifests = None
 
+# User scripts management
 try:
     from lib.user_scripts import CustomScriptManager
 except ImportError:
     print("Warning: Custom scripts module not available")
     CustomScriptManager = None
 
+# Configuration
 try:
     from lib import config as C
 except ImportError:
-    print("Warning: Constants module not available")
+    print("Warning: Configuration module not available")
     C = None
 
-try:
-    from lib import manifest_service
-except ImportError:
-    print("Warning: Manifest service module not available")
-    manifest_service = None
-
-# Note: script_handler is now part of script_manager (imported above)
-# Keep this comment for migration tracking
-
+# UI helpers
 try:
     from lib import dialog_helpers as UI
 except ImportError:
     print("Warning: UI helpers module not available")
     UI = None
 
+# AI tools
 try:
     from lib.ai_categorizer import OllamaAnalyzer, check_ollama_available
 except ImportError:
@@ -93,20 +109,29 @@ except ImportError:
     OllamaAnalyzer = None
     check_ollama_available = None
 
+# Script management (consolidated)
 try:
-    from lib import script_manager
-    from lib.script_manager import (
+    from lib.script import (
         build_script_metadata,
         is_script_cached,
         should_use_cache_engine,
         get_script_env_requirements,
         validate_script_env_var,
-        build_script_command
+        build_script_command,
+        ScriptMetadata,
+        ScriptCache,
+        ScriptEnvironment,
+        ScriptExecutor,
+        ScriptNavigator
     )
 except ImportError:
-    print("Warning: Script manager module not available")
-    script_manager = None
+    print("Warning: Script module not available")
     build_script_metadata = None
+    is_script_cached = None
+    should_use_cache_engine = None
+    get_script_env_requirements = None
+    validate_script_env_var = None
+    build_script_command = None
     is_script_cached = None
     should_use_cache_engine = None
     get_script_env_requirements = None
@@ -152,16 +177,10 @@ MANIFEST_URL = os.environ.get('CUSTOM_MANIFEST_URL', DEFAULT_MANIFEST_URL)
 # MANIFEST LOADING FUNCTIONS
 # ============================================================================
 
-# Use imported manifest_service module (required for operation)
-fetch_manifest = manifest_service.fetch_manifest
-load_scripts_from_manifest = manifest_service.load_scripts_from_manifest
-
-
 # Note: Global loading doesn't use terminal widget (goes to stdout)
 # Try to initialize with repository for custom configuration
 try:
-    from lib.repository_service import ScriptRepository
-    _temp_repo = ScriptRepository()
+    _temp_repo = ScriptRepository() if ScriptRepository else None
     _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, _SCRIPT_ID_MAP = load_scripts_from_manifest(repository=_temp_repo)
 except Exception:
     # Fallback to default loading if repository initialization fails
@@ -943,9 +962,20 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         Returns:
             True if script is in cache, False otherwise
         """
-        # Use script_manager module if available
-        if script_manager:
-            result = script_manager.is_script_cached(self.repository, script_id, script_path, category)
+        # Local custom repos should never use cache engine
+        if script_path:
+            try:
+                local_candidate = script_path.replace('file://', '') if script_path.startswith('file://') else script_path
+                path_obj = Path(local_candidate).resolve()
+                custom_root = Path.home() / '.lv_linux_learn' / 'custom_manifests'
+                if custom_root in path_obj.parents:
+                    return False
+            except Exception:
+                pass
+
+        # Use is_script_cached function if available
+        if is_script_cached:
+            result = is_script_cached(self.repository, script_id, script_path, category)
             return result
         
         # Fallback implementation
@@ -999,9 +1029,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         """
         global _SCRIPT_ID_MAP
         
-        # Use script_manager module if available
-        if script_manager:
-            return script_manager.build_script_metadata(
+        # Use build_script_metadata function if available
+        if build_script_metadata:
+            return build_script_metadata(
                 script_path,
                 category,
                 script_name,
@@ -1172,16 +1202,47 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             print(f"Warning: Failed to parse script metadata: {e}")
         return {}
 
+    def _has_custom_sources(self) -> bool:
+        """Return True if any custom manifests/sources are configured."""
+        # Prefer repository config when available
+        try:
+            if self.repository:
+                cfg = self.repository.load_config()
+                if cfg.get('custom_manifest_url'):
+                    return True
+                if cfg.get('custom_manifests'):
+                    return True
+                if cfg.get('active_custom_manifest'):
+                    return True
+        except Exception:
+            pass
+
+        # Fallback: direct config file read
+        try:
+            cfg_file = Path.home() / '.lv_linux_learn' / 'config.json'
+            if cfg_file.exists():
+                with open(cfg_file, 'r') as f:
+                    cfg = json.load(f)
+                if cfg.get('custom_manifest_url'):
+                    return True
+                if cfg.get('custom_manifests'):
+                    return True
+                if cfg.get('active_custom_manifest'):
+                    return True
+        except Exception:
+            pass
+        return False
+
     def _prompt_for_script_inputs(self, script_name: str, script_path: str) -> dict:
         """
         Prompt for required environment variables based on script name.
         Returns dict of environment variables to set, or None if user cancelled.
         
-        Business logic delegated to script_manager for testability.
+        Business logic delegated to ScriptEnvironment for testability.
         """
         # Use business logic module if available, otherwise fallback
-        if script_manager:
-            env_requirements = script_manager.ScriptEnvironment.get_required_vars(script_name)
+        if ScriptEnvironment:
+            env_requirements = ScriptEnvironment.get_required_vars(script_name)
         else:
             # Fallback: inline logic
             env_requirements = {}
@@ -1202,8 +1263,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Process each required environment variable
         for var_name, requirements in env_requirements.items():
             # Check if already set in environment
-            if script_manager:
-                if script_manager.ScriptEnvironment.is_var_set(var_name):
+            if ScriptEnvironment:
+                if ScriptEnvironment.is_var_set(var_name):
                     continue
             else:
                 if var_name in os.environ and os.environ[var_name]:
@@ -1245,8 +1306,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 return None  # User cancelled
             
             # Validate the input using business logic
-            if script_manager:
-                is_valid, error_msg = script_manager.ScriptEnvironment.validate_var(var_name, value)
+            if ScriptEnvironment:
+                is_valid, error_msg = ScriptEnvironment.validate_var(var_name, value)
             else:
                 # Fallback validation
                 if var_name == 'ZEROTIER_NETWORK_ID':
@@ -1474,8 +1535,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             True: Use cache engine (public_repo, custom_repo)
             False: Direct execution (custom_local, custom_script)
         """
-        if script_manager:
-            return script_manager.should_use_cache_engine(metadata)
+        if should_use_cache_engine:
+            return should_use_cache_engine(metadata)
         
         # Fallback implementation
         if not metadata:
@@ -1826,91 +1887,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         label = Gtk.Label(label=label_text)
         return label
 
-    def _create_help_tab(self):
-        """Create About tab"""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        box.set_border_width(20)
-        
-        # Scrollable container for content
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scroll.set_vexpand(True)
-        
-        # Create a viewport to hold the label (required for proper scrolling)
-        viewport = Gtk.Viewport()
-        
-        # Content label with markup
-        content = Gtk.Label()
-        content.set_use_markup(True)
-        content.set_line_wrap(True)
-        content.set_xalign(0)
-        content.set_yalign(0)
-        content.set_margin_top(20)
-        content.set_margin_bottom(20)
-        content.set_margin_start(20)
-        content.set_margin_end(20)
-        
-        # Get dynamic script counts
-        install_count = len(SCRIPTS)
-        tools_count = len(TOOLS_SCRIPTS)
-        exercises_count = len(EXERCISES_SCRIPTS)
-        uninstall_count = len(UNINSTALL_SCRIPTS)
-        total_count = install_count + tools_count + exercises_count + uninstall_count
-        
-        about_text = (
-            "<big><b>Linux Learning Setup Tool</b></big>\n"
-            "<i>Advanced Ubuntu Linux Setup &amp; Management Utility</i>\n\n"
-            f"<b>Version:</b> 2.0.0 (GitHub SOT Architecture)\n"
-            f"<b>Repository:</b> lv_linux_learn ({total_count} total scripts)\n\n"
-            "<span size='large'><b>About</b></span>\n\n"
-            "This tool provides a modern, GitHub-integrated interface for installing and managing "
-            "software packages on Ubuntu Linux. It features an advanced caching system, "
-            "repository management, and streamlined script execution with enhanced user experience.\n\n"
-            "<b>🚀 Core Features:</b>\n"
-            "  • <b>GitHub Integration:</b> Scripts hosted on GitHub as Single Source of Truth\n"
-            "  • <b>Smart Caching:</b> Local cache management with selective download/removal\n"
-            "  • <b>Enhanced Repository Tab:</b> Browse, search, and manage all available scripts\n"
-            "  • <b>Automatic Updates:</b> Check for script updates and apply selectively\n"
-            "  • <b>Custom Scripts:</b> Add and manage user-defined scripts\n"
-            "  • <b>Clean Terminal Integration:</b> Professional command execution with proper formatting\n\n"
-            "<b>📦 Application Categories:</b>\n"
-            f"  • <b>Install ({install_count} scripts):</b> Development tools, browsers, editors, package managers\n"
-            f"  • <b>Tools ({tools_count} scripts):</b> File extraction, media conversion, system utilities\n"
-            f"  • <b>Exercises ({exercises_count} scripts):</b> Bash learning scripts and practice tools\n"
-            f"  • <b>Uninstall ({uninstall_count} scripts):</b> Safe removal with complete cleanup\n\n"
-            "<b>🔧 Advanced Features:</b>\n"
-            "  • <b>Secure API Key Storage:</b> Fernet AES-128 encryption with PBKDF2\n"
-            "  • <b>Path Resolution:</b> Automatic includes symlinks with filesystem fallbacks\n"
-            "  • <b>Real-time Status:</b> Live cache indicators (✓ cached, ☁️ not cached)\n"
-            "  • <b>Bulk Operations:</b> Download all, remove all, or select individual scripts\n"
-            "  • <b>Directory Navigation:</b> Intelligent script directory access\n"
-            "  • <b>Search Functionality:</b> Filter scripts across all tabs\n\n"
-            "<span size='large'><b>Architecture</b></span>\n\n"
-            "<b>GitHub as SOT:</b> All scripts are hosted on GitHub with manifest.json for metadata\n"
-            "<b>Local Cache:</b> ~/.lv_linux_learn/script_cache/ with organized subdirectories\n"
-            "<b>Dual Interface:</b> GUI (menu.py) and CLI (menu.sh) with feature parity\n"
-            "<b>Security:</b> Encrypted storage for sensitive data, safe script execution\n\n"
-            "<span size='large'><b>Credits</b></span>\n\n"
-            "<b>Developer:</b> Adam Matson\n"
-            "<b>GitHub:</b> <a href='https://github.com/amatson97'>@amatson97</a>\n"
-            "<b>Repository:</b> <a href='https://github.com/amatson97/lv_linux_learn'>lv_linux_learn</a>\n\n"
-            "<b>Target Platform:</b> Ubuntu Desktop 24.04.3 LTS\n"
-            "<b>Dependencies:</b> Python 3.10+, GTK3, VTE, cryptography\n\n"
-            "<span size='large'><b>License &amp; Support</b></span>\n\n"
-            "Open source under MIT License. For issues, features, or contributions:\n"
-            "Visit the GitHub repository or check the comprehensive documentation.\n\n"
-            "<small><i>© 2025 Adam Matson. Built for the Linux learning community.</i></small>"
-        )
-        
-        content.set_markup(about_text)
-        content.connect("activate-link", self.on_link_clicked)
-        
-        # Add label to viewport, then viewport to scroll
-        viewport.add(content)
-        scroll.add(viewport)
-        box.pack_start(scroll, True, True, 0)
-        
-        return box
+
 
     # ========================================================================
     # PACKAGE MANAGEMENT
@@ -2537,6 +2514,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Method 1: Check config.json for local repository (legacy/direct configuration)
             config = self.repository.load_config()
             custom_manifest_url = config.get('custom_manifest_url', '')
+            custom_manifests_config = config.get('custom_manifests', {})
             
             if custom_manifest_url and custom_manifest_url.startswith('file://'):
                 # This is a file:// URL, but it might point to metadata for an ONLINE repository
@@ -2547,7 +2525,6 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 try:
                     manifest_file = Path(manifest_path)
                     if manifest_file.exists():
-                        import json
                         with open(manifest_file) as f:
                             manifest_data = json.load(f)
                         
@@ -2605,7 +2582,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Method 2: Scan custom_manifests directory for all local file-based repositories
             custom_manifests_dir = Path.home() / '.lv_linux_learn' / 'custom_manifests'
             
-            if custom_manifests_dir.exists():
+            # Only scan directory if config knows about custom manifests
+            if custom_manifests_dir.exists() and custom_manifests_config:
                 # Look for both subdirectory manifests and flat JSON files
                 manifest_files = list(custom_manifests_dir.glob('*/manifest.json')) + list(custom_manifests_dir.glob('*_manifest.json'))
                 
@@ -2684,8 +2662,12 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 # Method 2: Use file_name + base_path + category
                 if not full_path:
                     file_name = script.get('file_name', '')
-                    if file_name and base_path:
-                        full_path = str(Path(base_path) / category / file_name)
+                    if file_name:
+                        # If the manifest stored an absolute path, use it directly
+                        if os.path.isabs(file_name):
+                            full_path = file_name
+                        elif base_path:
+                            full_path = str(Path(base_path) / category / file_name)
                 
                 # Method 3: Try just file_name as relative path from base_path
                 if not full_path:
@@ -3586,7 +3568,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                         
                         if 'error' in analysis:
                             error = analysis['error']
-                            self.terminal.feed(f"  \x1b[31mError: {error}\x1b[0m\r\n\r\n".encode())
+                            self.terminal.feed("  \x1b[31mError: {}\x1b[0m\r\n\r\n".format(error).encode())
                         else:
                             category = analysis.get('category', 'unknown')
                             description = analysis.get('description', 'N/A')
@@ -3662,13 +3644,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                             error = analysis.get('error', 'Unknown error') if analysis else 'Analysis failed'
                             state['results'].append((script_name, {'error': error}))
                             GLib.idle_add(lambda e=error: self.terminal.feed(
-                                f"  \u2717 Error: {e}\r\n".encode()
+                                "  \u2717 Error: {}\r\n".format(e).encode()
                             ))
                     except Exception as e:
                         error_msg = str(e)
                         state['results'].append((script_name, {'error': error_msg}))
                         GLib.idle_add(lambda e=error_msg: self.terminal.feed(
-                            f"  \u2717 Error: {e}\r\n".encode()
+                            "  \u2717 Error: {}\r\n".format(e).encode()
                         ))
                 
             except Exception as e:
@@ -3691,6 +3673,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             results: List of (script_name, analysis_dict) tuples
         """
         if not ManifestManager:
+            self.terminal.feed(b"\x1b[31m[!] ManifestManager not available\x1b[0m\r\n")
             return
         
         try:
@@ -3707,12 +3690,23 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Find local repository manifests
             manifests_dir = Path.home() / '.lv_linux_learn' / 'custom_manifests'
             
+            # Ensure manifests directory exists
+            if not manifests_dir.exists():
+                self.terminal.feed(f"\x1b[33m[!] Manifests directory does not exist: {manifests_dir}\x1b[0m\r\n".encode())
+                return
+            
             updated_count = 0
+            failed_count = 0
+            
             for script_name, analysis in results:
                 if 'error' in analysis:
+                    self.terminal.feed(f"\x1b[33m[-] {script_name}: Analysis error - {analysis.get('error')}\x1b[0m\r\n".encode())
+                    failed_count += 1
                     continue
                 
                 if script_name not in script_map:
+                    self.terminal.feed(f"\x1b[33m[!] {script_name}: Not found in script data\x1b[0m\r\n".encode())
+                    failed_count += 1
                     continue
                 
                 script_id, script_path = script_map[script_name]
@@ -3722,48 +3716,130 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 source_name = None
                 
                 # Look up the script in _SCRIPT_ID_MAP to find its source
+                # Try multiple matching strategies:
+                # 1. Exact path match
+                # 2. Script ID match  
+                # 3. Partial path match (for when paths differ slightly)
+                # 4. Name-based fallback (for local repos where ID mapping might be incomplete)
+                
                 for (category, path), (mapped_id, mapped_source) in _SCRIPT_ID_MAP.items():
-                    if path == script_path or mapped_id == script_id:
+                    # Strategy 1: Exact path match
+                    if path == script_path:
                         source_name = mapped_source
                         break
+                    # Strategy 2: Script ID match
+                    if script_id and mapped_id == script_id:
+                        source_name = mapped_source
+                        break
+                    # Strategy 3: Partial path match (e.g., absolute vs relative)
+                    if script_path and os.path.basename(script_path) == os.path.basename(path):
+                        if os.path.exists(script_path):  # Verify path is valid
+                            source_name = mapped_source
+                            break
                 
-                if source_name:
-                    # Try directory-based manifest first (from directory scanning)
-                    manifest_path = manifests_dir / source_name / 'manifest.json'
-                    if not manifest_path.exists():
-                        # Try direct JSON file (from URL imports)
-                        manifest_path = manifests_dir / f"{source_name}.json"
+                if not source_name:
+                    # Strategy 4: Try to find by looking for scripts in local manifests by name
+                    self.terminal.feed(f"\x1b[36m[*] {script_name}: Direct mapping failed, searching manifests...\x1b[0m\r\n".encode())
+                    
+                    for manifest_dir in manifests_dir.glob('*/manifest.json'):
+                        try:
+                            with open(manifest_dir, 'r') as f:
+                                manifest_data = json.load(f)
+                                # Check all scripts in this manifest
+                                all_scripts = []
+                                for cat, scripts_list in manifest_data.get('scripts', {}).items():
+                                    if isinstance(scripts_list, list):
+                                        all_scripts.extend(scripts_list)
+                                
+                                for script in all_scripts:
+                                    if script.get('name') == script_name or script.get('id') == script_id:
+                                        source_name = manifest_dir.parent.name
+                                        break
+                            if source_name:
+                                break
+                        except Exception:
+                            continue
                 
-                if not manifest_path or not manifest_path.exists():
-                    self.terminal.feed(f"\x1b[33m[!] Could not find manifest for: {script_name} (source: {source_name})\x1b[0m\r\n".encode())
+                if not source_name:
+                    self.terminal.feed(f"\x1b[33m[!] {script_name}: Could not find source in mapping or manifests\x1b[0m\r\n".encode())
+                    failed_count += 1
+                    continue
+                
+                # Try multiple manifest paths
+                manifest_candidates = [
+                    manifests_dir / source_name / 'manifest.json',  # Directory-based
+                    manifests_dir / f"{source_name}.json",           # Direct JSON file
+                ]
+                
+                manifest_path = None
+                for candidate in manifest_candidates:
+                    if candidate.exists():
+                        manifest_path = candidate
+                        break
+                
+                if not manifest_path:
+                    self.terminal.feed(f"\x1b[33m[!] {script_name}: Could not find manifest for source '{source_name}'\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[33m    Checked: {', '.join(str(c) for c in manifest_candidates)}\x1b[0m\r\n".encode())
+                    failed_count += 1
                     continue
                 
                 # Update the manifest
                 try:
+                    # Verify manifest path is readable
+                    if not os.access(manifest_path, os.R_OK):
+                        raise PermissionError(f"Cannot read manifest: {manifest_path}")
+                    
                     manager = ManifestManager(str(manifest_path))
+                    
+                    if not manager.manifest_data:
+                        raise Exception(f"Failed to load manifest data from {manifest_path}")
+                    
                     success = manager.update_script_from_ai_analysis(script_id, analysis)
                     
                     if success:
                         new_category = analysis.get('category', 'custom')
                         self.terminal.feed(f"\x1b[32m\u2713 {script_name}: moved to '{new_category}' category\x1b[0m\r\n".encode())
                         updated_count += 1
+                        
+                        # CRITICAL: Update the config.json with the updated manifest data
+                        # This ensures the next reload will have the updated data in memory
+                        try:
+                            config_file = Path.home() / '.lv_linux_learn' / 'config.json'
+                            config = {}
+                            if config_file.exists():
+                                with open(config_file, 'r') as f:
+                                    config = json.load(f)
+                            
+                            # Update manifest data in config if it exists there
+                            if 'custom_manifests' in config and source_name in config['custom_manifests']:
+                                config['custom_manifests'][source_name]['manifest_data'] = manager.manifest_data
+                                with open(config_file, 'w') as f:
+                                    json.dump(config, f, indent=2)
+                                self.terminal.feed(f"\x1b[36m[*] Updated manifest config for '{source_name}'\x1b[0m\r\n".encode())
+                        except Exception as cfg_err:
+                            self.terminal.feed(f"\x1b[33m[!] Could not update config.json: {cfg_err}\x1b[0m\r\n".encode())
                     else:
-                        self.terminal.feed(f"\x1b[31m\u2717 {script_name}: update failed\x1b[0m\r\n".encode())
+                        self.terminal.feed(f"\x1b[31m\u2717 {script_name}: update failed (see logs)\x1b[0m\r\n".encode())
+                        failed_count += 1
                 
+                except PermissionError as e:
+                    self.terminal.feed(f"\x1b[31m\u2717 {script_name}: Permission denied - {e}\x1b[0m\r\n".encode())
+                    failed_count += 1
                 except Exception as e:
-                    self.terminal.feed(f"\x1b[31m\u2717 {script_name}: {e}\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[31m\u2717 {script_name}: {type(e).__name__}: {e}\x1b[0m\r\n".encode())
+                    failed_count += 1
             
             self.terminal.feed(b"\r\n")
-            self.terminal.feed(f"\x1b[32mManifest updates complete: {updated_count} script(s) updated\x1b[0m\r\n\r\n".encode())
+            self.terminal.feed(f"\x1b[32mManifest updates: {updated_count} succeeded, {failed_count} failed\x1b[0m\r\n".encode())
             
             if updated_count > 0:
-                # Reload the application to show scripts in new categories
-                self.terminal.feed(b"\x1b[36m[*] Reloading scripts to reflect new categories...\x1b[0m\r\n")
+                self.terminal.feed(b"\r\n")
+                self.terminal.feed(b"\x1b[36m[*] Reloading scripts to reflect new categories...\x1b[0m\r\n\r\n")
                 # Force immediate reload without GLib timeout
                 self._reload_scripts_and_tabs()
         
         except Exception as e:
-            self.terminal.feed(f"\x1b[31m[!] Error updating manifests: {e}\x1b[0m\r\n".encode())
+            self.terminal.feed(f"\x1b[31m[!] Error updating manifests: {type(e).__name__}: {e}\x1b[0m\r\n".encode())
     
     def _reload_scripts_and_tabs(self):
         """Reload scripts from manifests and refresh all tabs"""
@@ -3774,81 +3850,127 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
             global _SCRIPT_ID_MAP
             
-            # CRITICAL: Clear ALL manifest cache files to force fresh reload from disk
+            self.terminal.feed(b"\x1b[36m[*] Reloading scripts from manifests...\x1b[0m\r\n")
+            
+            # CRITICAL: Ensure we reload the manifest from disk
+            # Clear all temp manifest files to force fresh read from config
             config_dir = Path.home() / '.lv_linux_learn'
-            cache_files_cleared = 0
             
-            # Delete all manifest_*.json files (these are cached manifests)
-            for cache_file in config_dir.glob('manifest_*.json'):
+            # Delete temp manifest files (these are recreated from config)
+            for temp_file in config_dir.glob('temp_*_manifest.json'):
                 try:
-                    cache_file.unlink()
-                    cache_files_cleared += 1
+                    temp_file.unlink()
+                    self.terminal.feed(f"\x1b[36m[*] Cleared temp manifest: {temp_file.name}\x1b[0m\r\n".encode())
                 except Exception as e:
-                    self.terminal.feed(f"\x1b[33m[!] Could not clear {cache_file.name}: {e}\x1b[0m\r\n".encode())
+                    self.terminal.feed(f"\x1b[33m[!] Could not clear {temp_file.name}: {e}\x1b[0m\r\n".encode())
             
-            # Also clear manifest.json (legacy cache)
+            # Also clear the public repo manifest cache
             manifest_cache = config_dir / 'manifest.json'
             if manifest_cache.exists():
                 try:
                     manifest_cache.unlink()
-                    cache_files_cleared += 1
-                except Exception:
-                    pass
+                    self.terminal.feed(b"\x1b[36m[*] Cleared public repository manifest cache\x1b[0m\r\n")
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[33m[!] Could not clear manifest cache: {e}\x1b[0m\r\n".encode())
             
-            if cache_files_cleared > 0:
-                self.terminal.feed(f"\x1b[36m[*] Cleared {cache_files_cleared} manifest cache file(s)\x1b[0m\r\n".encode())
+            # Clear all cached manifest_* files so updated manifest_data is used immediately
+            for cached_manifest in config_dir.glob('manifest_*.json'):
+                try:
+                    cached_manifest.unlink()
+                    self.terminal.feed(f"\x1b[36m[*] Cleared cached manifest: {cached_manifest.name}\x1b[0m\r\n".encode())
+                except Exception as e:
+                    self.terminal.feed(f"\x1b[33m[!] Could not clear cached manifest {cached_manifest.name}: {e}\x1b[0m\r\n".encode())
+
+            # Force repository to reload config from disk to pick up latest changes
+            if self.repository:
+                self.repository.config = self.repository.load_config()
+                self.terminal.feed(b"\x1b[36m[*] Reloaded repository config from disk\x1b[0m\r\n")
             
             # Reload scripts with repository instance
-            if manifest_service and self.repository:
+            if load_scripts_from_manifest and self.repository:
+                self.terminal.feed(b"\x1b[36m[*] Loading scripts from all configured manifests...\x1b[0m\r\n")
                 _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, _SCRIPT_ID_MAP = \
-                    manifest_service.load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
+                    load_scripts_from_manifest(terminal_widget=self.terminal, repository=self.repository)
                 
-                # Update global arrays
-                SCRIPTS[:] = _SCRIPTS_DICT.get('install', [])
-                SCRIPT_NAMES[:] = _NAMES_DICT.get('install', [])
-                DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('install', [])
+                # CRITICAL: Update global module-level variables by clearing and re-populating
+                # This ensures any code referencing these globals gets the updated data
+                new_install = _SCRIPTS_DICT.get('install', [])
+                new_install_names = _NAMES_DICT.get('install', [])
+                new_install_desc = _DESCRIPTIONS_DICT.get('install', [])
                 
-                TOOLS_SCRIPTS[:] = _SCRIPTS_DICT.get('tools', [])
-                TOOLS_NAMES[:] = _NAMES_DICT.get('tools', [])
-                TOOLS_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('tools', [])
+                new_tools = _SCRIPTS_DICT.get('tools', [])
+                new_tools_names = _NAMES_DICT.get('tools', [])
+                new_tools_desc = _DESCRIPTIONS_DICT.get('tools', [])
                 
-                EXERCISES_SCRIPTS[:] = _SCRIPTS_DICT.get('exercises', [])
-                EXERCISES_NAMES[:] = _NAMES_DICT.get('exercises', [])
-                EXERCISES_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('exercises', [])
+                new_exercises = _SCRIPTS_DICT.get('exercises', [])
+                new_exercises_names = _NAMES_DICT.get('exercises', [])
+                new_exercises_desc = _DESCRIPTIONS_DICT.get('exercises', [])
                 
-                UNINSTALL_SCRIPTS[:] = _SCRIPTS_DICT.get('uninstall', [])
-                UNINSTALL_NAMES[:] = _NAMES_DICT.get('uninstall', [])
-                UNINSTALL_DESCRIPTIONS[:] = _DESCRIPTIONS_DICT.get('uninstall', [])
+                new_uninstall = _SCRIPTS_DICT.get('uninstall', [])
+                new_uninstall_names = _NAMES_DICT.get('uninstall', [])
+                new_uninstall_desc = _DESCRIPTIONS_DICT.get('uninstall', [])
                 
-                # Minimal status output
+                # Update global arrays in-place (preserve list identity)
+                SCRIPTS.clear()
+                SCRIPTS.extend(new_install)
+                SCRIPT_NAMES.clear()
+                SCRIPT_NAMES.extend(new_install_names)
+                DESCRIPTIONS.clear()
+                DESCRIPTIONS.extend(new_install_desc)
+                
+                TOOLS_SCRIPTS.clear()
+                TOOLS_SCRIPTS.extend(new_tools)
+                TOOLS_NAMES.clear()
+                TOOLS_NAMES.extend(new_tools_names)
+                TOOLS_DESCRIPTIONS.clear()
+                TOOLS_DESCRIPTIONS.extend(new_tools_desc)
+                
+                EXERCISES_SCRIPTS.clear()
+                EXERCISES_SCRIPTS.extend(new_exercises)
+                EXERCISES_NAMES.clear()
+                EXERCISES_NAMES.extend(new_exercises_names)
+                EXERCISES_DESCRIPTIONS.clear()
+                EXERCISES_DESCRIPTIONS.extend(new_exercises_desc)
+                
+                UNINSTALL_SCRIPTS.clear()
+                UNINSTALL_SCRIPTS.extend(new_uninstall)
+                UNINSTALL_NAMES.clear()
+                UNINSTALL_NAMES.extend(new_uninstall_names)
+                UNINSTALL_DESCRIPTIONS.clear()
+                UNINSTALL_DESCRIPTIONS.extend(new_uninstall_desc)
+                
+                # Verify update succeeded
                 total_scripts = len(SCRIPTS) + len(TOOLS_SCRIPTS) + len(EXERCISES_SCRIPTS) + len(UNINSTALL_SCRIPTS)
                 self.terminal.feed(f"\x1b[36m[*] Loaded {total_scripts} scripts across all categories\x1b[0m\r\n".encode())
+                self.terminal.feed(f"    - Install: {len(SCRIPTS)}, Tools: {len(TOOLS_SCRIPTS)}, Exercises: {len(EXERCISES_SCRIPTS)}, Uninstall: {len(UNINSTALL_SCRIPTS)}\x1b[0m\r\n".encode())
                 
                 # Refresh all tabs (this updates the UI)
+                self.terminal.feed(b"\x1b[36m[*] Refreshing all tabs...\x1b[0m\r\n")
                 self._refresh_script_tabs()
                 
                 # Also refresh local repository tab
                 if hasattr(self, 'local_repo_store'):
                     self._populate_local_repository_tree()
                 
-                # Force UI refresh
-                self.install_filter.refilter()
-                self.tools_filter.refilter()
-                self.exercises_filter.refilter()
-                self.uninstall_filter.refilter()
+                # Force UI refresh by refiltering
+                if hasattr(self, 'install_filter'):
+                    self.install_filter.refilter()
+                if hasattr(self, 'tools_filter'):
+                    self.tools_filter.refilter()
+                if hasattr(self, 'exercises_filter'):
+                    self.exercises_filter.refilter()
+                if hasattr(self, 'uninstall_filter'):
+                    self.uninstall_filter.refilter()
                 
-                self.terminal.feed(b"\x1b[32m[*] UI refreshed successfully\x1b[0m\r\n")
+                self.terminal.feed(b"\x1b[32m[OK] UI refreshed successfully\x1b[0m\r\n\r\n")
                 
-                # Complete the terminal operation
-                GLib.timeout_add(200, self._complete_terminal_operation)
-                
-                self.terminal.feed("\x1b[32m[✓] Scripts reloaded successfully - UI refreshed\x1b[0m\r\n\r\n".encode())
-                
-                # Complete the terminal operation after a brief delay
-                GLib.timeout_add(500, self._complete_terminal_operation)
+                # Complete the terminal operation after a brief delay to allow GTK to process
+                GLib.timeout_add(300, self._complete_terminal_operation)
         
         except Exception as e:
+            import traceback
             self.terminal.feed(f"\x1b[31m[!] Error reloading scripts: {e}\x1b[0m\r\n".encode())
+            self.terminal.feed(traceback.format_exc().encode())
             # Complete the operation even on error
             GLib.timeout_add(200, self._complete_terminal_operation)
     
@@ -4749,6 +4871,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             
             # Refresh Repository (Local) tab
             GLib.timeout_add(400, self._populate_local_repository_tree)
+            
+            # Complete terminal operation so user doesn't have to press return
+            GLib.timeout_add(600, self._complete_terminal_silent)
     
     def _on_manifest_row_activated(self, tree_view, path, column):
         """Handle double-click on manifest row - edit manifest"""
@@ -5980,27 +6105,28 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             else:
                 iter = liststore.iter_next(iter)
         
-        # Add custom scripts
-        custom_scripts = self.custom_script_manager.get_scripts(category)
-        for script in custom_scripts:
-            display_name = f"📝 {script['name']}"
-            # Build metadata for custom script
-            metadata = {
-                "type": "local",
-                "source_type": "custom_script",
-                "source_name": "Custom Script",
-                "source_url": "",
-                "file_exists": os.path.isfile(script['script_path']),
-                "is_custom": True,
-                "script_id": script['id']
-            }
-            liststore.append([
-                display_name,
-                script['script_path'],
-                script['description'],
-                True,  # is_custom (column 3 for backward compatibility)
-                json.dumps(metadata)  # metadata JSON (column 4 - authoritative)
-            ])
+        # Add custom scripts only if custom sources/manifests are configured
+        if self._has_custom_sources():
+            custom_scripts = self.custom_script_manager.get_scripts(category)
+            for script in custom_scripts:
+                display_name = f"📝 {script['name']}"
+                # Build metadata for custom script
+                metadata = {
+                    "type": "local",
+                    "source_type": "custom_script",
+                    "source_name": "Custom Script",
+                    "source_url": "",
+                    "file_exists": os.path.isfile(script['script_path']),
+                    "is_custom": True,
+                    "script_id": script['id']
+                }
+                liststore.append([
+                    display_name,
+                    script['script_path'],
+                    script['description'],
+                    True,  # is_custom (column 3 for backward compatibility)
+                    json.dumps(metadata)  # metadata JSON (column 4 - authoritative)
+                ])
 
     def on_treeview_button_press(self, treeview, event):
         """Handle right-click on tree view for script context menu"""
@@ -6450,26 +6576,104 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
 
     def _show_about_dialog(self):
         """Show about dialog with application information"""
-        dialog = Gtk.AboutDialog()
-        dialog.set_transient_for(self)
-        dialog.set_program_name("LV Script Manager")
-        dialog.set_version("2.2.2")
-        dialog.set_comments("Ubuntu setup and utility script collection with multi-repository support")
-        dialog.set_website("https://github.com/amatson97/lv_linux_learn")
-        dialog.set_website_label("GitHub Repository")
-        dialog.set_license_type(Gtk.License.MIT_X11)
-        dialog.set_authors(["Adam Matson"])
-        dialog.set_copyright("© 2025 Adam Matson")
+        # Get dynamic script counts
+        install_count = len(SCRIPTS)
+        tools_count = len(TOOLS_SCRIPTS)
+        exercises_count = len(EXERCISES_SCRIPTS)
+        uninstall_count = len(UNINSTALL_SCRIPTS)
+        total_count = install_count + tools_count + exercises_count + uninstall_count
+        
+        # Create detailed about text
+        about_text = (
+            "<big><b>Linux Learning Setup Tool</b></big>\n"
+            "<i>Advanced Ubuntu Linux Setup &amp; Management Utility</i>\n\n"
+            f"<b>Version:</b> 2.2.2 (Multi-Repository System)\n"
+            f"<b>Repository:</b> lv_linux_learn ({total_count} total scripts)\n\n"
+            "<span size='large'><b>About</b></span>\n\n"
+            "This tool provides a modern, GitHub-integrated interface for installing and managing "
+            "software packages on Ubuntu Linux. It features an advanced caching system, "
+            "repository management, and streamlined script execution with enhanced user experience.\n\n"
+            "<b>🚀 Core Features:</b>\n"
+            "  • <b>GitHub Integration:</b> Scripts hosted on GitHub as Single Source of Truth\n"
+            "  • <b>Smart Caching:</b> Local cache management with selective download/removal\n"
+            "  • <b>Multi-Repository:</b> Support for public and custom script repositories\n"
+            "  • <b>Automatic Updates:</b> Check for script updates and apply selectively\n"
+            "  • <b>Custom Scripts:</b> Add and manage user-defined scripts\n"
+            "  • <b>Clean Terminal Integration:</b> Professional command execution with proper formatting\n\n"
+            "<b>📦 Application Categories:</b>\n"
+            f"  • <b>Install ({install_count} scripts):</b> Development tools, browsers, editors, package managers\n"
+            f"  • <b>Tools ({tools_count} scripts):</b> File extraction, media conversion, system utilities\n"
+            f"  • <b>Exercises ({exercises_count} scripts):</b> Bash learning scripts and practice tools\n"
+            f"  • <b>Uninstall ({uninstall_count} scripts):</b> Safe removal with complete cleanup\n\n"
+            "<b>🔧 Advanced Features:</b>\n"
+            "  • <b>Real-time Status:</b> Live cache indicators (✓ cached, ☁️ not cached)\n"
+            "  • <b>Bulk Operations:</b> Download all, remove all, or select individual scripts\n"
+            "  • <b>Directory Navigation:</b> Intelligent script directory access\n"
+            "  • <b>Search Functionality:</b> Filter scripts across all tabs\n"
+            "  • <b>Multi-Manifest Support:</b> Local and online repository sources\n\n"
+            "<span size='large'><b>Architecture</b></span>\n\n"
+            "<b>GitHub as SOT:</b> All scripts are hosted on GitHub with manifest.json for metadata\n"
+            "<b>Local Cache:</b> ~/.lv_linux_learn/script_cache/ with organized subdirectories\n"
+            "<b>Dual Interface:</b> GUI (menu.py) and CLI (menu.sh) with feature parity\n\n"
+            "<span size='large'><b>Credits</b></span>\n\n"
+            "<b>Developer:</b> Adam Matson\n"
+            "<b>GitHub:</b> <a href='https://github.com/amatson97'>@amatson97</a>\n"
+            "<b>Repository:</b> <a href='https://github.com/amatson97/lv_linux_learn'>lv_linux_learn</a>\n\n"
+            "<b>Target Platform:</b> Ubuntu Desktop 24.04.3 LTS\n"
+            "<b>License:</b> MIT License\n\n"
+            "<small><i>© 2025 Adam Matson. Built for the Linux learning community.</i></small>"
+        )
+        
+        # Create a custom dialog instead of standard AboutDialog to support rich formatting
+        dialog = Gtk.Dialog(
+            title="About LV Script Manager",
+            transient_for=self,
+            modal=True
+        )
+        dialog.set_default_size(600, 500)
+        dialog.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        
+        # Create scrollable content area
+        content_area = dialog.get_content_area()
+        content_area.set_spacing(10)
+        content_area.set_margin_top(10)
+        content_area.set_margin_bottom(10)
+        content_area.set_margin_start(10)
+        content_area.set_margin_end(10)
         
         # Add logo if available
         try:
             logo = GdkPixbuf.Pixbuf.new_from_file_at_scale("images/logo.png", 64, 64, True)
-            dialog.set_logo(logo)
+            image = Gtk.Image.new_from_pixbuf(logo)
+            content_area.pack_start(image, False, False, 0)
         except:
             pass  # No logo file, that's fine
         
+        # Create scrolled window for text
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        scroll.set_hexpand(True)
+        
+        # Create label with about text
+        label = Gtk.Label()
+        label.set_use_markup(True)
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        label.set_xalign(0)
+        label.set_yalign(0)
+        label.set_margin_start(10)
+        label.set_margin_end(10)
+        label.set_markup(about_text)
+        label.connect("activate-link", self.on_link_clicked)
+        
+        scroll.add(label)
+        content_area.pack_start(scroll, True, True, 0)
+        
+        dialog.show_all()
         dialog.run()
         dialog.destroy()
+
 
     def _refresh_ui_for_repo_setting(self):
         """Refresh UI when repository setting is toggled"""

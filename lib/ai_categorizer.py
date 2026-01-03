@@ -207,13 +207,13 @@ Based on the script's ACTUAL behavior and commands used, categorize it:
 - exercises: Learning/practice scripts (tutorials, examples, tests)
 
 Respond with this exact JSON structure:
-{
+{{
   "category": "install",
   "description": "Brief description based on what the script actually does",
   "purpose": "install_software",
   "dependencies": ["apt", "wget", "curl"],
   "safety": "safe"
-}
+}}
 
 Purpose options: install_software, system_tool, learning, cleanup, utility, network_tool
 Safety: safe (no dangerous operations), caution (modifies system), requires_review (root access, deletes files)

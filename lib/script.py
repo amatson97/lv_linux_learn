@@ -1,7 +1,7 @@
 """
-Script Manager Module
-Consolidated script management - metadata, cache, execution, navigation
-Combines functionality from script_handler.py and script_execution.py
+Script Module - Consolidated script management
+Combines script_handler + script_execution + script_manager
+Handles metadata building, cache checking, and execution
 """
 
 import json
@@ -35,20 +35,7 @@ class ScriptMetadata:
         custom_script_manager=None,
         script_id_map: dict = None
     ) -> Dict[str, any]:
-        """
-        Build metadata for a script based on its source and properties.
-        
-        Args:
-            script_path: Full path to the script
-            category: Script category (install, tools, etc.)
-            script_name: Optional display name with source tag
-            repository: Optional ScriptRepository instance
-            custom_script_manager: Optional CustomScriptManager instance
-            script_id_map: Optional dict mapping (category, path) -> (script_id, source_name)
-        
-        Returns:
-            Dict with type, source_type, source_name, file_exists, is_custom, script_id
-        """
+        """Build metadata for a script based on its source and properties."""
         metadata = {
             "type": "remote",
             "source_type": "unknown",
@@ -75,9 +62,27 @@ class ScriptMetadata:
         source_type, source_name = ScriptMetadata._determine_source(
             script_path, category, script_name, script_id_map, metadata
         )
+
+        # Detect local custom repository scripts early to avoid cache handling
+        local_candidate = None
+        if script_path.startswith('file://'):
+            local_candidate = script_path.replace('file://', '')
+        elif script_path.startswith('/'):
+            local_candidate = script_path
+        if local_candidate:
+            try:
+                path_obj = Path(local_candidate).resolve()
+                custom_root = Path.home() / '.lv_linux_learn' / 'custom_manifests'
+                if custom_root in path_obj.parents:
+                    metadata["type"] = C.SCRIPT_TYPE_LOCAL if C else "local"
+                    metadata["source_type"] = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
+                    metadata["source_name"] = source_name if source_name else path_obj.parent.name
+                    metadata["file_exists"] = path_obj.exists()
+                    return metadata
+            except Exception:
+                pass
         
         # Check cache status
-        from lib.script_manager import ScriptCache
         if ScriptCache.is_cached(repository, script_id=metadata["script_id"], 
                                  script_path=script_path, category=category):
             metadata["type"] = C.SCRIPT_TYPE_CACHED if C else "cached"
@@ -165,21 +170,29 @@ class ScriptMetadata:
             elif 'scripts/' in script_path or 'tools/' in script_path or 'bash_exercises/' in script_path:
                 source_type = C.SOURCE_TYPE_PUBLIC_REPO if C else "public_repo"
                 source_name = "Public Repository"
+
+        # Final guard: if the script lives under custom_manifests, treat as custom_local
+        try:
+            local_candidate = None
+            if script_path.startswith('file://'):
+                local_candidate = script_path.replace('file://', '')
+            elif script_path.startswith('/'):
+                local_candidate = script_path
+            if local_candidate:
+                path_obj = Path(local_candidate).resolve()
+                custom_root = Path.home() / '.lv_linux_learn' / 'custom_manifests'
+                if custom_root in path_obj.parents:
+                    source_type = C.SOURCE_TYPE_CUSTOM_LOCAL if C else "custom_local"
+                    if not source_name:
+                        source_name = path_obj.parent.name
+        except Exception:
+            pass
         
         return source_type, source_name
     
     @staticmethod
     def parse_from_model(model, treeiter) -> Dict[str, any]:
-        """
-        Extract and parse metadata from GTK liststore row
-        
-        Args:
-            model: GTK TreeModel/ListStore
-            treeiter: TreeIter pointing to row
-        
-        Returns:
-            Dictionary containing script metadata
-        """
+        """Extract and parse metadata from GTK liststore row"""
         try:
             COL_METADATA = C.COL_METADATA if C else 5
             metadata_json = model.get_value(treeiter, COL_METADATA)
@@ -202,13 +215,7 @@ class ScriptMetadata:
     
     @staticmethod
     def should_use_cache(metadata: Optional[Dict] = None) -> bool:
-        """
-        Determine if cache engine should be used for this script.
-        
-        Returns:
-            True: Use cache engine (public_repo, custom_repo)
-            False: Direct execution (custom_local, custom_script)
-        """
+        """Determine if cache engine should be used for this script."""
         if not metadata:
             return True
         
@@ -242,18 +249,7 @@ class ScriptCache:
         script_path: str = None,
         category: str = None
     ) -> bool:
-        """
-        Check if script is in cache.
-        
-        Args:
-            repository: ScriptRepository instance
-            script_id: Script ID from manifest (preferred)
-            script_path: Script path (fallback)
-            category: Script category (used with script_path)
-        
-        Returns:
-            True if script is in cache, False otherwise
-        """
+        """Check if script is in cache."""
         if not repository or not repository.script_cache_dir:
             pass  # removed debug log
             return False
@@ -295,15 +291,7 @@ class ScriptEnvironment:
     
     @staticmethod
     def get_required_vars(script_name: str) -> Dict[str, Dict]:
-        """
-        Determine which environment variables a script requires.
-        
-        Args:
-            script_name: Name of the script
-        
-        Returns:
-            Dict mapping env var name to requirements
-        """
+        """Determine which environment variables a script requires."""
         env_requirements = {}
         
         # Check for VPN/ZeroTier scripts
@@ -368,18 +356,7 @@ class ScriptExecutor:
         env_vars: Optional[Dict[str, str]] = None,
         use_source: bool = False
     ) -> Tuple[str, str]:
-        """
-        Build execution command for a script.
-        
-        Args:
-            script_path: Path to script
-            metadata: Script metadata
-            env_vars: Environment variables to export
-            use_source: If True, use 'source' instead of 'bash'
-        
-        Returns:
-            Tuple of (command, status_message)
-        """
+        """Build execution command for a script."""
         # Determine script type and source
         script_type = ScriptExecutor._get_type(script_path, metadata)
         source_type = ScriptExecutor._get_source_type(script_path, metadata)
@@ -474,16 +451,7 @@ class ScriptNavigator:
     
     @staticmethod
     def get_directory(script_path: str, metadata: Optional[Dict] = None) -> Optional[str]:
-        """
-        Get the directory to navigate to for a script.
-        
-        Args:
-            script_path: Full path to script
-            metadata: Script metadata
-        
-        Returns:
-            Directory path or None if not applicable
-        """
+        """Get the directory to navigate to for a script."""
         script_type = ScriptExecutor._get_type(script_path, metadata)
         
         if script_type == "local":
