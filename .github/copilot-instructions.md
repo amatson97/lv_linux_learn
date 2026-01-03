@@ -4,7 +4,7 @@ Purpose: Help an AI coding agent be productive in this repo by summarizing archi
 
 1) Big picture
 - This repository is a curated collection of Ubuntu-focused setup and utility scripts (mostly Bash) with multi-repository support. Primary user flows are interactive installers and desktop helpers invoked from `./launcher.sh`, `./menu.sh` (CLI), or `./menu.py` (GUI).
-- **Version 2.1.1**: Multi-repository system supporting custom script libraries, remote includes, cache-first execution, and dual CLI/GUI interfaces with feature parity.
+- **Version 2.3.0**: Multi-repository system supporting custom script libraries, remote includes, cache-first execution, and dual CLI/GUI interfaces with feature parity.
 - Key responsibilities: install packages (`apt`), configure VPN/networking tools, create desktop launchers, provide utility tools, and manage custom script repositories with automated distribution and caching.
 
 2) Entry points & important paths

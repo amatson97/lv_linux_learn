@@ -4,11 +4,11 @@
 
 The Multi-Repository Script System provides automated script distribution, updates, and management from multiple sources including GitHub and custom repositories. Scripts are downloaded from remote repositories, cached locally with their includes dependencies, and automatically updated based on configurable intervals.
 
-**Version:** 2.1.1  
+**Version:** 2.3.0  
 **Status:** Production Ready  
 **Architecture:** Multi-repository support with GitHub-hosted default manifest and custom manifest capability
 
-## 🆕 Version 2.1.1 Features
+## 🆕 Version 2.3.0 Features
 
 ### Multi-Repository Support
 - **🏗️ Custom Repositories**: Configure custom manifest URLs for your own script libraries

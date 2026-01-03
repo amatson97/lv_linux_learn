@@ -69,7 +69,7 @@ Automatically detects your environment and launches:
 
 ## Multi-Repository System
 
-Version 2.1.1 includes comprehensive multi-repository support for both GUI and CLI interfaces.
+Version 2.3.0 includes comprehensive multi-repository support for both GUI and CLI interfaces.
 
 ### Repository Management
 

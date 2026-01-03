@@ -222,7 +222,7 @@ Contributions welcome! Please:
 
 ---
 
-## 🌐 Multi-Repository System (v2.1.1)
+## 🌐 Multi-Repository System (v2.3.0)
 
 **Enhanced repository system supporting custom script libraries with automated distribution and local caching.**
 
