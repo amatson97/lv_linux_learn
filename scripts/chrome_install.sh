@@ -95,6 +95,16 @@ else
   exit 3
 fi
 
+# Avoid duplicate launcher icons: remove the legacy `com.google.Chrome.desktop`
+# entry if the canonical `google-chrome.desktop` exists alongside it.
+# This keeps the Ubuntu launcher from showing two Chrome icons and preserves
+# the preferred `google-chrome.desktop` naming convention.
+if [ -f /usr/share/applications/com.google.Chrome.desktop ] && [ -f /usr/share/applications/google-chrome.desktop ]; then
+  green_echo "[*] Removing duplicate desktop entry /usr/share/applications/com.google.Chrome.desktop"
+  sudo rm -f /usr/share/applications/com.google.Chrome.desktop || true
+  sudo update-desktop-database >/dev/null 2>&1 || true
+fi
+
 green_echo "[*] Cleaning up..."
 cleanup
 
