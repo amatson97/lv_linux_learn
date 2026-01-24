@@ -44,7 +44,7 @@ main() {
     
     # Remove Flatpak package
     green_echo "[*] Removing Flatpak package..."
-    sudo apt remove --purge -y flatpak 2>/dev/null || true
+    sudo apt remove --purge -y flatpak gnome-software-plugin-flatpak 2>/dev/null || true
     sudo apt autoremove -y
     
     # Remove Flatpak data

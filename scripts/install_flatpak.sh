@@ -12,21 +12,35 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 # shellcheck source=/dev/null
 source "$repo_root/includes/main.sh"
 
-# Check if already installed
+# Check what needs to be installed
+flatpak_installed=false
+plugin_installed=false
+
 if command -v flatpak &> /dev/null; then
+  flatpak_installed=true
   green_echo "[+] Flatpak already installed ($(flatpak --version | tr -d '\n'))"
-  if flatpak remotes | grep -q flathub; then
-    green_echo "[+] Flathub remote already configured"
-    exit 0
-  fi
-else
-  green_echo "[*] Installing flatpak..."
+fi
+
+if dpkg -l | grep -q "^ii.*gnome-software-plugin-flatpak"; then
+  plugin_installed=true
+  green_echo "[+] GNOME Software Flatpak plugin already installed"
+fi
+
+# Install missing components
+if [ "$flatpak_installed" = false ] || [ "$plugin_installed" = false ]; then
+  green_echo "[*] Installing missing Flatpak components..."
   sudo apt update -y
   sudo apt install -y flatpak gnome-software-plugin-flatpak
 fi
 
+# Add Flathub repository
 green_echo "[*] Adding flathub remote..."
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# Check if Flathub is configured
+if flatpak remotes | grep -q flathub; then
+  green_echo "[+] Flathub remote configured"
+fi
 
 green_echo "[+] Flatpak setup complete. You may need to restart your session for full integration."
 exit 0
