@@ -47,6 +47,9 @@ main() {
         
         green_echo "[*] Removing all remaining Flatpak applications..."
         flatpak uninstall --all -y 2>/dev/null || true
+    else
+        green_echo "[!] Flatpak uninstall cancelled."
+        return 0
     fi
     
     # Remove Flatpak package
