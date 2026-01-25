@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "repository_version": "2.3.0",
-  "last_updated": "2026-01-25T00:36:53+00:00",
+  "last_updated": "2026-01-25T01:54:48+00:00",
   "min_app_version": "2.0.0",
   "repository_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main",
   "scripts": [
@@ -18,7 +18,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -34,7 +34,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -50,7 +50,23 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
+    }
+,
+    {
+      "id": "install-ducksation",
+      "name": "Install Ducksation",
+      "category": "install",
+      "version": "1.0.0",
+      "file_name": "install_ducksation.sh",
+      "relative_path": "scripts/install_ducksation.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/scripts/install_ducksation.sh",
+      "checksum": "sha256:8fd6f142161bab9978eecfbc72cf55ebfb7ad8b1ffecf241b691d03e22a844ce",
+      "description": "Install DuckStation PS1 emulator as AppImage with desktop integration",
+      "requires_sudo": false,
+      "dependencies": ["includes-main"],
+      "tags": [],
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -66,7 +82,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -82,7 +98,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -98,7 +114,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -114,7 +130,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -130,7 +146,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -146,7 +162,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -162,7 +178,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -178,7 +194,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -194,7 +210,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -210,7 +226,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -226,7 +242,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -242,7 +258,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -258,7 +274,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -274,7 +290,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -290,7 +306,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -306,7 +322,7 @@
       "requires_sudo": true,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -322,7 +338,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -338,7 +354,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -354,7 +370,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -370,7 +386,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -386,7 +402,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:48+00:00"
     }
 ,
     {
@@ -402,7 +418,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -418,7 +434,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -434,7 +450,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -450,7 +466,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -466,7 +482,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -482,7 +498,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -498,7 +514,7 @@
       "requires_sudo": false,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -514,7 +530,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -530,7 +546,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -546,7 +562,23 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
+    }
+,
+    {
+      "id": "uninstall-duckstation",
+      "name": "Uninstall Duckstation",
+      "category": "uninstall",
+      "version": "1.0.0",
+      "file_name": "uninstall_duckstation.sh",
+      "relative_path": "uninstallers/uninstall_duckstation.sh",
+      "download_url": "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/uninstallers/uninstall_duckstation.sh",
+      "checksum": "sha256:a279d5a0dd7099da8aed9ad75df878e65852cce6a685dd6fb0c23b9a39cc6a03",
+      "description": "Uninstall DuckStation PS1 emulator and remove desktop integration",
+      "requires_sudo": false,
+      "dependencies": ["includes-main"],
+      "tags": [],
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -562,7 +594,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:53+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -578,7 +610,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -594,7 +626,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -610,7 +642,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -626,7 +658,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -642,7 +674,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -658,7 +690,7 @@
       "requires_sudo": true,
       "dependencies": ["includes-main"],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
 ,
     {
@@ -674,7 +706,7 @@
       "requires_sudo": false,
       "dependencies": [],
       "tags": [],
-      "last_modified": "2026-01-25T00:36:54+00:00"
+      "last_modified": "2026-01-25T01:54:49+00:00"
     }
   ]
 }
