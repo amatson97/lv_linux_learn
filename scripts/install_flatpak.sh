@@ -1,9 +1,10 @@
 #!/bin/bash
-# Description: Install Flatpak universal package system with Flathub repository
+# Description: Install Flatpak universal package system with Flathub and Flatseal
 #
 # Sets up Flatpak universal package management system with GNOME Software
 # integration. Adds Flathub repository for access to thousands of
 # sandboxed applications with automatic updates and dependency management.
+# Also installs Flatseal for managing Flatpak app permissions and portals.
 set -euo pipefail
 
 # Includes
@@ -40,6 +41,14 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 # Check if Flathub is configured
 if flatpak remotes | grep -q flathub; then
   green_echo "[+] Flathub remote configured"
+fi
+
+# Install Flatseal for managing Flatpak permissions
+if flatpak list --app | grep -q "com.github.tchx84.Flatseal"; then
+  green_echo "[+] Flatseal already installed"
+else
+  green_echo "[*] Installing Flatseal (Flatpak permissions manager)..."
+  flatpak install -y flathub com.github.tchx84.Flatseal
 fi
 
 green_echo "[+] Flatpak setup complete. You may need to restart your session for full integration."

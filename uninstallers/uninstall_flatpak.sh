@@ -2,8 +2,9 @@
 # Description: Remove Flatpak system and all installed applications
 #
 # Completely removes Flatpak universal package system, all installed
-# Flatpak applications, repositories (including Flathub), and cleans up
-# user data. Provides comprehensive cleanup of the entire Flatpak ecosystem.
+# Flatpak applications (including Flatseal), repositories (including Flathub),
+# and cleans up user data. Provides comprehensive cleanup of the entire
+# Flatpak ecosystem.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,13 +33,19 @@ main() {
     flatpak list 2>/dev/null || true
     
     echo ""
-    if confirm_action "Do you want to remove all Flatpak applications?\n\nThis will uninstall all Flatpak apps before removing Flatpak itself." "Remove Flatpak Apps"; then
+    if confirm_action "Do you want to remove all Flatpak applications?\n\nThis will uninstall all Flatpak apps (including Flatseal) before removing Flatpak itself." "Remove Flatpak Apps"; then
         remove_apps="y"
     else
         remove_apps="n"
     fi
     if [[ "$remove_apps" =~ ^[Yy]$ ]]; then
-        green_echo "[*] Removing all Flatpak applications..."
+        # Remove Flatseal first if installed
+        if flatpak list --app | grep -q "com.github.tchx84.Flatseal"; then
+            green_echo "[*] Removing Flatseal..."
+            flatpak uninstall -y com.github.tchx84.Flatseal 2>/dev/null || true
+        fi
+        
+        green_echo "[*] Removing all remaining Flatpak applications..."
         flatpak uninstall --all -y 2>/dev/null || true
     fi
     
