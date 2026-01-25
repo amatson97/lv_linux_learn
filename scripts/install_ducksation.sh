@@ -31,10 +31,17 @@ if [[ ! -f "$DESKTOP_TARGET" ]]; then
     cd "$TMP_DIR"
     ./"$APPIMAGE_NAME" --appimage-extract > /dev/null 2>&1
     DESKTOP_FILE=$(find squashfs-root -name "duckstation*.desktop" | head -1)
-    ICON_FILE=$(find squashfs-root -name "*.png" -o -name "*.svg" | grep -i duck | head -1)
+    ICON_FILE=$(find squashfs-root -name "*.png" | grep -i duck | head -1)
+
+    # Ensure icons directory exists
+    mkdir -p "$HOME/.local/share/icons"
 
     if [[ -f "$DESKTOP_FILE" ]]; then
-        sed -i "s|Exec=.*|Exec=$APPIMAGE_DIR/$APPIMAGE_NAME|g; s|Icon=.*|Icon=$ICON_FILE|g; s|Path=.*||g" "$DESKTOP_FILE"
+        sed -i "s|Exec=.*|Exec=$APPIMAGE_DIR/$APPIMAGE_NAME|g; s|Icon=.*|Icon=$HOME/.local/share/icons/duckstation.png|g; s|Path=.*||g" "$DESKTOP_FILE"
+        # Add StartupWMClass if not present
+        if ! grep -q "^StartupWMClass=" "$DESKTOP_FILE"; then
+            echo "StartupWMClass=duckstation-qt" >> "$DESKTOP_FILE"
+        fi
         cp "$DESKTOP_FILE" "$DESKTOP_TARGET"
         chmod 644 "$DESKTOP_TARGET"
         [[ -f "$ICON_FILE" ]] && cp "$ICON_FILE" "$HOME/.local/share/icons/duckstation.png"
@@ -53,6 +60,7 @@ Comment=Fast PS1 Emulator
 GenericName=Emulator
 Categories=Game;Emulator;
 Keywords=ps1;playstation;
+StartupWMClass=duckstation-qt
 EOF
         update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
         green_echo "Fallback shortcut created."
