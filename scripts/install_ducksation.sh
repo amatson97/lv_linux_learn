@@ -65,6 +65,16 @@ EOF
         update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
         green_echo "Fallback shortcut created."
     fi
+
+    # Create desktop shortcuts in ~/.lv_connect and ~/Desktop
+    mkdir -p "$HOME/.lv_connect" "$HOME/Desktop"
+    cp "$DESKTOP_TARGET" "$HOME/.lv_connect/DuckStation.desktop"
+    cp "$DESKTOP_TARGET" "$HOME/Desktop/DuckStation.desktop"
+    
+    # Mark as trusted
+    gio set "$HOME/.lv_connect/DuckStation.desktop" metadata::trusted true 2>/dev/null || true
+    gio set "$HOME/Desktop/DuckStation.desktop" metadata::trusted true 2>/dev/null || true
+    
     rm -rf "$TMP_DIR"
 else
     green_echo "Already installed."
