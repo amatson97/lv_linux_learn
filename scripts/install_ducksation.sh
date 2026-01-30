@@ -31,7 +31,8 @@ if [[ ! -f "$DESKTOP_TARGET" ]]; then
     cd "$TMP_DIR"
     ./"$APPIMAGE_NAME" --appimage-extract > /dev/null 2>&1
     DESKTOP_FILE=$(find squashfs-root -name "duckstation*.desktop" | head -1)
-    ICON_FILE=$(find squashfs-root -name "*.png" | grep -i duck | head -1)
+    ICON_FILE=$(find squashfs-root -path "*512x512*" -name "*.png" | grep -i duckstation | head -1)
+    [[ -z "$ICON_FILE" ]] && ICON_FILE=$(find squashfs-root -name "*.png" | grep -i duck | head -1)
 
     # Ensure icons directory exists
     mkdir -p "$HOME/.local/share/icons"
@@ -46,7 +47,7 @@ if [[ ! -f "$DESKTOP_TARGET" ]]; then
         chmod 644 "$DESKTOP_TARGET"
         [[ -f "$ICON_FILE" ]] && cp "$ICON_FILE" "$HOME/.local/share/icons/duckstation.png"
         update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
-        green_echo "DuckStation integrated to launcher!"
+        green_echo "DuckStation integrated to GNOME launcher!"
     else
         # Fallback .desktop
         cat > "$DESKTOP_TARGET" << EOF
@@ -65,16 +66,6 @@ EOF
         update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
         green_echo "Fallback shortcut created."
     fi
-
-    # Create desktop shortcuts in ~/.lv_connect and ~/Desktop
-    mkdir -p "$HOME/.lv_connect" "$HOME/Desktop"
-    cp "$DESKTOP_TARGET" "$HOME/.lv_connect/DuckStation.desktop"
-    cp "$DESKTOP_TARGET" "$HOME/Desktop/DuckStation.desktop"
-    
-    # Mark as trusted
-    gio set "$HOME/.lv_connect/DuckStation.desktop" metadata::trusted true 2>/dev/null || true
-    gio set "$HOME/Desktop/DuckStation.desktop" metadata::trusted true 2>/dev/null || true
-    
     rm -rf "$TMP_DIR"
 else
     green_echo "Already installed."
