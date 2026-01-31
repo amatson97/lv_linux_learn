@@ -211,7 +211,8 @@ class ScriptRepository:
                 "allow_insecure_downloads": False,
                 "cache_timeout_days": 30,
                 "verify_checksums": True,
-                "force_remote_downloads": False
+                "force_remote_downloads": False,
+                "manifest_cache_max_age_seconds": 60
             }
             self.save_config(default_config)
         
@@ -228,7 +229,10 @@ class ScriptRepository:
         """Load configuration from file"""
         try:
             with open(self.config_file, 'r') as f:
-                return json.load(f)
+                config = json.load(f)
+                if "manifest_cache_max_age_seconds" not in config:
+                    config["manifest_cache_max_age_seconds"] = 60
+                return config
         except Exception as e:
             logging.error(f"Failed to load config: {e}")
             return {}
@@ -724,6 +728,16 @@ class ScriptRepository:
         pass  # removed debug log
         if exists:
             return str(cached_path)
+
+        # Fallback: search for cached file by filename across categories
+        try:
+            for category_dir in self.script_cache_dir.iterdir():
+                if category_dir.is_dir():
+                    candidate = category_dir / filename
+                    if candidate.exists():
+                        return str(candidate)
+        except Exception:
+            pass
         
         return None
     

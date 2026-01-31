@@ -277,6 +277,52 @@ class TestCheckForUpdates:
         mock_auto_install.assert_called_once()
 
 
+class TestCachedScriptLookup:
+    """Test cached script lookup behavior"""
+
+    @pytest.fixture
+    def repo_with_temp_dirs(self):
+        """Create repository with temporary directories"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = ScriptRepository()
+            repo.config_dir = Path(tmpdir) / ".lv_linux_learn"
+            repo.config_file = repo.config_dir / "config.json"
+            repo.manifest_file = repo.config_dir / "manifest.json"
+            repo.manifest_meta_file = repo.config_dir / "manifest_metadata.json"
+            repo.script_cache_dir = repo.config_dir / "script_cache"
+            repo._ensure_directories()
+            yield repo
+
+    def test_get_cached_script_path_fallback_searches_by_filename(self, repo_with_temp_dirs):
+        """Should find cached file by filename even if category changed"""
+        repo = repo_with_temp_dirs
+
+        # Manifest says category is install
+        manifest = {
+            "repository_version": "1.0",
+            "scripts": [
+                {
+                    "id": "script_1",
+                    "file_name": "script_1.sh",
+                    "category": "install",
+                    "download_url": "https://example.com/script_1.sh",
+                    "checksum": "sha256:" + "0" * 64
+                }
+            ]
+        }
+        repo.manifest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(repo.manifest_file, 'w') as f:
+            json.dump(manifest, f)
+
+        # Cached file exists in a different category (tools)
+        cached_path = repo.script_cache_dir / "tools" / "script_1.sh"
+        cached_path.parent.mkdir(parents=True, exist_ok=True)
+        cached_path.write_text("echo test")
+
+        result = repo.get_cached_script_path(script_id="script_1")
+        assert result == str(cached_path)
+
+
 class TestUpdateAllScripts:
     """Test the update_all_scripts() method"""
     

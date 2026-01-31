@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Description: Install DuckStation PS1 emulator as AppImage with desktop integration
-#
+# Another change
 
 set -euo pipefail
 

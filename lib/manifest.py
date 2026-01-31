@@ -209,7 +209,12 @@ class ManifestLoader:
                 
                 # Try to load from cache first
                 use_cache = False
-                max_age = C.MANIFEST_CACHE_MAX_AGE if C else 3600
+                if repository and hasattr(repository, "get_config_value"):
+                    max_age = repository.get_config_value("manifest_cache_max_age_seconds")
+                else:
+                    max_age = None
+                if not max_age:
+                    max_age = C.MANIFEST_CACHE_MAX_AGE if C else 3600
                 
                 if cache_path.exists():
                     age = time.time() - cache_path.stat().st_mtime

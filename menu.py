@@ -1512,6 +1512,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 # Check for updates in background if enabled
                 if self.repo_config.get('auto_check_updates', True):
                     GLib.idle_add(self._check_updates_background)
+                # Schedule periodic manifest refresh to keep tabs in sync
+                self._schedule_manifest_auto_refresh()
             except Exception as e:
                 import traceback
                 import sys
@@ -6786,6 +6788,40 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # No terminal completion needed for background refresh operations
         
         return False  # Remove from GLib timeout
+
+    def _schedule_manifest_auto_refresh(self):
+        """Schedule periodic manifest refresh to keep UI tabs current"""
+        if not self.repository:
+            return
+
+        interval_minutes = self.repo_config.get('update_check_interval_minutes', 1)
+        try:
+            interval_minutes = max(1, int(interval_minutes))
+        except Exception:
+            interval_minutes = 1
+
+        GLib.timeout_add_seconds(interval_minutes * 60, self._run_manifest_auto_refresh)
+
+    def _run_manifest_auto_refresh(self):
+        """Refresh manifest cache and update all tabs"""
+        if not self.repository or not refresh_manifest_cache:
+            return True
+
+        try:
+            # Refresh manifest cache (public + custom manifests)
+            refresh_manifest_cache(manifest_url=DEFAULT_MANIFEST_URL, terminal_callback=None)
+            # Reload all script data and update UI
+            self._refresh_all_script_data()
+
+            # Refresh repository tab/status if available
+            if hasattr(self, '_update_repo_status'):
+                self._update_repo_status()
+            if hasattr(self, '_populate_repository_tree'):
+                self._populate_repository_tree()
+        except Exception:
+            pass
+
+        return True
     
     def _on_refresh_manifest_cache(self, widget=None):
         """Clear manifest cache and fetch fresh from configured URL"""
