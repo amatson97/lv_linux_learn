@@ -398,6 +398,9 @@ class ScriptRepository:
             logging.info("Failed to fetch manifest, using cached version")
             return 0
         
+        # Update timestamp immediately after successful manifest fetch (Issue #2 FIX)
+        self.set_config_value("last_update_check", datetime.now().isoformat())
+        
         # Count updates
         update_count = 0
         scripts = self.parse_manifest()
@@ -406,22 +409,38 @@ class ScriptRepository:
             script_id = script.get('id')
             category = script.get('category')
             filename = script.get('file_name')
-            remote_checksum = script.get('checksum', '').replace('sha256:', '')
+            remote_checksum_raw = script.get('checksum', '')
+            
+            # Handle empty checksum (Issue #1 FIX - validate checksum exists)
+            if not remote_checksum_raw:
+                logging.debug(f"No checksum for {script_id}, skipping update check")
+                continue
+            
+            # Normalize checksum - remove 'sha256:' prefix if present
+            remote_checksum = remote_checksum_raw.replace('sha256:', '')
             
             cached_path = self.script_cache_dir / category / filename
             
             if cached_path.exists():
-                local_checksum = self._calculate_checksum(str(cached_path))
-                if local_checksum != remote_checksum:
-                    update_count += 1
+                try:
+                    local_checksum = self._calculate_checksum(str(cached_path))
+                    # Issue #1 FIX: Properly compare checksums
+                    if local_checksum and remote_checksum and local_checksum != remote_checksum:
+                        logging.debug(f"Update available for {script_id}: {local_checksum[:16]}... != {remote_checksum[:16]}...")
+                        update_count += 1
+                    elif not local_checksum:
+                        logging.warning(f"Failed to calculate checksum for {cached_path}")
+                except Exception as e:
+                    logging.warning(f"Error checking updates for {script_id}: {e}")
         
         logging.info(f"Found {update_count} updates available")
         
-        # Auto-install if enabled
+        # Issue #3 FIX: Auto-install if enabled - return count correctly
         if update_count > 0 and self.get_config_value("auto_install_updates", False):
-            logging.info("Auto-installing updates...")
-            self.update_all_scripts_silent()
-            update_count = 0
+            logging.info(f"Auto-installing {update_count} updates...")
+            installed_count = self.update_all_scripts_silent()
+            logging.info(f"Auto-installed {installed_count} updates")
+            return 0  # Return 0 to indicate auto-install completed successfully
         
         return update_count
     
