@@ -5,6 +5,7 @@
 # integration. Adds Flathub repository for access to thousands of
 # sandboxed applications with automatic updates and dependency management.
 # Also installs Flatseal for managing Flatpak app permissions and portals.
+#
 set -euo pipefail
 
 # Includes

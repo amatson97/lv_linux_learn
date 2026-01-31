@@ -572,8 +572,23 @@ class ScriptRepository:
             if should_verify and checksum:
                 actual_checksum = hashlib.sha256(content).hexdigest()
                 if actual_checksum != checksum:
-                    logging.error(f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}")
-                    logging.info(f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification")
+                    # Retry once with cache-busting query param to avoid CDN stale content
+                    cache_bust_url = f"{download_url}?t={int(time.time())}" if download_url.startswith("http") else None
+                    if cache_bust_url:
+                        logging.warning(
+                            f"Checksum mismatch for {script_id}; retrying with cache-busted URL."
+                        )
+                        with urllib.request.urlopen(cache_bust_url, timeout=30) as response:
+                            content = response.read()
+                        actual_checksum = hashlib.sha256(content).hexdigest()
+
+                if actual_checksum != checksum:
+                    logging.error(
+                        f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}"
+                    )
+                    logging.info(
+                        f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification"
+                    )
                     raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
             elif not checksum:
                 if should_verify:
