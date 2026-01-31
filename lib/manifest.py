@@ -258,7 +258,7 @@ class ManifestLoader:
     def load_scripts_from_manifest(
         terminal_widget=None,
         repository=None
-    ) -> tuple[dict[str, list], dict[str, list], dict[str, list]]:
+    ) -> tuple[dict[str, list], dict[str, list], dict[str, list], dict]:
         """
         Load scripts dynamically from manifest.json files (supports multiple manifests)
         Returns: tuple of (scripts_dict, names_dict, descriptions_dict)

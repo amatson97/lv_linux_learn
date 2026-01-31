@@ -86,6 +86,49 @@ class CustomScriptManager:
         """
         return self.list_scripts()
     
+    def get_script_by_id(self, script_id):
+        """Get a custom script by ID"""
+        config = self._load_config()
+        scripts = config.get('scripts', [])
+        
+        for script in scripts:
+            if script.get('id') == script_id:
+                return script
+        
+        return None
+    
+    def update_script(self, script_id, name=None, description=None, content=None):
+        """Update an existing custom script"""
+        config = self._load_config()
+        scripts = config.get('scripts', [])
+        
+        for script in scripts:
+            if script.get('id') == script_id:
+                # Update metadata
+                if name is not None:
+                    script['name'] = name
+                if description is not None:
+                    script['description'] = description
+                
+                # Update script content if provided
+                if content is not None:
+                    script_path = Path(script.get('path'))
+                    if script_path.exists():
+                        with open(script_path, 'w') as f:
+                            f.write(content)
+                        script_path.chmod(0o755)
+                
+                script['modified'] = datetime.now().isoformat()
+                config['scripts'] = scripts
+                self._save_config(config)
+                return True
+        
+        return False
+    
+    def delete_script(self, script_id):
+        """Delete a custom script by ID (alias for remove_script)"""
+        return self.remove_script(script_id)
+    
     def remove_script(self, script_id):
         """Remove a custom script by ID"""
         config = self._load_config()

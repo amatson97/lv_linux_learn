@@ -5378,66 +5378,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Silently handle errors, don't interrupt operations
             pass
 
-    def _on_switch_to_public_repository(self, button):
-        """Toggle public repository on/off"""
-        if not self.repository:
-            return
-        
-        self.terminal.feed(b"\x1b[2J\x1b[H")  # Clear screen
-        
-        try:
-            config = self.repository.load_config()
-            current_state = config.get('use_public_repository', True)
-            new_state = not current_state
-            
-            config['use_public_repository'] = new_state
-            self.repository.save_config(config)
-            
-            if new_state:
-                self.terminal.feed(b"\x1b[32m[*] Public repository enabled\x1b[0m\r\n")
-            else:
-                self.terminal.feed(b"\x1b[33m[*] Public repository disabled\x1b[0m\r\n")
-                # When disabling public repo, clean up its cached files
-                self.terminal.feed(b"\x1b[36m[*] Cleaning up public repository cache files...\x1b[0m\r\n")
-                try:
-                    cache_dir = Path.home() / '.lv_linux_learn'
-                    public_cache = cache_dir / 'manifest_public_repository.json'
-                    public_cache.unlink(missing_ok=True)
-                    self.terminal.feed(b"\x1b[32m[*] Removed cached public repository manifest\x1b[0m\r\n")
-                except Exception as e:
-                    self.terminal.feed(f"\x1b[33m[!] Cache cleanup warning: {e}\x1b[0m\r\n".encode())
-            
-            self.terminal.feed(b"\x1b[32m[*] Reloading scripts...\x1b[0m\r\n")
-            
-            # Refresh UI to reload with new manifest configuration
-            self._refresh_ui_after_manifest_switch()
-            
-            self.terminal.feed(b"\x1b[32m[*] Scripts reloaded successfully\x1b[0m\r\n")
-        
-        except Exception as e:
-            error_msg = f"Failed to toggle public repository: {e}"
-            self.terminal.feed(f"\x1b[31m[!] {error_msg}\x1b[0m\r\n".encode())
-            import traceback
-            traceback.print_exc()
-    
-    def _refresh_ui_after_manifest_switch(self):
-        """Refresh UI after switching manifests - delegates to UIRefreshCoordinator"""
-        try:
-            if hasattr(self, 'ui_refresh'):
-                self.ui_refresh.refresh_after_repo_toggle()
-                self.terminal.feed(b"\x1b[32m[+] UI refreshed successfully\x1b[0m\r\n")
-            else:
-                # Fallback if coordinator not initialized
-                self._reload_main_tabs()
-            return False
-        except Exception as e:
-            self.terminal.feed(f"\x1b[31m[!] Error refreshing UI: {e}\x1b[0m\r\n".encode())
-            print(f"Error refreshing UI after manifest switch: {e}")
-            return False
-
-    # ========================================================================
-    # INCLUDES & CACHE MANAGEMENT
-    # ========================================================================
+    def _on_delete_manifest(self, manifest_name):
         """Delete manifest by name with confirmation"""
         if not self.custom_manifest_creator:
             return

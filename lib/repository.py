@@ -35,13 +35,13 @@ class ScriptRepository:
         self.script_cache_dir = self.config_dir / "script_cache"
         self.log_file = self.config_dir / "logs" / "repository.log"
         
-        # Detect if running from local repository
-        self.local_repo_root = self._detect_local_repository()
-        
-        # Initialize
+        # Initialize directories and config first
         self._ensure_directories()
         self._init_config()
         self.config = self.load_config()
+        
+        # Detect if running from local repository (requires config to be loaded)
+        self.local_repo_root = self._detect_local_repository()
         
         # Set repo_url based on configuration (custom or default)
         self.repo_url = self.get_effective_repository_url()
@@ -102,6 +102,16 @@ class ScriptRepository:
         Returns:
             Path object if local repo detected, None otherwise
         """
+        # Check config file setting first
+        if self.get_config_value("force_remote_downloads", False):
+            logging.info("Local repository detection disabled (force_remote_downloads=true in config)")
+            return None
+        
+        # Allow disabling local repo detection via environment variable (for quick override)
+        if os.environ.get('LV_FORCE_REMOTE', '').lower() in ('1', 'true', 'yes'):
+            logging.info("Local repository detection disabled (LV_FORCE_REMOTE environment variable set)")
+            return None
+        
         # Check common locations for local repository
         possible_paths = [
             Path.home() / "lv_linux_learn",
@@ -200,7 +210,8 @@ class ScriptRepository:
                 "last_update_check": None,
                 "allow_insecure_downloads": False,
                 "cache_timeout_days": 30,
-                "verify_checksums": True
+                "verify_checksums": True,
+                "force_remote_downloads": False
             }
             self.save_config(default_config)
         

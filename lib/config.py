@@ -30,6 +30,9 @@ DEFAULT_MANIFEST_URL: Final[str] = "https://raw.githubusercontent.com/amatson97/
 MANIFEST_CACHE_MAX_AGE: Final[int] = 3600  # 1 hour in seconds
 INCLUDES_CACHE_MAX_AGE: Final[int] = 86400  # 24 hours in seconds
 
+# Force remote downloads (disable local repository detection)
+FORCE_REMOTE_DOWNLOADS: Final[bool] = True  # Set to True to always download from GitHub
+
 # Config directory structure
 CONFIG_DIR: Final[Path] = Path.home() / '.lv_linux_learn'
 MANIFEST_CACHE_FILE: Final[Path] = CONFIG_DIR / 'manifest.json'

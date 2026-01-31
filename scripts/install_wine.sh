@@ -4,7 +4,6 @@
 # Installs Wine (Windows compatibility layer) and Winetricks (helper tool)
 # to enable running Windows applications and games on Ubuntu Linux.
 # Includes latest Wine repository setup and essential Windows libraries.
-# Comment to test script updates mechanic...this can be removed later.
 set -euo pipefail
 
 # Includes
