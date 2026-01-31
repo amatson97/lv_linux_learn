@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -u
 """
 Setup Tool - Ubuntu Linux Setup & Management Utility
 Requires: python3-gi, gir1.2-gtk-3.0, gir1.2-vte-2.91
@@ -1568,6 +1568,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Initialize repository system
         self.repository = None
         self.repo_enabled = False
+        self.repo_config = {}  # Initialize early to avoid AttributeError
+        self._auto_refresh_timeout_id = None  # Store timeout ID to prevent garbage collection
+        
         if ScriptRepository:
             try:
                 self.repository = ScriptRepository()
@@ -1605,16 +1608,16 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             global UNINSTALL_SCRIPTS, UNINSTALL_NAMES, UNINSTALL_DESCRIPTIONS
             
             try:
-                print("[*] Reloading scripts with repository configuration...")
+                print("[*] Reloading scripts with repository configuration...", flush=True)
                 # Reload with repository instance for proper cache status and custom manifests
                 global _SCRIPT_ID_MAP
                 _SCRIPTS_DICT, _NAMES_DICT, _DESCRIPTIONS_DICT, _SCRIPT_ID_MAP = load_scripts_from_manifest(repository=self.repository)
                 
-                print(f"[*] Loaded categories: {list(_SCRIPTS_DICT.keys())}")
+                print(f"[*] Loaded categories: {list(_SCRIPTS_DICT.keys())}", flush=True)
                 print(f"[*] Install scripts: {len(_SCRIPTS_DICT.get('install', []))}")
                 print(f"[*] Tools scripts: {len(_SCRIPTS_DICT.get('tools', []))}")
                 print(f"[*] Exercises scripts: {len(_SCRIPTS_DICT.get('exercises', []))}")
-                print(f"[*] Uninstall scripts: {len(_SCRIPTS_DICT.get('uninstall', []))}")
+                print(f"[*] Uninstall scripts: {len(_SCRIPTS_DICT.get('uninstall', []))}", flush=True)
                 
                 # Update global arrays with cache icons
                 SCRIPTS[:] = _SCRIPTS_DICT.get('install', [])
@@ -4217,8 +4220,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         content.set_margin_bottom(10)
         
         # Settings widgets
-        auto_check = Gtk.CheckButton(label="Auto-check for updates")
+        auto_check = Gtk.CheckButton(label="Auto-check for manifest updates")
         auto_check.set_active(self.repo_config.get('auto_check_updates', True))
+        auto_check.set_tooltip_text("Periodically refresh manifest cache to keep tabs in sync with latest scripts")
         content.pack_start(auto_check, False, False, 0)
         
         auto_install = Gtk.CheckButton(label="Auto-install updates")
@@ -4226,11 +4230,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         content.pack_start(auto_install, False, False, 0)
         
         interval_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        interval_label = Gtk.Label(label="Check interval (minutes):")
+        interval_label = Gtk.Label(label="Auto-refresh interval (minutes):")
         interval_spin = Gtk.SpinButton()
-        interval_spin.set_range(1, 1440)
-        interval_spin.set_increments(1, 10)
-        interval_spin.set_value(self.repo_config.get('update_check_interval_minutes', 30))
+        interval_spin.set_range(0.1, 1440)  # Allow as low as 6 seconds for testing
+        interval_spin.set_increments(0.1, 1)
+        interval_spin.set_digits(1)  # Allow decimal values
+        interval_spin.set_value(self.repo_config.get('update_check_interval_minutes', 1))
+        interval_spin.set_tooltip_text("How often to check for manifest updates (e.g., 0.1 = 6 sec, 1 = 1 min). Requires auto-check to be enabled.")
         interval_box.pack_start(interval_label, False, False, 0)
         interval_box.pack_start(interval_spin, False, False, 0)
         content.pack_start(interval_box, False, False, 0)
@@ -7001,7 +7007,8 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
 
     def _schedule_manifest_auto_refresh(self):
         """Schedule periodic manifest refresh to keep UI tabs current"""
-        if not self.repository:
+        if not self.repository or not self.repo_config:
+            print("[*] Auto-refresh not scheduled: repository or config missing")
             return
 
         interval_minutes = self.repo_config.get('update_check_interval_minutes', 1)
@@ -7010,26 +7017,32 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         except Exception:
             interval_minutes = 1
 
-        GLib.timeout_add_seconds(interval_minutes * 60, self._run_manifest_auto_refresh)
+        # Store timeout ID to prevent garbage collection
+        self._auto_refresh_timeout_id = GLib.timeout_add_seconds(interval_minutes * 60, self._run_manifest_auto_refresh)
+        print(f"[+] Auto-refresh scheduled: interval={interval_minutes} minute(s), timeout_id={self._auto_refresh_timeout_id}", flush=True)
 
     def _run_manifest_auto_refresh(self):
         """Refresh manifest cache and update all tabs"""
         if not self.repository or not refresh_manifest_cache:
+            print("[!] Auto-refresh skipped: missing repository or refresh_manifest_cache")
             return True
 
         try:
+            print("[*] Auto-refresh triggered - refreshing manifest cache...")
             # Refresh manifest cache (public + custom manifests)
             refresh_manifest_cache(manifest_url=DEFAULT_MANIFEST_URL, terminal_callback=None)
+            print("[+] Manifest cache refreshed")
             # Reload all script data and update UI
             self._refresh_all_script_data()
+            print("[+] Script data reloaded")
 
             # Refresh repository tab/status if available
             if hasattr(self, '_update_repo_status'):
                 self._update_repo_status()
             if hasattr(self, '_populate_repository_tree'):
                 self._populate_repository_tree()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!] Auto-refresh error: {e}")
 
         return True
     

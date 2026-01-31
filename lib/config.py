@@ -27,7 +27,7 @@ OPTIONAL_COMMANDS: Final[list[str]] = ["batcat", "pygmentize", "highlight"]
 # ============================================================================
 
 DEFAULT_MANIFEST_URL: Final[str] = "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
-MANIFEST_CACHE_MAX_AGE: Final[int] = 60  # 1 minute in seconds
+MANIFEST_CACHE_MAX_AGE: Final[int] = 60  # Cached manifest file expires after this many seconds (separate from auto-refresh interval)
 INCLUDES_CACHE_MAX_AGE: Final[int] = 86400  # 24 hours in seconds
 
 # Force remote downloads (disable local repository detection)
