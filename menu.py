@@ -3958,6 +3958,13 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         self.terminal.feed(b"\r\n\x1b[32m[*] Checking for updates...\x1b[0m\r\n")
         
         try:
+            # Clear repository's internal cache to force fresh check
+            if hasattr(self.repository, '_manifest_cache'):
+                self.repository._manifest_cache = None
+            if hasattr(self.repository, '_scripts'):
+                self.repository._scripts = None
+            print("[DEBUG] Cleared repository cache for fresh update check", flush=True)
+            
             update_count = self.repository.check_for_updates()
             self.terminal.feed(f"\x1b[32m[*] Found {update_count} updates available\x1b[0m\r\n".encode())
             
@@ -3967,9 +3974,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             else:
                 GLib.timeout_add(500, self._check_updates_complete_callback)
             
-            # Refresh display
+            # Refresh display with fresh data
             self._update_repo_status()
             self._populate_repository_tree()
+            print("[DEBUG] Repository tree refreshed after check", flush=True)
             
         except Exception as e:
             self.terminal.feed(f"\x1b[31m[!] Error: {e}\x1b[0m\r\n".encode())
@@ -7032,6 +7040,14 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             # Refresh manifest cache (public + custom manifests)
             refresh_manifest_cache(manifest_url=DEFAULT_MANIFEST_URL, terminal_callback=None)
             print("[+] Manifest cache refreshed")
+            
+            # Clear repository's internal manifest cache to force reload from disk
+            if hasattr(self.repository, '_manifest_cache'):
+                self.repository._manifest_cache = None
+            if hasattr(self.repository, '_scripts'):
+                self.repository._scripts = None
+            print("[+] Repository cache cleared")
+            
             # Reload all script data and update UI
             self._refresh_all_script_data()
             print("[+] Script data reloaded")
@@ -7041,8 +7057,9 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                 self._update_repo_status()
             if hasattr(self, '_populate_repository_tree'):
                 self._populate_repository_tree()
+                print("[+] Repository tree refreshed")
         except Exception as e:
-            print(f"[!] Auto-refresh error: {e}")
+            print(f"[!] Auto-refresh error: {e}", flush=True)
 
         return True
     
