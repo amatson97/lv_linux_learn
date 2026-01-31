@@ -193,7 +193,17 @@ class RepositoryTabHandler:
                 custom_name = config.get('custom_manifest_name', 'Custom Repository')
                 custom_manifests_to_load.append(('custom_manifest_url', custom_manifest_url, custom_name))
             
-            # 1b. Check for manifests created through Custom Manifests tab
+            # 1b. Check for manifests in config['custom_manifests'] (new system)
+            custom_manifests_from_config = config.get('custom_manifests', {})
+            for manifest_name, manifest_config in custom_manifests_from_config.items():
+                if 'manifest_data' not in manifest_config:
+                    continue
+                # Add all custom manifests from config (they'll be loaded from manifest_data)
+                custom_manifests_to_load.append((manifest_name, manifest_name, manifest_name))
+                if hasattr(self.parent, 'terminal'):
+                    self.parent.terminal.feed(f"\x1b[36m[*] Found custom manifest from config: {manifest_name}\x1b[0m\r\n".encode())
+            
+            # 1c. Check for manifests created through Custom Manifests tab (filesystem)
             if hasattr(self.parent, 'custom_manifest_creator') and self.parent.custom_manifest_creator:
                 try:
                     manifests_dir = Path.home() / '.lv_linux_learn' / 'custom_manifests'
@@ -220,10 +230,22 @@ class RepositoryTabHandler:
             for manifest_id, manifest_path, custom_manifest_name in custom_manifests_to_load:
                 custom_scripts = []
                 try:
-                    with open(manifest_path, 'r') as f:
-                        custom_manifest = json.load(f)
+                    # Try to load from config first (new system)
+                    custom_manifest = None
+                    if custom_manifest_name in config.get('custom_manifests', {}):
+                        custom_manifest = config['custom_manifests'][custom_manifest_name].get('manifest_data')
                     
-                    verify_checksums = custom_manifest.get('verify_checksums', True)
+                    # Fall back to loading from file (old system)
+                    if not custom_manifest and Path(manifest_path).exists():
+                        with open(manifest_path, 'r') as f:
+                            custom_manifest = json.load(f)
+                    
+                    if not custom_manifest:
+                        if hasattr(self.parent, 'terminal'):
+                            self.parent.terminal.feed(f"\x1b[33m[!] Could not load manifest: {custom_manifest_name}\x1b[0m\r\n".encode())
+                        continue
+                    
+                    verify_checksums = config.get('custom_manifests', {}).get(custom_manifest_name, {}).get('verify_checksums', True)
                     manifest_verify_settings[custom_manifest_name] = verify_checksums
                     
                     if hasattr(self.parent, 'terminal'):
@@ -297,14 +319,14 @@ class RepositoryTabHandler:
                 name = script.get('name')
                 version = script.get('version', '1.0')
                 category = script.get('category', 'tools')
-                file_name = script.get('file_name', '')
+                file_name = script.get('file_name') or script.get('name', '')  # Fallback to 'name' field
                 source = script.get('_source', 'unknown')
                 source_name = script.get('_source_name', 'Unknown Source')
                 source_type = script.get('source_type', '')
                 
-                # If file_name is missing, try to extract from download_url
+                # If file_name is still missing, try to extract from download_url or path
                 if not file_name:
-                    download_url = script.get('download_url', '')
+                    download_url = script.get('download_url') or script.get('path', '')
                     if download_url:
                         file_name = download_url.split('/')[-1]
                 
@@ -502,10 +524,15 @@ class RepositoryTabHandler:
         
         self.parent.terminal.feed(f"\x1b[32m[*] Removal complete: {success_count} removed, {failed_count} failed\x1b[0m\r\n".encode())
         
+        # Schedule UI refresh after cache operations complete (100ms delay to ensure filesystem sync)
+        def refresh_ui():
+            self.populate_tree()
+            self.parent._reload_main_tabs()
+            self.parent._update_repo_status()
+            return False
+        
+        GLib.timeout_add(100, refresh_ui)
         GLib.timeout_add(1500, self.parent._complete_terminal_operation)
-        self.parent._update_repo_status()
-        self.populate_tree()
-        self.parent._reload_main_tabs()
     
     def _on_check_updates(self, button):
         """Manually check for updates"""
@@ -662,11 +689,15 @@ class RepositoryTabHandler:
             except Exception as e:
                 self.parent.terminal.feed(f"\x1b[33m[!] Manifest cache cleanup warning: {e}\x1b[0m\r\n".encode())
             
-            GLib.timeout_add(500, self.parent._complete_terminal_operation)
+            # Schedule UI refresh after cache operations complete (100ms delay to ensure filesystem sync)
+            def refresh_ui():
+                self.populate_tree()
+                self.parent._reload_main_tabs()
+                self.parent._update_repo_status()
+                return False
             
-            self.parent._update_repo_status()
-            self.populate_tree()
-            self.parent._reload_main_tabs()
+            GLib.timeout_add(100, refresh_ui)
+            GLib.timeout_add(500, self.parent._complete_terminal_operation)
             
         except Exception as e:
             self.parent.terminal.feed(f"\x1b[31m[!] Error: {e}\x1b[0m\r\n".encode())

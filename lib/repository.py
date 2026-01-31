@@ -147,8 +147,11 @@ class ScriptRepository:
             return None
         
         # Build local path
-        file_name = script.get('file_name')
+        file_name = script.get('file_name') or script.get('name')  # Fallback to 'name' field
         category = script.get('category')
+        
+        if not file_name:
+            return None
         
         if category == 'install':
             local_path = self.local_repo_root / "scripts" / file_name
@@ -372,7 +375,31 @@ class ScriptRepository:
                 logging.error(f"Failed to load manifest from {manifest_path}: {e}")
                 return None
         else:
-            # Search default/cached manifest
+            # First search custom manifests from config
+            try:
+                config = json.loads(self.config_file.read_text())
+                custom_manifests = config.get('custom_manifests', {})
+                
+                for manifest_name, manifest_info in custom_manifests.items():
+                    manifest_data = manifest_info.get('manifest_data')
+                    if manifest_data:
+                        scripts_data = manifest_data.get('scripts', [])
+                        # Handle both formats
+                        if isinstance(scripts_data, dict):
+                            all_scripts = []
+                            for category, category_scripts in scripts_data.items():
+                                for script in category_scripts:
+                                    script['category'] = category
+                                    all_scripts.append(script)
+                            scripts_data = all_scripts
+                        
+                        for script in scripts_data:
+                            if script.get('id') == script_id:
+                                return script
+            except Exception as e:
+                logging.debug(f"No custom manifests in config or error reading: {e}")
+            
+            # Then search default/cached public manifest
             scripts = self.parse_manifest()
             for script in scripts:
                 if script.get('id') == script_id:
@@ -511,8 +538,8 @@ class ScriptRepository:
             # Default repository - use standard includes method
             self.ensure_includes_available()
         
-        download_url = script.get('download_url')
-        filename = script.get('file_name')
+        download_url = script.get('download_url') or script.get('path')  # Fallback to 'path' field for compatibility
+        filename = script.get('file_name') or script.get('name')  # Fallback to 'name' field
         category = script.get('category')
         checksum = script.get('checksum', '').replace('sha256:', '')
         
@@ -538,17 +565,29 @@ class ScriptRepository:
                 # Make executable
                 os.chmod(str(dest_path), 0o755)
                 logging.info(f"Successfully copied local script to cache: {script_id}")
-                return True, str(local_script_path)
+                return True, str(local_script_path), None
                 
             except Exception as e:
                 logging.warning(f"Failed to copy local file, falling back to download: {e}")
                 # Fall through to download
         
         try:
-            # Download script from remote URL
-            logging.info(f"Downloading from remote: {download_url}")
-            with urllib.request.urlopen(download_url, timeout=30) as response:
-                content = response.read()
+            # Handle file:// URLs separately
+            if download_url.startswith('file://'):
+                local_file = download_url.replace('file://', '')
+                logging.info(f"Copying from local file: {local_file}")
+                
+                if not os.path.exists(local_file):
+                    logging.error(f"Local file not found: {local_file}")
+                    return False, None, "Local file not found"
+                
+                with open(local_file, 'rb') as f:
+                    content = f.read()
+            else:
+                # Download script from remote URL
+                logging.info(f"Downloading from remote: {download_url}")
+                with urllib.request.urlopen(download_url, timeout=30) as response:
+                    content = response.read()
             
             # Check if checksum verification is enabled
             # First check the manifest-level setting, then fall back to global config
@@ -586,14 +625,15 @@ class ScriptRepository:
                             content = response.read()
                         actual_checksum = hashlib.sha256(content).hexdigest()
 
-                if actual_checksum != checksum:
-                    logging.error(
-                        f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}"
-                    )
-                    logging.info(
-                        f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification"
-                    )
-                    raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
+                    # Check again after retry (or if retry was skipped)
+                    if actual_checksum != checksum:
+                        logging.error(
+                            f"Checksum verification failed for {script_id}: expected {checksum}, got {actual_checksum}"
+                        )
+                        logging.info(
+                            f"To fix this issue: Either update the manifest with correct checksum 'sha256:{actual_checksum}' or disable checksum verification"
+                        )
+                        raise ChecksumVerificationError(f"Checksum verification failed for {script_id}")
             elif not checksum:
                 if should_verify:
                     logging.warning(f"No checksum provided for {script_id}, skipping verification")
@@ -716,7 +756,7 @@ class ScriptRepository:
             return None
         
         category = script.get('category')
-        filename = script.get('file_name')
+        filename = script.get('file_name') or script.get('name')  # Fallback to 'name' field
         
         if not category or not filename:
             pass  # removed debug log
@@ -767,13 +807,18 @@ class ScriptRepository:
         import shutil
         
         removed = 0
-        for category_dir in self.script_cache_dir.iterdir():
-            if category_dir.is_dir():
-                for script_file in category_dir.glob("*.sh"):
-                    script_file.unlink()
-                    removed += 1
+        try:
+            for category_dir in self.script_cache_dir.iterdir():
+                if category_dir.is_dir():
+                    # Remove all files in category directory (not just .sh files)
+                    for script_file in category_dir.iterdir():
+                        if script_file.is_file():
+                            script_file.unlink()
+                            removed += 1
+        except Exception as e:
+            logging.error(f"Error clearing cache: {e}")
         
-        logging.info("Cache cleared by user")
+        logging.info(f"Cache cleared by user ({removed} files removed)")
         pass  # removed debug log
         return True
         

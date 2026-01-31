@@ -1,5 +1,5 @@
 """
-Unit tests for install_duckstation.sh script
+Unit tests for install_ducksation.sh script
 
 Tests script logic including:
 - Wrapper script creation for X11/Wayland compatibility
@@ -7,11 +7,11 @@ Tests script logic including:
 - Icon extraction and setup
 - Environment variable handling
 
-Run with: python3 tests/test_install_duckstation.py
+Run with: python3 tests/test_install_ducksation.py
 """
 
 """
-Unit tests for install_duckstation.sh script
+Unit tests for install_ducksation.sh script
 
 Tests script logic including:
 - Wrapper script creation for X11/Wayland compatibility
@@ -19,7 +19,7 @@ Tests script logic including:
 - Icon extraction and setup
 - Environment variable handling
 
-Run with: python3 tests/test_install_duckstation.py
+Run with: python3 tests/test_install_ducksation.py
 """
 
 import sys
@@ -79,7 +79,7 @@ class TestDuckStationWrapperScript:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     
@@ -126,7 +126,7 @@ class TestDuckStationDesktopFile:
     @staticmethod
     def get_desktop_file_template():
         """Extract desktop file template from install script"""
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             content = f.read()
         
@@ -175,7 +175,7 @@ class TestDuckStationConfiguration:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     
@@ -203,7 +203,7 @@ class TestDuckStationSafety:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     
@@ -231,7 +231,7 @@ class TestDuckStationIconHandling:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     
@@ -257,7 +257,7 @@ class TestDuckStationIntegration:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     
@@ -286,7 +286,7 @@ class TestDuckStationDocumentation:
     
     @staticmethod
     def get_script_content():
-        script_path = Path(__file__).parent.parent / "scripts" / "install_ducksation.sh"
+        script_path = Path(__file__).parent.parent.parent / "scripts" / "install_ducksation.sh"
         with open(script_path) as f:
             return f.read()
     

@@ -350,7 +350,7 @@ class ManifestLoader:
                         script_name = script_entry.get('name', '')
                         file_name = script_entry.get('file_name', '')
                         relative_path = script_entry.get('relative_path', '')
-                        download_url = script_entry.get('download_url', '')
+                        download_url = script_entry.get('download_url', '') or script_entry.get('path', '')  # Fallback to 'path' field
                         description = script_entry.get('description', 'No description available')
                         
                         # Skip duplicates - check if script ID already processed
@@ -1222,6 +1222,9 @@ class CustomManifestCreator:
             
             if description is not None:
                 manifest['description'] = description
+                # Also update description in manifest_data if it exists
+                if 'manifest_data' in manifest and isinstance(manifest['manifest_data'], dict):
+                    manifest['manifest_data']['description'] = description
             
             if verify_checksums is not None:
                 manifest['verify_checksums'] = verify_checksums
@@ -1291,8 +1294,9 @@ class CustomManifestCreator:
                 manifests.append({
                     'name': name,
                     'url': url,
+                    'source_url': url,  # Also provide source_url for consistency with manifest_config
                     'verify_checksums': manifest_config.get('verify_checksums', True),
-                    'type': 'remote' if url.startswith('http') else 'local',
+                    'type': 'remote' if url else 'directory_scan',  # Has URL = remote manifest, no URL = directory scan
                     'description': description,
                     'version': version,
                     'created': created,

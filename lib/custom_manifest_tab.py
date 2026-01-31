@@ -180,9 +180,10 @@ class CustomManifestTabHandler:
     def _on_edit_manifest(self, button):
         """Edit the selected custom manifest"""
         selection = self.custom_manifest_tree.get_selection()
-        model, tree_iter = selection.get_selected()
+        selected_rows = selection.get_selected_rows()
+        model, paths = selected_rows
         
-        if not tree_iter:
+        if not paths or len(paths) == 0:
             dialog = Gtk.MessageDialog(
                 transient_for=self.parent,
                 flags=0,
@@ -195,6 +196,8 @@ class CustomManifestTabHandler:
             dialog.destroy()
             return
         
+        # Get the first selected row
+        tree_iter = model.get_iter(paths[0])
         manifest_name = model.get_value(tree_iter, 0)
         self._show_edit_manifest_dialog(manifest_name)
     
@@ -327,7 +330,7 @@ class CustomManifestTabHandler:
         if is_edit and manifest_info:
             type_label = Gtk.Label()
             manifest_type = manifest_info.get('type', 'directory_scan')
-            type_text = "Directory Scan" if manifest_type == 'directory_scan' else f"Imported URL"
+            type_text = "Directory Scan" if manifest_type == 'directory_scan' else "Remote Manifest"
             type_label.set_markup(f"<b>Manifest Type:</b> {type_text}")
             type_label.set_xalign(0)
             content.pack_start(type_label, False, False, 0)
@@ -372,7 +375,7 @@ class CustomManifestTabHandler:
             content._notebook = notebook
         else:
             # For editing, show appropriate controls based on type
-            if manifest_info.get('type') == 'imported_url':
+            if manifest_info.get('type') == 'remote':
                 url_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
                 url_label = Gtk.Label(label="Source URL:")
                 url_label.set_size_request(120, -1)
@@ -660,41 +663,54 @@ class CustomManifestTabHandler:
                     )
             
             else:
-                # Editing existing manifest
-                dialog.destroy()
-                
+                # Editing existing manifest - READ VALUES BEFORE DESTROYING DIALOG
                 manifest_type = manifest_info.get('type', 'directory_scan')
                 
-                if manifest_type == 'imported_url':
+                if manifest_type == 'remote':
                     url = content._url_entry.get_text().strip()
                     if not url:
                         self._show_error("Please enter a manifest URL.")
+                        dialog.destroy()
                         continue
-                    
+                
+                dialog.destroy()
+                
+                if manifest_type == 'remote':
+                    old_name = manifest_info['name']
                     old_url = manifest_info.get('source_url', '')
-                    if url != old_url or name != manifest_info['name']:
-                        self.custom_manifest_creator.delete_custom_manifest(manifest_info['name'])
+                    
+                    # If name or URL changed, need to recreate the manifest
+                    if url != old_url or name != old_name:
+                        self.custom_manifest_creator.delete_custom_manifest(old_name)
                         success, message = self.custom_manifest_creator.import_manifest_from_url(
                             name, url, description, verify_checksums
                         )
                     else:
+                        # Just updating description/verify_checksums
                         success, message = self.custom_manifest_creator.update_manifest_metadata(
-                            manifest_info['name'], name, description, url, verify_checksums
+                            old_name, description, verify_checksums
                         )
                 else:
+                    # Directory scan manifest - can only update description and verify_checksums
+                    # TODO: Add support for renaming directory scan manifests
                     success, message = self.custom_manifest_creator.update_manifest_metadata(
-                        manifest_info['name'], name, description, None, verify_checksums
+                        manifest_info['name'], description, verify_checksums
                     )
             
             # Handle result
             if success:
                 self.parent.terminal.feed(f"\x1b[32m[✓] {message}\x1b[0m\r\n".encode())
-                self.custom_manifest_creator.switch_to_custom_manifest(name)
-                if self.parent.repository:
-                    self.parent.repository.refresh_repository_url()
-                self.parent._reload_main_tabs()
+                
+                # Refresh UI to show updated manifest
                 self.populate_tree()
-                self.parent._populate_local_repository_tree()
+                self.parent._reload_main_tabs()
+                
+                # Switch to the updated manifest if name didn't change
+                if name == manifest_info.get('name'):
+                    self.custom_manifest_creator.switch_to_custom_manifest(name)
+                    if self.parent.repository:
+                        self.parent.repository.refresh_repository_url()
+                
                 GLib.timeout_add(100, self.parent._complete_terminal_silent)
             else:
                 self.parent.terminal.feed(f"\x1b[31m[✗] {message}\x1b[0m\r\n".encode())
