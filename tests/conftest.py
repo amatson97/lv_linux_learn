@@ -21,8 +21,8 @@ import sys
 # Add parent directory for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.repository import ScriptRepository
-from lib.script_execution import ScriptEnvironmentManager, ScriptExecutionContext, ScriptValidator
+from lib.core.repository import ScriptRepository
+from lib.core.script_execution import ScriptEnvironmentManager, ScriptExecutionContext, ScriptValidator
 
 
 # ============================================================================
@@ -310,13 +310,19 @@ class TestHelpers:
     """Shared helper methods for tests"""
     
     @staticmethod
-    def create_cached_script(repo: ScriptRepository, script_id: str, content: bytes, category: str = "install") -> Path:
+    def create_cached_script(
+        repo: ScriptRepository,
+        script_id: str,
+        content: bytes,
+        category: str = "install",
+        filename: str | None = None,
+    ) -> Path:
         """Create a cached script file for testing"""
         category_dir = repo.script_cache_dir / category
         category_dir.mkdir(parents=True, exist_ok=True)
-        
-        filename = f"{script_id.replace('-', '_')}.sh"
-        script_path = category_dir / filename
+
+        cache_name = filename or f"{script_id.replace('-', '_')}.sh"
+        script_path = category_dir / cache_name
         script_path.write_bytes(content)
         script_path.chmod(0o755)
         

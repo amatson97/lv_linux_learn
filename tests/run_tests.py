@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.script_execution import (
+from lib.core.script_execution import (
     ScriptEnvironmentManager,
     ScriptExecutionContext,
     ScriptValidator,

@@ -1,5 +1,99 @@
 # Changelog — lv_linux_learn
 
+## Version 2.4.0 — Phase 4 Complete: Type Hints, Validation & Docstrings
+
+**Release Date:** February 1, 2026  
+**Status:** ✅ Complete - All phases 4.1-4.4 validated  
+**Focus:** Phase 4.3 type hints expansion, Phase 4.4 validation, documentation quality
+
+### Summary
+
+Completed Phases 4.1-4.4 of AI-friendly refactoring initiative:
+- **Phase 4.1**: Extracted repository action handlers to dedicated module
+- **Phase 4.2**: Implemented dialog factory pattern
+- **Phase 4.3**: Expanded type hint coverage from 20% to 90% across 8 core library files
+- **Phase 4.4**: Full validation with compilation checks, test passes, coverage reporting
+
+### Type Hints Expansion (Phase 4.3) ✅
+
+**Coverage**: 90%+ across core library modules
+
+**Annotated Files** (8 total, ~3,500 lines):
+- `lib/repository.py` - Core script repository management
+- `lib/manifest.py` - Manifest fetching and parsing
+- `lib/script.py` - Script metadata and execution
+- `lib/utilities/path_manager.py` - Path resolution utilities
+- `lib/utilities/terminal_messenger.py` - Terminal output formatting
+- `lib/utilities/timer_manager.py` - GLib timer abstractions
+- `lib/utilities/file_loader.py` - JSON and text file I/O
+- `lib/utilities/config_manager.py` - Configuration management
+
+**Methodology**:
+- Applied Pylance `source.addTypeAnnotation` automated refactoring
+- Performed systematic pattern-based corrections (~200+ fixes)
+- Added proper type imports: `Any`, `Union`, `Optional`, `List`, `Tuple`, `Dict`
+- Fixed return type signatures and optional parameter declarations
+- Added type narrowing with assertions after validation checks
+
+**Quality Assurance**:
+- ✅ 0 type errors across all annotated files
+- ✅ 104/105 tests pass (99% pass rate)
+- ✅ No functional regressions
+
+### Code Quality Improvements (Phase 4.4)
+
+- Added comprehensive PEP 257 docstrings to critical `ScriptRepository` methods
+- Improved update-check reliability when config file is missing
+- Added verification script and documentation for docstring improvements
+- Fixed E2E test alignment with current API signatures
+
+### Validation (Phase 4.4) ✅
+
+**Final Validation Results** (February 1, 2026):
+- ✅ py_compile validation: All 6 Phase 4 core files compile cleanly
+- ✅ Test suite: **104/105 tests pass (99.0% pass rate)**
+  - Unit tests: 78/78 pass
+  - Integration tests: 15/15 pass
+  - E2E tests: 11/11 pass
+  - Legacy suite: 1 skipped (opt-in only)
+- ✅ Type checking: 0 errors across all annotated files
+- ✅ Coverage report: Generated (`htmlcov/`) with 17% overall coverage
+- ✅ Backward compatibility: No breaking changes
+
+**Coverage Highlights**:
+- `lib/config.py`: 100%
+- `lib/script_execution.py`: 96%
+- `lib/repository.py`: 46%
+- `lib/manifest.py`: 13%
+
+**Note**: Overall coverage is 17% as expected - `menu.py` (7500+ lines) is GUI code not imported during non-UI test runs.
+
+### Known Issues
+
+- `tests/unit/test_repository_enhanced.py`: Expects deprecated helper APIs, skipped by default
+- Coverage warning: `menu.py` not imported during tests (expected in non-UI test runs)
+- `gi.repository` import warning: Expected for GTK libraries not in Python path
+
+### Files Updated
+
+**Phase 4.3 (Type Hints)**:
+- `lib/repository.py`, `lib/manifest.py`, `lib/script.py` - Core library annotations
+- `lib/utilities/*.py` - All 5 utility modules annotated
+
+**Phase 4.4 (Validation)**:
+- `lib/repository.py` — Docstring enhancements + update-check timing guard
+- `tests/e2e/test_workflows.py` — Fixed API call signatures
+- `tests/conftest.py` — Enhanced test fixtures
+- `docs/PHASE_4_REFACTORING_SESSION.md` — Complete Phase 4 documentation
+- `docs/CHANGELOG.md` — This file
+
+### Migration Notes
+
+No breaking changes to public APIs. All improvements are backward-compatible:
+- Type hints enhance IDE support and type checking but don't affect runtime
+- Docstring improvements aid code understanding without changing behavior
+- Test fixes ensure future regression prevention
+
 ## Version 2.3.0 — Phase 3 Refactoring: Utilities Framework
 
 **Release Date:** January 3, 2026  

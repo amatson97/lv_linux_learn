@@ -36,7 +36,7 @@ class LocalRepositoryTabHandler:
         
         # Check Ollama availability
         try:
-            from lib.ai_categorizer import check_ollama_available
+            from lib.utilities.ai_categorizer import check_ollama_available
             self.ollama_available = check_ollama_available()
         except ImportError:
             self.ollama_available = False

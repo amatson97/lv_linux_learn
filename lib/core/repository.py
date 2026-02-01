@@ -14,10 +14,10 @@ import urllib.error
 from pathlib import Path
 from datetime import datetime, timedelta
 import logging
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any, Union
 
 # Debug logging flag (disabled by default). Set LV_DEBUG_CACHE=1 to enable.
-DEBUG_CACHE = os.environ.get("LV_DEBUG_CACHE") == "1"
+DEBUG_CACHE: bool = os.environ.get("LV_DEBUG_CACHE") == "1"
 
 class ChecksumVerificationError(Exception):
     """Raised when checksum verification fails"""
@@ -26,14 +26,14 @@ class ChecksumVerificationError(Exception):
 class ScriptRepository:
     """Manages remote script repository, caching, and updates"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.default_repo_url = "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main"
-        self.config_dir = Path.home() / ".lv_linux_learn"
-        self.config_file = self.config_dir / "config.json"
-        self.manifest_file = self.config_dir / "manifest.json"
-        self.manifest_meta_file = self.config_dir / "manifest_metadata.json"
-        self.script_cache_dir = self.config_dir / "script_cache"
-        self.log_file = self.config_dir / "logs" / "repository.log"
+        self.config_dir: Path = Path.home() / ".lv_linux_learn"
+        self.config_file: Path = self.config_dir / "config.json"
+        self.manifest_file: Path = self.config_dir / "manifest.json"
+        self.manifest_meta_file: Path = self.config_dir / "manifest_metadata.json"
+        self.script_cache_dir: Path = self.config_dir / "script_cache"
+        self.log_file: Path = self.config_dir / "logs" / "repository.log"
         
         # Initialize directories and config first
         self._ensure_directories()
@@ -41,10 +41,10 @@ class ScriptRepository:
         self.config = self.load_config()
         
         # Detect if running from local repository (requires config to be loaded)
-        self.local_repo_root = self._detect_local_repository()
+        self.local_repo_root: Path | None = self._detect_local_repository()
         
         # Set repo_url based on configuration (custom or default)
-        self.repo_url = self.get_effective_repository_url()
+        self.repo_url: str = self.get_effective_repository_url()
         
         # Set up logging
         logging.basicConfig(
@@ -53,10 +53,17 @@ class ScriptRepository:
             format='[%(asctime)s] %(message)s'
         )
     
-    def get_effective_repository_url(self):
-        """Get the effective repository URL (custom or default)"""
+    def get_effective_repository_url(self) -> str:
+        """Get the effective repository URL (custom or default).
+        
+        Prioritizes custom URL from environment or config file over default.
+        Extracts base URL from manifest URLs when needed.
+        
+        Returns:
+            str: The effective repository base URL
+        """
         # Check environment variable first
-        custom_url = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
+        custom_url: str = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
         if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
             # Extract base URL from manifest URL
             if custom_url.endswith('/manifest.json'):
@@ -75,10 +82,17 @@ class ScriptRepository:
         # Default fallback
         return self.default_repo_url
     
-    def get_manifest_url(self):
-        """Get the manifest URL (custom or default)"""
+    def get_manifest_url(self) -> str:
+        """Get the manifest URL (custom or default).
+        
+        Returns the full URL to the manifest.json file. Prioritizes custom
+        manifest URL from environment or config file over default.
+        
+        Returns:
+            str: The full manifest URL
+        """
         # Check environment variable first
-        custom_url = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
+        custom_url: str = os.environ.get('CUSTOM_MANIFEST_URL', '').strip()
         if custom_url and (custom_url.startswith('http://') or custom_url.startswith('https://')):
             return custom_url
         
@@ -91,19 +105,26 @@ class ScriptRepository:
         # Default fallback
         return f"{self.default_repo_url}/manifest.json"
     
-    def refresh_repository_url(self):
-        """Refresh the repository URL from current configuration"""
+    def refresh_repository_url(self) -> None:
+        """Refresh the repository URL from current configuration.
+        
+        Reloads config from file and updates internal URL references.
+        Useful after configuration changes via CLI or API.
+        """
         self.config = self.load_config()
-        self.repo_url = self.get_effective_repository_url()
+        self.repo_url: str = self.get_effective_repository_url()
     
-    def _detect_local_repository(self):
-        """Detect if running from a local git repository of lv_linux_learn
+    def _detect_local_repository(self) -> Optional[Path]:
+        """Detect if running from a local git repository of lv_linux_learn.
+        
+        Checks if force_remote_downloads is enabled. If true, returns None.
+        Otherwise searches parent directories for local repository markers.
         
         Returns:
-            Path object if local repo detected, None otherwise
+            Optional[Path]: Path to local repository root if found and enabled, None otherwise
         """
-        # Check config file setting first
-        if self.get_config_value("force_remote_downloads", False):
+        # Check config file setting first - default is True (force remote downloads)
+        if self.get_config_value("force_remote_downloads", True):
             logging.info("Local repository detection disabled (force_remote_downloads=true in config)")
             return None
         
@@ -113,7 +134,7 @@ class ScriptRepository:
             return None
         
         # Check common locations for local repository
-        possible_paths = [
+        possible_paths: List[Path] = [
             Path.home() / "lv_linux_learn",
             Path.cwd(),
             Path(__file__).parent.parent,  # lib/../ = repo root
@@ -171,8 +192,18 @@ class ScriptRepository:
         
         return None
     
-    def calculate_script_checksum(self, script_id):
-        """Download a script and calculate its checksum (for manifest generation)"""
+    def calculate_script_checksum(self, script_id: str) -> Optional[str]:
+        """Download a script and calculate its checksum (for manifest generation).
+        
+        Downloads script from repository and computes SHA256 hash.
+        Used during manifest creation/updates.
+        
+        Args:
+            script_id: Script ID to download
+            
+        Returns:
+            Optional[str]: SHA256 checksum hex string, or None on error
+        """
         script = self.get_script_by_id(script_id)
         if not script:
             return None
@@ -189,8 +220,15 @@ class ScriptRepository:
             logging.error(f"Failed to calculate checksum for {script_id}: {e}")
             return None
         
-    def _ensure_directories(self):
-        """Create necessary directories"""
+    def _ensure_directories(self) -> None:
+        """Create necessary cache and config directories.
+        
+        Initializes the following directory structure:
+        - ~/.lv_linux_learn/         (config directory)
+        - ~/.lv_linux_learn/logs/    (log files)
+        - ~/.lv_linux_learn/script_cache/   (cached scripts)
+        - Subdirectories for each category (install, tools, exercises, uninstall)
+        """
         self.config_dir.mkdir(parents=True, exist_ok=True)
         (self.config_dir / "logs").mkdir(exist_ok=True)
         self.script_cache_dir.mkdir(exist_ok=True)
@@ -199,8 +237,17 @@ class ScriptRepository:
         (self.script_cache_dir / "exercises").mkdir(exist_ok=True)
         (self.script_cache_dir / "uninstall").mkdir(exist_ok=True)
     
-    def _init_config(self):
-        """Initialize config file with defaults"""
+    def _init_config(self) -> None:
+        """Initialize config file with defaults if not present.
+        
+        Creates default configuration with sensible defaults:
+        - force_remote_downloads: True (GitHub-first behavior)
+        - verify_checksums: True (security)
+        - auto_check_updates: True (keep user informed)
+        - manifest_cache_max_age_seconds: 60 (cache duration)
+        
+        Also creates manifest metadata file for tracking fetches and cache status.
+        """
         if not self.config_file.exists():
             default_config = {
                 "version": "1.0.0",
@@ -214,7 +261,7 @@ class ScriptRepository:
                 "allow_insecure_downloads": False,
                 "cache_timeout_days": 30,
                 "verify_checksums": True,
-                "force_remote_downloads": False,
+                "force_remote_downloads": True,
                 "manifest_cache_max_age_seconds": 60
             }
             self.save_config(default_config)
@@ -228,8 +275,15 @@ class ScriptRepository:
             with open(self.manifest_meta_file, 'w') as f:
                 json.dump(default_meta, f, indent=2)
     
-    def load_config(self):
-        """Load configuration from file"""
+    def load_config(self) -> dict:
+        """Load configuration from file.
+        
+        Reads ~/.lv_linux_learn/config.json and ensures required keys exist
+        with appropriate defaults (e.g., manifest_cache_max_age_seconds).
+        
+        Returns:
+            dict: Configuration dictionary with all expected keys
+        """
         try:
             with open(self.config_file, 'r') as f:
                 config = json.load(f)
@@ -240,8 +294,18 @@ class ScriptRepository:
             logging.error(f"Failed to load config: {e}")
             return {}
     
-    def save_config(self, config):
-        """Save configuration to file"""
+    def save_config(self, config: dict) -> bool:
+        """Save configuration to file.
+        
+        Writes configuration dict to ~/.lv_linux_learn/config.json
+        and updates internal config reference.
+        
+        Args:
+            config: Configuration dictionary to save
+            
+        Returns:
+            bool: True if saved successfully, False on error
+        """
         try:
             with open(self.config_file, 'w') as f:
                 json.dump(config, f, indent=2)
@@ -251,18 +315,43 @@ class ScriptRepository:
             logging.error(f"Failed to save config: {e}")
             return False
     
-    def get_config_value(self, key, default=None):
-        """Get a configuration value"""
+    def get_config_value(self, key: str, default=None):
+        """Get a configuration value.
+        
+        Args:
+            key: Configuration key to retrieve
+            default: Default value if key not found
+            
+        Returns:
+            Any: Configuration value, or default if not present
+        """
         return self.config.get(key, default)
     
-    def set_config_value(self, key, value):
-        """Set a configuration value"""
+    def set_config_value(self, key: str, value) -> bool:
+        """Set a configuration value and persist to file.
+        
+        Updates internal config dict and saves to disk immediately.
+        
+        Args:
+            key: Configuration key to set
+            value: Value to set (any JSON-serializable type)
+            
+        Returns:
+            bool: True if saved successfully, False on error
+        """
         self.config[key] = value
         return self.save_config(self.config)
     
-    def fetch_remote_manifest(self):
-        """Download the latest manifest from repository"""
-        manifest_url = self.get_manifest_url()
+    def fetch_remote_manifest(self) -> bool:
+        """Download the latest manifest from repository.
+        
+        Fetches manifest.json from configured repository URL with 30s timeout.
+        Saves to local manifest file and updates metadata.
+        
+        Returns:
+            Optional[dict]: Parsed manifest dict, or None on download/parse error
+        """
+        manifest_url: str = self.get_manifest_url()
         logging.info(f"Fetching manifest from {manifest_url}")
         
         try:
@@ -292,7 +381,7 @@ class ScriptRepository:
             logging.error(f"Failed to fetch manifest: {e}")
             return False
     
-    def load_local_manifest(self):
+    def load_local_manifest(self) -> Optional[Any]:
         """Load manifest from local cache or custom manifest"""
         # Check if we should use a custom manifest
         custom_manifest_url = self.config.get('custom_manifest_url', '').strip()
@@ -325,9 +414,17 @@ class ScriptRepository:
             logging.error(f"Failed to load local manifest: {e}")
             return None
     
-    def parse_manifest(self):
-        """Parse manifest and return script list"""
-        manifest = self.load_local_manifest()
+    def parse_manifest(self) -> List[dict]:
+        """Parse manifest and return script list.
+        
+        Handles both flat array format and nested dictionary format.
+        Flat: [{"id": "chrome", ...}, ...]
+        Nested: {"install": [{...}], "tools": [{...}], ...}
+        
+        Returns:
+            List[dict]: List of script metadata dictionaries, empty list if no manifest
+        """
+        manifest: Optional[Any] = self.load_local_manifest()
         if not manifest:
             return []
         
@@ -346,12 +443,18 @@ class ScriptRepository:
             # Default format: flat array
             return scripts_data
     
-    def get_script_by_id(self, script_id, manifest_path=None):
-        """Get script information by ID
+    def get_script_by_id(self, script_id: str, manifest_path: Optional[Path] = None) -> Optional[dict]:
+        """Get script information by ID.
+        
+        Searches loaded manifest or specific custom manifest for script metadata.
+        Handles both flat array and nested dictionary manifest formats.
         
         Args:
-            script_id: Script ID to find
+            script_id: Script ID to find (e.g., 'chrome', 'docker', 'zeroiter_tools')
             manifest_path: Optional path to specific manifest file (for custom manifests)
+            
+        Returns:
+            Optional[dict]: Script metadata dict if found, None otherwise
         """
         if manifest_path:
             # Load from specific custom manifest
@@ -406,33 +509,59 @@ class ScriptRepository:
                     return script
         return None
     
-    def get_script_by_filename(self, filename):
-        """Get script information by filename"""
+    def get_script_by_filename(self, filename: str) -> Optional[dict]:
+        """Get script information by filename.
+        
+        Searches manifest for script with matching file_name field.
+        
+        Args:
+            filename: Script filename to search for
+            
+        Returns:
+            Optional[dict]: Script metadata if found, None otherwise
+        """
         scripts = self.parse_manifest()
         for script in scripts:
             if script.get('file_name') == filename:
                 return script
         return None
     
-    def is_update_check_needed(self):
-        """Check if it's time to check for updates"""
+    def is_update_check_needed(self) -> bool:
+        """Check if it's time to check for updates.
+        
+        Compares time since last update check with configured interval.
+        Returns True if interval has elapsed or no previous check recorded.
+        
+        Returns:
+            bool: True if update check should be performed, False if interval not elapsed
+        """
+        if not self.config_file.exists():
+            return True
+
         last_check_str = self.get_config_value("last_update_check")
-        interval_minutes = self.get_config_value("update_check_interval_minutes", 30)
+        interval_minutes = self.get_config_value("update_check_interval_minutes", 30) or 30
         
         if not last_check_str:
             return True
         
         try:
-            last_check = datetime.fromisoformat(last_check_str)
-            now = datetime.now()
-            diff = (now - last_check).total_seconds() / 60
+            last_check: datetime = datetime.fromisoformat(last_check_str)
+            now: datetime = datetime.now()
+            diff: float = (now - last_check).total_seconds() / 60
             
             return diff >= interval_minutes
         except:
             return True
     
-    def check_for_updates(self):
-        """Check for available updates"""
+    def check_for_updates(self) -> int:
+        """Check for available updates.
+        
+        Fetches latest manifest from repository and compares with cached scripts.
+        Returns count of scripts with available updates.
+        
+        Returns:
+            int: Number of updates available for cached scripts
+        """
         logging.info("Checking for updates...")
         
         # Fetch latest manifest
@@ -453,6 +582,10 @@ class ScriptRepository:
             filename = script.get('file_name')
             remote_checksum_raw = script.get('checksum', '')
             
+            # Skip scripts without required fields
+            if not all([category, filename]):
+                continue
+            
             # Handle empty checksum (Issue #1 FIX - validate checksum exists)
             if not remote_checksum_raw:
                 logging.debug(f"No checksum for {script_id}, skipping update check")
@@ -461,11 +594,17 @@ class ScriptRepository:
             # Normalize checksum - remove 'sha256:' prefix if present
             remote_checksum = remote_checksum_raw.replace('sha256:', '')
             
+            if not all([category, filename]):
+                continue
+            
+            # Type narrowing: assert category and filename are not None
+            assert category is not None and filename is not None
+            
             cached_path = self.script_cache_dir / category / filename
             
             if cached_path.exists():
                 try:
-                    local_checksum = self._calculate_checksum(str(cached_path))
+                    local_checksum: str = self._calculate_checksum(str(cached_path))
                     # Issue #1 FIX: Properly compare checksums
                     if local_checksum and remote_checksum and local_checksum != remote_checksum:
                         logging.debug(f"Update available for {script_id}: {local_checksum[:16]}... != {remote_checksum[:16]}...")
@@ -480,14 +619,21 @@ class ScriptRepository:
         # Issue #3 FIX: Auto-install if enabled - return count correctly
         if update_count > 0 and self.get_config_value("auto_install_updates", False):
             logging.info(f"Auto-installing {update_count} updates...")
-            installed_count = self.update_all_scripts_silent()
+            installed_count: int = self.update_all_scripts_silent()
             logging.info(f"Auto-installed {installed_count} updates")
             return 0  # Return 0 to indicate auto-install completed successfully
         
         return update_count
     
-    def list_available_updates(self):
-        """Get list of scripts with available updates"""
+    def list_available_updates(self) -> List[dict]:
+        """Get list of scripts with available updates.
+        
+        Compares cached scripts with remote manifest to identify updates.
+        Returns only cached scripts that have newer versions available.
+        
+        Returns:
+            List[dict]: List of script metadata dicts with available updates
+        """
         updates = []
         scripts = self.parse_manifest()
         
@@ -496,10 +642,16 @@ class ScriptRepository:
             filename = script.get('file_name')
             remote_checksum = script.get('checksum', '').replace('sha256:', '')
             
+            if not all([category, filename]):
+                continue
+            
+            # Type narrowing: assert category and filename are not None
+            assert category is not None and filename is not None
+            
             cached_path = self.script_cache_dir / category / filename
             
             if cached_path.exists():
-                local_checksum = self._calculate_checksum(str(cached_path))
+                local_checksum: str = self._calculate_checksum(str(cached_path))
                 if local_checksum != remote_checksum:
                     updates.append(script)
         
@@ -547,6 +699,9 @@ class ScriptRepository:
             logging.error(f"Incomplete script information for {script_id}")
             return False, None
         
+        # Type narrowing: at this point we know category and filename are not None
+        assert category is not None and filename is not None
+        
         dest_path = self.script_cache_dir / category / filename
         
         # Try to use local repository file first (skip GitHub CDN cache issues)
@@ -555,7 +710,7 @@ class ScriptRepository:
             try:
                 logging.info(f"Using local repository file: {local_script_path}")
                 with open(local_script_path, 'rb') as f:
-                    content = f.read()
+                    content: bytes = f.read()
                 
                 # Save to cache
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -572,6 +727,9 @@ class ScriptRepository:
                 # Fall through to download
         
         try:
+            # Type narrowing: at this point we know download_url is not None
+            assert download_url is not None
+            
             # Handle file:// URLs separately
             if download_url.startswith('file://'):
                 local_file = download_url.replace('file://', '')
@@ -582,7 +740,7 @@ class ScriptRepository:
                     return False, None, "Local file not found"
                 
                 with open(local_file, 'rb') as f:
-                    content = f.read()
+                    content: bytes = f.read()
             else:
                 # Download script from remote URL
                 logging.info(f"Downloading from remote: {download_url}")
@@ -601,9 +759,9 @@ class ScriptRepository:
                     manifest = None
             else:
                 # Load default/public manifest
-                manifest = self.load_local_manifest()
+                manifest: Optional[Any] = self.load_local_manifest()
             
-            manifest_verify_checksums = manifest.get('verify_checksums') if manifest else None
+            manifest_verify_checksums: Optional[Any] = manifest.get('verify_checksums') if manifest else None
             
             # Use manifest setting if explicitly set, otherwise use global config
             if manifest_verify_checksums is not None:
@@ -613,17 +771,19 @@ class ScriptRepository:
             
             # Verify checksum if enabled
             if should_verify and checksum:
-                actual_checksum = hashlib.sha256(content).hexdigest()
+                actual_checksum: str = hashlib.sha256(content).hexdigest()
                 if actual_checksum != checksum:
+                    # Type narrowing: download_url is guaranteed not None here
+                    assert download_url is not None
                     # Retry once with cache-busting query param to avoid CDN stale content
-                    cache_bust_url = f"{download_url}?t={int(time.time())}" if download_url.startswith("http") else None
+                    cache_bust_url: str | None = f"{download_url}?t={int(time.time())}" if download_url.startswith("http") else None
                     if cache_bust_url:
                         logging.warning(
                             f"Checksum mismatch for {script_id}; retrying with cache-busted URL."
                         )
                         with urllib.request.urlopen(cache_bust_url, timeout=30) as response:
                             content = response.read()
-                        actual_checksum = hashlib.sha256(content).hexdigest()
+                        actual_checksum: str = hashlib.sha256(content).hexdigest()
 
                     # Check again after retry (or if retry was skipped)
                     if actual_checksum != checksum:
@@ -656,7 +816,7 @@ class ScriptRepository:
             logging.error(f"Failed to download {script_id}: {error_msg}")
             return False, download_url, error_msg
     
-    def _calculate_checksum(self, filepath):
+    def _calculate_checksum(self, filepath) -> str:
         """Calculate SHA256 checksum of a file"""
         sha256_hash = hashlib.sha256()
         try:
@@ -670,7 +830,7 @@ class ScriptRepository:
     def verify_checksum(self, filepath, expected_checksum):
         """Verify file checksum"""
         expected_checksum = expected_checksum.replace('sha256:', '')
-        actual_checksum = self._calculate_checksum(filepath)
+        actual_checksum: str = self._calculate_checksum(filepath)
         return actual_checksum == expected_checksum
     
     def install_remote_script(self, script_id):
@@ -682,7 +842,7 @@ class ScriptRepository:
         logging.info(f"Updating script: {script_id}")
         return self.download_script(script_id)
     
-    def update_all_scripts(self):
+    def update_all_scripts(self) -> Tuple[int, int]:
         """Update all cached scripts"""
         scripts = self.parse_manifest()
         updated = 0
@@ -692,6 +852,12 @@ class ScriptRepository:
             script_id = script.get('id')
             category = script.get('category')
             filename = script.get('file_name')
+            
+            if not all([category, filename]):
+                continue
+            
+            # Type narrowing: assert category and filename are not None
+            assert category is not None and filename is not None
             
             cached_path = self.script_cache_dir / category / filename
             
@@ -705,7 +871,7 @@ class ScriptRepository:
         logging.info(f"Batch update: {updated} updated, {failed} failed")
         return updated, failed
     
-    def update_all_scripts_silent(self):
+    def update_all_scripts_silent(self) -> int:
         """Update all cached scripts without logging to console"""
         scripts = self.parse_manifest()
         updated = 0
@@ -714,6 +880,12 @@ class ScriptRepository:
             script_id = script.get('id')
             category = script.get('category')
             filename = script.get('file_name')
+            
+            if not all([category, filename]):
+                continue
+            
+            # Type narrowing: assert category and filename are not None
+            assert category is not None and filename is not None
             
             cached_path = self.script_cache_dir / category / filename
             
@@ -724,7 +896,7 @@ class ScriptRepository:
         logging.info(f"Silent update complete: {updated} scripts updated")
         return updated
     
-    def get_cached_script_path(self, script_id=None, category=None, filename=None, manifest_path=None):
+    def get_cached_script_path(self, script_id=None, category=None, filename=None, manifest_path=None) -> str | None:
         """Get path to cached script
         
         Args:
@@ -781,10 +953,10 @@ class ScriptRepository:
         
         return None
     
-    def is_script_cached(self, script_id):
+    def is_script_cached(self, script_id) -> bool:
         """Check if script is cached locally"""
-        path = self.get_cached_script_path(script_id)
-        result = path is not None
+        path: str | None = self.get_cached_script_path(script_id)
+        result: bool = path is not None
         pass  # removed debug log
         return result
     
@@ -802,7 +974,7 @@ class ScriptRepository:
         pass  # removed debug log
         return cached
     
-    def clear_cache(self):
+    def clear_cache(self) -> bool:
         """Clear all cached scripts"""
         import shutil
         
@@ -822,19 +994,19 @@ class ScriptRepository:
         pass  # removed debug log
         return True
         
-    def get_repository_url(self):
+    def get_repository_url(self) -> Union[Any, str]:
         """Get the repository URL from the current manifest"""
         try:
-            manifest = self.load_local_manifest()
+            manifest: Optional[Any] = self.load_local_manifest()
             if manifest and 'repository_url' in manifest:
                 return manifest['repository_url']
             return self.repo_url  # fallback to default
         except Exception:
             return self.repo_url
 
-    def ensure_includes_available(self):
+    def ensure_includes_available(self) -> bool:
         """Ensure includes are available for the current repository"""
-        manifest = self.load_local_manifest()
+        manifest: Optional[Any] = self.load_local_manifest()
         if not manifest:
             pass  # removed debug log
             return False
@@ -843,10 +1015,10 @@ class ScriptRepository:
         pass  # removed debug log
         return self._download_repository_includes(repo_url)
     
-    def _download_repository_includes(self, repo_url):
+    def _download_repository_includes(self, repo_url) -> bool:
         """Download includes directory from the specified repository URL"""
         try:
-            includes_cache_dir = self.script_cache_dir / "includes"
+            includes_cache_dir: Path = self.script_cache_dir / "includes"
             
             # Check if includes are already fresh for this repository
             if self._are_includes_fresh(repo_url, includes_cache_dir):
@@ -860,12 +1032,12 @@ class ScriptRepository:
             pass  # removed debug log
             
             # Get includes files list from manifest (if available)
-            includes_files = self._get_includes_files_list()
+            includes_files: Union[Any, List[str]] = self._get_includes_files_list()
             
             # Always try to download main.sh (required)
             success = False
-            main_url = f"{repo_url}/includes/main.sh"
-            main_file = includes_cache_dir / "main.sh"
+            main_url: str = f"{repo_url}/includes/main.sh"
+            main_file: Path = includes_cache_dir / "main.sh"
             
             try:
                 with urllib.request.urlopen(main_url, timeout=30) as response:
@@ -887,8 +1059,8 @@ class ScriptRepository:
                     continue  # Already downloaded
                     
                 try:
-                    file_url = f"{repo_url}/includes/{filename}"
-                    file_path = includes_cache_dir / filename
+                    file_url: str = f"{repo_url}/includes/{filename}"
+                    file_path: Union[Any, Path] = includes_cache_dir / filename
                     
                     with urllib.request.urlopen(file_url, timeout=30) as response:
                         content = response.read()
@@ -914,10 +1086,10 @@ class ScriptRepository:
             pass  # removed debug log
             return False
             
-    def _get_includes_files_list(self):
+    def _get_includes_files_list(self) -> Union[Any, List[str]]:
         """Get list of includes files to download (from manifest or defaults)"""
         try:
-            manifest = self.load_local_manifest()
+            manifest: Optional[Any] = self.load_local_manifest()
             if manifest and 'includes_files' in manifest:
                 return manifest['includes_files']
         except Exception:
@@ -926,7 +1098,7 @@ class ScriptRepository:
         # Default includes files to try
         return ["main.sh", "repository.sh"]
     
-    def _are_includes_fresh(self, repo_url, includes_dir):
+    def _are_includes_fresh(self, repo_url, includes_dir) -> bool:
         """Check if cached includes are fresh for the specified repository"""
         if not includes_dir.exists():
             pass  # removed debug log
@@ -947,7 +1119,7 @@ class ScriptRepository:
         try:
             # Check if origin matches current repository
             with open(origin_file, 'r') as f:
-                cached_origin = f.read().strip()
+                cached_origin: str = f.read().strip()
             if cached_origin != repo_url:
                 pass  # removed debug log
                 return False
@@ -958,7 +1130,7 @@ class ScriptRepository:
             current_time = int(time.time())
             
             # 24 hour cache
-            fresh = (current_time - cache_time) < 86400
+            fresh: bool = (current_time - cache_time) < 86400
             pass  # removed debug log
             return fresh
             
@@ -966,7 +1138,7 @@ class ScriptRepository:
             pass  # removed debug log
             return False
     
-    def _mark_includes_fresh(self, repo_url, includes_dir):
+    def _mark_includes_fresh(self, repo_url, includes_dir) -> None:
         """Mark includes as fresh for the specified repository"""
         try:
             origin_file = includes_dir / ".origin"
@@ -983,7 +1155,7 @@ class ScriptRepository:
             logging.error(f"Failed to mark includes as fresh: {e}")
             pass  # removed debug log
     
-    def count_cached_scripts(self):
+    def count_cached_scripts(self) -> int:
         """Count number of cached scripts"""
         count = 0
         for category_dir in self.script_cache_dir.iterdir():
@@ -992,7 +1164,7 @@ class ScriptRepository:
         pass  # removed debug log
         return count
     
-    def resolve_script_path(self, filename):
+    def resolve_script_path(self, filename) -> None | str:
         """Resolve script path (cached version)"""
         script = self.get_script_by_filename(filename)
         
@@ -1001,7 +1173,7 @@ class ScriptRepository:
             return None
         
         script_id = script.get('id')
-        cached_path = self.get_cached_script_path(script_id)
+        cached_path: str | None = self.get_cached_script_path(script_id)
         
         if cached_path:
             pass  # removed debug log
@@ -1011,7 +1183,7 @@ class ScriptRepository:
         pass  # removed debug log
         return None
     
-    def get_script_status(self, filename):
+    def get_script_status(self, filename) -> str:
         """Get status of a script (cached, outdated, not_installed)"""
         script = self.get_script_by_filename(filename)
         
@@ -1022,12 +1194,18 @@ class ScriptRepository:
         category = script.get('category')
         remote_checksum = script.get('checksum', '').replace('sha256:', '')
         
+        if not all([category, filename]):
+            return "unknown"
+        
+        # Type narrowing: assert category and filename are not None
+        assert category is not None and filename is not None
+        
         cached_path = self.script_cache_dir / category / filename
         
         if cached_path.exists():
-            local_checksum = self._calculate_checksum(str(cached_path))
+            local_checksum: str = self._calculate_checksum(str(cached_path))
             
-            status = "cached" if local_checksum == remote_checksum else "outdated"
+            status: str = "cached" if local_checksum == remote_checksum else "outdated"
             pass  # removed debug log
             return status
         else:
@@ -1043,7 +1221,7 @@ class ScriptRepository:
         
         return script.get('version', 'unknown')
     
-    def download_all_scripts(self):
+    def download_all_scripts(self) -> Tuple[int, int]:
         """Download all scripts from repository (initial setup)"""
         if not self.manifest_file.exists():
             if not self.fetch_remote_manifest():
@@ -1122,7 +1300,7 @@ def download_script_with_feedback(
                 terminal_widget.feed(f"\x1b[32m[✓] Successfully downloaded {script_name}\x1b[0m\r\n".encode())
             
             # Get cached path
-            cached_path = repository.get_cached_script_path(script_id)
+            cached_path: str | None = repository.get_cached_script_path(script_id)
             return True, cached_path
         else:
             if terminal_widget:
@@ -1193,7 +1371,7 @@ def remove_script_with_feedback(
         terminal_widget.feed(f"\r\n\x1b[33m[*] Removing {script_name} from cache...\x1b[0m\r\n".encode())
     
     try:
-        success = repository.remove_cached_script(script_id)
+        success: bool = repository.remove_cached_script(script_id)
         
         if success:
             if terminal_widget:
@@ -1220,7 +1398,7 @@ def download_all_scripts_with_feedback(
     if not repository or not script_list:
         return 0, 0
     
-    total = len(script_list)
+    total: int = len(script_list)
     successful = 0
     failed = 0
     
@@ -1260,7 +1438,7 @@ def update_all_scripts_with_feedback(
     if not repository or not script_list:
         return 0, 0
     
-    total = len(script_list)
+    total: int = len(script_list)
     successful = 0
     failed = 0
     
@@ -1271,7 +1449,7 @@ def update_all_scripts_with_feedback(
         if terminal_widget:
             terminal_widget.feed(f"\x1b[33m[{idx}/{total}] {script_name}...\x1b[0m\r\n".encode())
         
-        success = update_script_with_feedback(
+        success: bool = update_script_with_feedback(
             repository, script_id, script_name, manifest_path, None
         )
         
@@ -1299,7 +1477,7 @@ def remove_all_scripts_with_feedback(
     if not repository or not script_list:
         return 0, 0
     
-    total = len(script_list)
+    total: int = len(script_list)
     successful = 0
     failed = 0
     
@@ -1310,7 +1488,7 @@ def remove_all_scripts_with_feedback(
         if terminal_widget:
             terminal_widget.feed(f"\x1b[33m[{idx}/{total}] {script_name}...\x1b[0m\r\n".encode())
         
-        success = remove_script_with_feedback(
+        success: bool = remove_script_with_feedback(
             repository, script_id, script_name, None
         )
         
@@ -1341,7 +1519,7 @@ def clear_cache_with_feedback(
         terminal_widget.feed("\r\n\x1b[33m[*] Clearing script cache...\x1b[0m\r\n".encode())
     
     try:
-        success = repository.clear_cache()
+        success: bool = repository.clear_cache()
         
         if success:
             if terminal_widget:
@@ -1363,7 +1541,7 @@ def get_cache_stats(repository: 'ScriptRepository') -> dict:
     if not repository:
         return {'total_scripts': 0, 'total_size_bytes': 0, 'categories': {}}
     
-    cache_dir = repository.script_cache_dir
+    cache_dir: Path = repository.script_cache_dir
     stats = {
         'total_scripts': 0,
         'total_size_bytes': 0,
@@ -1376,14 +1554,14 @@ def get_cache_stats(repository: 'ScriptRepository') -> dict:
     # Scan cache directory
     for category_dir in cache_dir.iterdir():
         if category_dir.is_dir() and category_dir.name != 'includes':
-            category_stats = {
+            category_stats: dict[str, int] = {
                 'count': 0,
                 'size': 0
             }
             
             for script_file in category_dir.glob('*.sh'):
                 if script_file.is_file():
-                    size = script_file.stat().st_size
+                    size: int = script_file.stat().st_size
                     category_stats['count'] += 1
                     category_stats['size'] += size
                     stats['total_scripts'] += 1

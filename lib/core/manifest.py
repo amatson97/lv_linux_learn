@@ -6,6 +6,8 @@ Handles fetching, parsing, loading, and creating manifest files
 
 import json
 import os
+from subprocess import CompletedProcess
+from subprocess import CompletedProcess
 import time
 import hashlib
 import shutil
@@ -15,7 +17,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional, Tuple, Callable, Any
 from urllib.request import urlopen
 
 try:
@@ -24,7 +26,7 @@ except ImportError:
     C = None
 
 try:
-    from lib.repository import ScriptRepository
+    from lib.core.repository import ScriptRepository
 except ImportError:
     ScriptRepository = None
 
@@ -52,11 +54,11 @@ class ManifestLoader:
         manifests_to_load = []
         
         # Determine default manifest URL
-        default_url = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
-        manifest_url = os.environ.get('CUSTOM_MANIFEST_URL', default_url)
+        default_url: str = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+        manifest_url: str = os.environ.get('CUSTOM_MANIFEST_URL', default_url)
         
         # Ensure cache directory exists FIRST
-        cache_dir = C.CONFIG_DIR if C else Path.home() / '.lv_linux_learn'
+        cache_dir: Path = C.CONFIG_DIR if C else Path.home() / '.lv_linux_learn'
         cache_dir.mkdir(exist_ok=True)
         
         # Check repository config
@@ -118,7 +120,7 @@ class ManifestLoader:
                         manifest_data = manifest_config.get('manifest_data')
                         if manifest_data:
                             # Write manifest data to a temp file and add to load list
-                            temp_manifest = cache_dir / f"temp_{active_manifest}_manifest.json"
+                            temp_manifest: Path = cache_dir / f"temp_{active_manifest}_manifest.json"
                             with open(temp_manifest, 'w') as f:
                                 json.dump(manifest_data, f, indent=2)
                             manifests_to_load.append((str(temp_manifest), active_manifest))
@@ -132,7 +134,7 @@ class ManifestLoader:
                         try:
                             manifest_data = manifest_config.get('manifest_data')
                             if manifest_data:
-                                temp_manifest = cache_dir / f"temp_{manifest_name}_manifest.json"
+                                temp_manifest: Path = cache_dir / f"temp_{manifest_name}_manifest.json"
                                 with open(temp_manifest, 'w') as f:
                                     json.dump(manifest_data, f, indent=2)
                                 manifests_to_load.append((str(temp_manifest), manifest_name))
@@ -144,7 +146,7 @@ class ManifestLoader:
                 # CRITICAL: Scan for local repository manifests in custom_manifests directory
                 # Always scan the directory so local repos work even if config lacks manifest_data
                 # BUT: Only load manifests that are truly local file-based repos, not cached online repos
-                custom_manifests_dir = cache_dir / 'custom_manifests'
+                custom_manifests_dir: Path = cache_dir / 'custom_manifests'
                 if custom_manifests_dir.exists() and has_custom_entries:
                     for manifest_file in custom_manifests_dir.glob('*/manifest.json'):
                         # Skip if already loaded
@@ -165,8 +167,8 @@ class ManifestLoader:
                                 continue
                             
                             # This is a truly local file-based repository
-                            repo_name = manifest_file.parent.name
-                            local_manifest_url = f"file://{manifest_file}"
+                            repo_name: str = manifest_file.parent.name
+                            local_manifest_url: str = f"file://{manifest_file}"
                             manifests_to_load.append((local_manifest_url, repo_name))
                             seen_manifest_paths.add(str(manifest_file))
                             _terminal_output(terminal_widget, f"[*] Found local repository: {repo_name}")
@@ -191,7 +193,7 @@ class ManifestLoader:
                     except Exception:
                         pass
             
-            error_msg = C.ERROR_NO_MANIFESTS if C else "No manifests configured. Enable public repository or add local repositories."
+            error_msg: str = C.ERROR_NO_MANIFESTS if C else "No manifests configured. Enable public repository or add local repositories."
             raise Exception(error_msg)
         
         # Fetch and cache each manifest
@@ -203,8 +205,8 @@ class ManifestLoader:
         for manifest_url, source_name in manifests_to_load:
             try:
                 # Create cache filename based on source
-                cache_filename = f"manifest_{source_name.lower().replace(' ', '_')}.json"
-                cache_path = cache_dir / cache_filename
+                cache_filename: str = f"manifest_{source_name.lower().replace(' ', '_')}.json"
+                cache_path: Path = cache_dir / cache_filename
                 valid_cache_files.add(cache_filename)
                 
                 # Try to load from cache first
@@ -217,7 +219,7 @@ class ManifestLoader:
                     max_age = C.MANIFEST_CACHE_MAX_AGE if C else 3600
                 
                 if cache_path.exists():
-                    age = time.time() - cache_path.stat().st_mtime
+                    age: float = time.time() - cache_path.stat().st_mtime
                     if age < max_age:
                         use_cache = True
                 
@@ -226,10 +228,10 @@ class ManifestLoader:
                     if manifest_url.startswith('file://'):
                         # Local file path
                         local_path = manifest_url[7:]  # Remove 'file://' prefix
-                        manifest_content = Path(local_path).read_text()
+                        manifest_content: str = Path(local_path).read_text()
                     elif os.path.isfile(manifest_url):
                         # Direct file path (no file:// prefix)
-                        manifest_content = Path(manifest_url).read_text()
+                        manifest_content: str = Path(manifest_url).read_text()
                     else:
                         # Remote URL (http/https)
                         response = urlopen(manifest_url, timeout=10)
@@ -245,7 +247,7 @@ class ManifestLoader:
                 continue
         
         if not loaded_manifests:
-            error_msg = C.ERROR_MANIFEST_LOAD_FAILED if C else "Failed to load any manifests"
+            error_msg: str = C.ERROR_MANIFEST_LOAD_FAILED if C else "Failed to load any manifests"
             raise Exception(error_msg)
         
         # Clean up stale cached manifests that are no longer in active sources
@@ -279,8 +281,8 @@ class ManifestLoader:
                 return ({}, {}, {}, {})
             
             # Initialize merged structures
-            standard_cats = C.STANDARD_CATEGORIES if C else ['install', 'tools', 'exercises', 'uninstall']
-            all_categories = set(standard_cats)
+            standard_cats: List[str] = C.STANDARD_CATEGORIES if C else ['install', 'tools', 'exercises', 'uninstall']
+            all_categories: set[str] = set(standard_cats)
             scripts = {}
             names = {}
             descriptions = {}
@@ -327,7 +329,7 @@ class ManifestLoader:
                         # Flat structure: [scripts]
                         manifest_scripts = manifest_scripts_raw
                     
-                    total_scripts = len(manifest_scripts)
+                    total_scripts: int = len(manifest_scripts)
                     cached_count = 0
                     
                     _terminal_output(terminal_widget, f"[*] Found {total_scripts} scripts in manifest")
@@ -389,11 +391,11 @@ class ManifestLoader:
                         
                         # Add source identifier to name
                         if is_local:
-                            display_name = f"{base_name} [Local: {source_name}]"
+                            display_name: str = f"{base_name} [Local: {source_name}]"
                         elif source_name == 'Public Repository':
-                            display_name = f"{base_name} [Public Repository]"
+                            display_name: str = f"{base_name} [Public Repository]"
                         else:
-                            display_name = f"{base_name} [Custom: {source_name}]"
+                            display_name: str = f"{base_name} [Custom: {source_name}]"
                         
                         # Add to lists
                         scripts[category].append(script_path)
@@ -422,7 +424,7 @@ class ManifestLoader:
                     descriptions[cat] = []
             
             # Display concise summary
-            categories_summary = ", ".join([f"{cat}:{len(scripts[cat])}" for cat in sorted(scripts.keys()) if len(scripts[cat]) > 0])
+            categories_summary: str = ", ".join([f"{cat}:{len(scripts[cat])}" for cat in sorted(scripts.keys()) if len(scripts[cat]) > 0])
             _terminal_output(terminal_widget, f"\n[✓] Loaded {total_scripts_all} scripts from {len(manifests)} source(s) - {categories_summary}")
             
             return scripts, names, descriptions, script_id_map
@@ -433,7 +435,7 @@ class ManifestLoader:
             if "No manifests configured" not in error_str:
                 _terminal_output(terminal_widget, f"[!] Error loading manifests: {e}")
             # Return empty structures
-            default_categories = C.STANDARD_CATEGORIES if C else ['install', 'tools', 'exercises', 'uninstall']
+            default_categories: List[str] = C.STANDARD_CATEGORIES if C else ['install', 'tools', 'exercises', 'uninstall']
             scripts = {cat: [] for cat in default_categories}
             names = {cat: [] for cat in default_categories}
             descriptions = {cat: [] for cat in default_categories}
@@ -458,7 +460,7 @@ def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
     """
     import subprocess
     
-    def output(msg):
+    def output(msg) -> None:
         """Helper to send output to terminal or print"""
         if terminal_callback:
             terminal_callback(msg)
@@ -479,7 +481,7 @@ def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
             
             output(f"[*] Downloading fresh manifest from {manifest_url}...")
             
-            result = subprocess.run(
+            result: CompletedProcess[bytes] = subprocess.run(
                 ['curl', '-sSfL', '-o', str(cache_file), manifest_url],
                 capture_output=True,
                 timeout=30
@@ -496,13 +498,13 @@ def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
         output("[*] Clearing all cached manifests...")
         
         # Clear public repository manifest
-        public_manifest = cache_dir / 'manifest.json'
+        public_manifest: Path = cache_dir / 'manifest.json'
         if public_manifest.exists():
             public_manifest.unlink()
             output("[+] Cleared public repository manifest")
         
         # Clear custom manifest caches
-        custom_manifests_dir = cache_dir / 'custom_manifests'
+        custom_manifests_dir: Path = cache_dir / 'custom_manifests'
         if custom_manifests_dir.exists():
             manifest_count = 0
             for manifest_file in custom_manifests_dir.glob('*.json'):
@@ -515,10 +517,10 @@ def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
                 output(f"[+] Cleared {manifest_count} custom manifest(s)")
         
         # Download fresh public repository manifest
-        default_url = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
+        default_url: str = C.DEFAULT_MANIFEST_URL if C else "https://raw.githubusercontent.com/amatson97/lv_linux_learn/main/manifest.json"
         output(f"[*] Downloading fresh public repository manifest from {default_url}...")
         
-        result = subprocess.run(
+        result: CompletedProcess[bytes] = subprocess.run(
             ['curl', '-sSfL', '-o', str(public_manifest), default_url],
             capture_output=True,
             timeout=30
@@ -547,7 +549,7 @@ def refresh_manifest_cache(manifest_url=None, terminal_callback=None):
 class ManifestManager:
     """Manages local repository manifests with AI-powered categorization"""
     
-    def __init__(self, manifest_path: str):
+    def __init__(self, manifest_path: str) -> None:
         """Initialize manifest manager"""
         self.manifest_path = Path(manifest_path)
         self.manifest_data = None
@@ -582,7 +584,7 @@ class ManifestManager:
                 return False
             
             # Write to temporary file first, then rename (atomic operation)
-            temp_path = self.manifest_path.with_suffix('.tmp')
+            temp_path: Path = self.manifest_path.with_suffix('.tmp')
             with open(temp_path, 'w') as f:
                 json.dump(self.manifest_data, f, indent=2)
             
@@ -673,7 +675,7 @@ class ManifestManager:
 def get_local_repository_manifests() -> List[Tuple[str, str]]:
     """Get list of local repository manifests from configuration"""
     try:
-        config_path = Path.home() / '.lv_linux_learn' / 'config.json'
+        config_path: Path = Path.home() / '.lv_linux_learn' / 'config.json'
         if not config_path.exists():
             return []
         
@@ -704,9 +706,9 @@ def get_local_repository_manifests() -> List[Tuple[str, str]]:
 class ScriptScanner:
     """Scans directories for executable shell scripts and extracts metadata"""
     
-    def __init__(self):
-        self.script_extensions = ['.sh', '.bash']
-        self.executable_patterns = ['#!/bin/bash', '#!/bin/sh', '#!/usr/bin/env bash']
+    def __init__(self) -> None:
+        self.script_extensions: List[str] = ['.sh', '.bash']
+        self.executable_patterns: List[str] = ['#!/bin/bash', '#!/bin/sh', '#!/usr/bin/env bash']
     
     def is_executable_script(self, file_path: Path) -> bool:
         """Check if file is a shell script"""
@@ -718,14 +720,14 @@ class ScriptScanner:
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                first_line = f.readline().strip()
+                first_line: str = f.readline().strip()
                 return any(pattern in first_line for pattern in self.executable_patterns)
         except Exception:
             return False
     
     def extract_script_metadata(self, file_path: Path) -> Dict[str, str]:
         """Extract metadata from script headers"""
-        metadata = {
+        metadata: Dict[str, str] = {
             'name': file_path.stem,
             'description': '',
             'version': '1.0.0',
@@ -734,18 +736,18 @@ class ScriptScanner:
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+                lines: List[str] = f.readlines()
             
             # Extract Description (multi-line support)
             description_lines = []
             in_description = False
             
             for line in lines[:50]:  # Check first 50 lines
-                stripped = line.strip()
+                stripped: str = line.strip()
                 
                 # Start of description
                 if stripped.startswith('# Description:'):
-                    desc_text = stripped.replace('# Description:', '').strip()
+                    desc_text: str = stripped.replace('# Description:', '').strip()
                     if desc_text:
                         description_lines.append(desc_text)
                     in_description = True
@@ -755,7 +757,7 @@ class ScriptScanner:
                 if in_description:
                     if stripped.startswith('#') and not stripped.startswith('##'):
                         # Remove leading # and whitespace
-                        desc_line = stripped.lstrip('#').strip()
+                        desc_line: str = stripped.lstrip('#').strip()
                         if desc_line:
                             description_lines.append(desc_line)
                         else:
@@ -765,13 +767,13 @@ class ScriptScanner:
                 
                 # Version
                 if 'Version:' in line:
-                    match = re.search(r'Version:\s*([^\s]+)', line)
+                    match: re.Match[str] | None = re.search(r'Version:\s*([^\s]+)', line)
                     if match:
                         metadata['version'] = match.group(1)
                 
                 # Category
                 if 'Category:' in line:
-                    match = re.search(r'Category:\s*([^\s]+)', line)
+                    match: re.Match[str] | None = re.search(r'Category:\s*([^\s]+)', line)
                     if match:
                         metadata['category'] = match.group(1).lower()
             
@@ -794,7 +796,7 @@ class ScriptScanner:
         
         for item in directory.glob(pattern):
             if self.is_executable_script(item):
-                metadata = self.extract_script_metadata(item)
+                metadata: Dict[str, str] = self.extract_script_metadata(item)
                 scripts.append((item, metadata))
         
         return scripts
@@ -803,7 +805,7 @@ class ScriptScanner:
 class CustomManifestCreator:
     """Creates custom manifest.json files from directory scans"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.scanner = ScriptScanner()
     
     def create_manifest(
@@ -867,10 +869,10 @@ class CustomManifestCreator:
                         manifest['scripts'][category] = []
                     
                     # Generate script ID
-                    script_id = self._generate_script_id(str(script_path))
+                    script_id: str = self._generate_script_id(str(script_path))
                     
                     # Calculate checksum if needed
-                    checksum = None
+                    checksum: Optional[str] = None
                     if verify_checksums:
                         checksum = self._calculate_checksum(script_path)
                     
@@ -893,18 +895,18 @@ class CustomManifestCreator:
                 raise Exception("No shell scripts found in any of the provided directories")
             
             # Save manifest to config
-            config_dir = Path.home() / '.lv_linux_learn'
+            config_dir: Path = Path.home() / '.lv_linux_learn'
             config_dir.mkdir(parents=True, exist_ok=True)
 
             # Persist manifest.json under ~/.lv_linux_learn/custom_manifests/<name>/manifest.json
-            safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', manifest_name.strip()) or "custom_manifest"
-            manifest_dir = config_dir / 'custom_manifests' / safe_name
+            safe_name: str = re.sub(r'[^a-zA-Z0-9_-]', '_', manifest_name.strip()) or "custom_manifest"
+            manifest_dir: Path = config_dir / 'custom_manifests' / safe_name
             manifest_dir.mkdir(parents=True, exist_ok=True)
-            manifest_file = manifest_dir / 'manifest.json'
+            manifest_file: Path = manifest_dir / 'manifest.json'
             with open(manifest_file, 'w') as f:
                 json.dump(manifest, f, indent=2)
             
-            config_file = config_dir / 'config.json'
+            config_file: Path = config_dir / 'config.json'
             config = {}
             
             if config_file.exists():
@@ -929,7 +931,7 @@ class CustomManifestCreator:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            message = f"Created manifest '{manifest_name}' with {total_scripts} scripts"
+            message: str = f"Created manifest '{manifest_name}' with {total_scripts} scripts"
             return (True, message)
             
         except Exception as e:
@@ -974,10 +976,10 @@ class CustomManifestCreator:
                 raise Exception("Invalid manifest: missing 'scripts' key")
             
             # Save to config
-            config_dir = Path.home() / '.lv_linux_learn'
+            config_dir: Path = Path.home() / '.lv_linux_learn'
             config_dir.mkdir(parents=True, exist_ok=True)
             
-            config_file = config_dir / 'config.json'
+            config_file: Path = config_dir / 'config.json'
             config = {}
             
             if config_file.exists():
@@ -1002,7 +1004,7 @@ class CustomManifestCreator:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            message = f"Imported manifest '{manifest_name}' from {url}"
+            message: str = f"Imported manifest '{manifest_name}' from {url}"
             return (True, message)
             
         except Exception as e:
@@ -1020,8 +1022,8 @@ class CustomManifestCreator:
             Tuple of (success: bool, message: str)
         """
         try:
-            config_dir = Path.home() / '.lv_linux_learn'
-            config_file = config_dir / 'config.json'
+            config_dir: Path = Path.home() / '.lv_linux_learn'
+            config_file: Path = config_dir / 'config.json'
             
             if not config_file.exists():
                 raise Exception("No configuration file found")
@@ -1038,7 +1040,7 @@ class CustomManifestCreator:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            message = f"Switched to manifest '{manifest_name}'"
+            message: str = f"Switched to manifest '{manifest_name}'"
             return (True, message)
             
         except Exception as e:
@@ -1056,8 +1058,8 @@ class CustomManifestCreator:
             Tuple of (success: bool, message: str)
         """
         try:
-            config_dir = Path.home() / '.lv_linux_learn'
-            config_file = config_dir / 'config.json'
+            config_dir: Path = Path.home() / '.lv_linux_learn'
+            config_file: Path = config_dir / 'config.json'
             
             if not config_file.exists():
                 raise Exception("No configuration file found")
@@ -1069,32 +1071,33 @@ class CustomManifestCreator:
                 return re.sub(r'[^a-zA-Z0-9_-]', '_', name).lower().strip()
 
             # Align the requested name with the stored config entry (handles safe-name dirs)
-            target_norm = _normalize(manifest_name)
+            target_norm: str = _normalize(manifest_name)
 
             if 'custom_manifests' not in config:
                 config['custom_manifests'] = {}
 
+            # Find the actual config key (handles safe-name normalization)
+            found_name: Optional[str] = None
             if manifest_name not in config['custom_manifests']:
                 for stored_name in list(config['custom_manifests'].keys()):
                     if _normalize(stored_name) == target_norm:
-                        manifest_name = stored_name
+                        found_name = stored_name
                         break
-                else:
-                    # If not tracked in config, still perform best-effort cleanup by path
-                    manifest_name = None
+            else:
+                found_name = manifest_name
 
-            manifest_entry = None if manifest_name is None else config['custom_manifests'].get(manifest_name)
+            manifest_entry: Optional[Dict[str, Any]] = None if found_name is None else config['custom_manifests'].get(found_name)
 
             # Best-effort removal when config entry is missing but directory exists
             if manifest_entry is None:
-                config_dir = Path.home() / '.lv_linux_learn'
-                safe_name = target_norm
-                default_dir = config_dir / 'custom_manifests' / safe_name
+                config_dir: Path = Path.home() / '.lv_linux_learn'
+                safe_name: str = target_norm
+                default_dir: Path = config_dir / 'custom_manifests' / safe_name
                 if default_dir.exists():
                     shutil.rmtree(default_dir, ignore_errors=True)
 
                 # Remove cache files that match the normalized name
-                cache_globs = [
+                cache_globs: List[str] = [
                     f"manifest_{safe_name}.json",
                     f"temp_{safe_name}_manifest.json",
                 ]
@@ -1110,11 +1113,11 @@ class CustomManifestCreator:
                 with open(config_file, 'w') as f:
                     json.dump(config, f, indent=2)
 
-                message = f"Deleted manifest '{manifest_name or safe_name}' (not tracked in config)"
+                message: str = f"Deleted manifest '{found_name or manifest_name or safe_name}' (not tracked in config)"
                 return (True, message)
 
-            manifest_entry = config['custom_manifests'][manifest_name]
-            manifest_path = manifest_entry.get('manifest_path')
+            # At this point manifest_entry is not None and manifest_name is not None
+            manifest_path: Optional[str] = manifest_entry.get('manifest_path')
             
             # Comprehensive cleanup of all related files
             try:
@@ -1124,17 +1127,17 @@ class CustomManifestCreator:
                     if mpath.exists():
                         # If manifest is inside custom_manifests/<name>, remove directory
                         if mpath.name == 'manifest.json' and mpath.parent.name:
-                            parent_dir = mpath.parent
+                            parent_dir: Path = mpath.parent
                             if parent_dir.exists() and str(parent_dir).startswith(str(Path.home() / '.lv_linux_learn' / 'custom_manifests')):
                                 shutil.rmtree(parent_dir, ignore_errors=True)
                         else:
                             mpath.unlink(missing_ok=True)
                 
                 # 2. Remove ALL cached manifest files related to this manifest
-                safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', manifest_name.lower().strip())
+                safe_name: str = re.sub(r'[^a-zA-Z0-9_-]', '_', manifest_name.lower().strip())
                 
                 # Multiple possible cache filename patterns
-                cache_files = [
+                cache_files: List[Path] = [
                     config_dir / f"manifest_{safe_name}.json",
                     config_dir / f"temp_{manifest_name}_manifest.json",
                     config_dir / f"manifest_{manifest_name.lower().replace(' ', '_')}.json",
@@ -1154,14 +1157,14 @@ class CustomManifestCreator:
                     cache_file.unlink(missing_ok=True)
 
                 # Remove the default custom_manifests/<safe_name> directory if it exists
-                default_dir = config_dir / 'custom_manifests' / safe_name
+                default_dir: Path = config_dir / 'custom_manifests' / safe_name
                 if default_dir.exists():
                     shutil.rmtree(default_dir, ignore_errors=True)
                 
                 # 3. Remove scripts from cache if they came from this manifest
                 # Scripts are cached under ~/.lv_linux_learn/script_cache/<category>/<script_id>
                 # We'll remove based on manifest source type
-                cache_root = config_dir / 'script_cache'
+                cache_root: Path = config_dir / 'script_cache'
                 if cache_root.exists() and manifest_entry.get('type') in ('local', 'remote'):
                     # For local manifests, remove scripts from all categories that came from this source
                     # This is a best-effort cleanup - ideally scripts would have source metadata
@@ -1181,7 +1184,7 @@ class CustomManifestCreator:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            message = f"Deleted manifest '{manifest_name}'"
+            message: str = f"Deleted manifest '{manifest_name}'"
             return (True, message)
             
         except Exception as e:
@@ -1191,8 +1194,8 @@ class CustomManifestCreator:
     def update_manifest_metadata(
         self,
         manifest_name: str,
-        description: str = None,
-        verify_checksums: bool = None
+        description: Optional[str] = None,
+        verify_checksums: Optional[bool] = None
     ) -> tuple:
         """
         Update metadata for a custom manifest.
@@ -1206,8 +1209,8 @@ class CustomManifestCreator:
             Tuple of (success: bool, message: str)
         """
         try:
-            config_dir = Path.home() / '.lv_linux_learn'
-            config_file = config_dir / 'config.json'
+            config_dir: Path = Path.home() / '.lv_linux_learn'
+            config_file: Path = config_dir / 'config.json'
             
             if not config_file.exists():
                 raise Exception("No configuration file found")
@@ -1234,19 +1237,19 @@ class CustomManifestCreator:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            message = f"Updated manifest '{manifest_name}'"
+            message: str = f"Updated manifest '{manifest_name}'"
             return (True, message)
             
         except Exception as e:
             error_msg = str(e)
             return (False, error_msg)
     
-    def list_custom_manifests(self) -> List[Dict[str, any]]:
+    def list_custom_manifests(self) -> List[Dict[str, Any]]:
         """List all created custom manifests"""
         manifests = []
         
         try:
-            config_path = Path.home() / '.lv_linux_learn' / 'config.json'
+            config_path: Path = Path.home() / '.lv_linux_learn' / 'config.json'
             if not config_path.exists():
                 return manifests
             
@@ -1288,7 +1291,7 @@ class CustomManifestCreator:
                                 categories.append(cat)
                                 total_scripts += len(cat_scripts)
                     elif isinstance(scripts_section, list):
-                        total_scripts = len(scripts_section)
+                        total_scripts: int = len(scripts_section)
                         categories = sorted({s.get('category', 'custom') for s in scripts_section if isinstance(s, dict)})
 
                 manifests.append({
@@ -1313,9 +1316,9 @@ class CustomManifestCreator:
     def _generate_script_id(self, rel_path: str) -> str:
         """Generate unique script ID from relative path"""
         # Use path hash for consistency
-        path_hash = hashlib.md5(rel_path.encode()).hexdigest()[:8]
+        path_hash: str = hashlib.md5(rel_path.encode()).hexdigest()[:8]
         # Combine with sanitized filename
-        clean_name = re.sub(r'[^a-z0-9_]', '_', rel_path.lower())
+        clean_name: str = re.sub(r'[^a-z0-9_]', '_', rel_path.lower())
         return f"{clean_name}_{path_hash}"
     
     def _calculate_checksum(self, file_path: Path) -> str:
@@ -1331,7 +1334,7 @@ class CustomManifestCreator:
 # HELPER FUNCTIONS
 # ============================================================================
 
-def _terminal_output(terminal_widget, msg: str):
+def _terminal_output(terminal_widget, msg: str) -> None:
     """Helper function to output to terminal or stdout - only errors displayed to terminal"""
     # Only show error messages in terminal to avoid cluttering output during background refreshes
     # Status/info messages are logged but not displayed
@@ -1347,7 +1350,7 @@ def _terminal_output(terminal_widget, msg: str):
 # BACKWARD COMPATIBILITY - Keep old function names for existing code
 # ============================================================================
 
-def fetch_manifest(terminal_widget=None, repository=None):
+def fetch_manifest(terminal_widget=None, repository=None) -> list[tuple[Path, str]]:
     """Backward compatibility wrapper"""
     return ManifestLoader.fetch_manifest(terminal_widget, repository)
 

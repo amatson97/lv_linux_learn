@@ -18,7 +18,7 @@ import urllib.error
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.repository import ScriptRepository, ChecksumVerificationError
+from lib.core.repository import ScriptRepository, ChecksumVerificationError
 
 
 class TestChecksumRetryLogic:

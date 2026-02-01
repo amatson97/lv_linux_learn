@@ -3,6 +3,10 @@ FileLoader - Centralized file loading with consistent error handling
 
 Eliminates 14+ duplicate JSON loading patterns throughout the codebase
 """
+from io import TextIOWrapper
+from io import TextIOWrapper
+from io import TextIOWrapper
+from io import TextIOWrapper
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -42,7 +46,7 @@ class FileLoader:
             
             with open(file_path, 'r') as f:
                 return json.load(f)
-                
+            
         except json.JSONDecodeError as e:
             if not silent:
                 print(f"JSON decode error in {file_path}: {e}")

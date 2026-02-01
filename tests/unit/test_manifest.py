@@ -15,9 +15,9 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.repository import ScriptRepository
-from lib.manifest import ManifestLoader
-import lib.manifest as manifest_module
+from lib.core.repository import ScriptRepository
+from lib.core.manifest import ManifestLoader
+import lib.core.manifest as manifest_module
 
 
 def _setup_repo(tmpdir: str) -> ScriptRepository:

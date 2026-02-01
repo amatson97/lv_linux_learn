@@ -48,25 +48,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 try:
     from lib.utilities import (
         PathManager,
-        ConfigManager,
         TerminalMessenger,
         FileLoader,
         TimerManager
     )
-    from lib.dialog_helpers_extended import show_confirmation, show_error, show_info, show_warning
-    from lib.ui_components import create_filtered_treeview
+    from lib.ui.dialog_helpers_extended import show_confirmation, show_error, show_info, show_warning
+    from lib.ui.ui_components import create_filtered_treeview
 except ImportError as e:
     print(f"Warning: Utility modules not available: {e}")
     PathManager = None
-    ConfigManager = None
     TerminalMessenger = None
     FileLoader = None
     TimerManager = None
 
 # Repository management (consolidated)
 try:
-    from lib.repository import ScriptRepository, ChecksumVerificationError
-    from lib.repository import (
+    from lib.core.repository import ScriptRepository, ChecksumVerificationError
+    from lib.core.repository import (
         download_script_with_feedback,
         update_script_with_feedback,
         remove_script_with_feedback,
@@ -83,7 +81,7 @@ except ImportError:
 
 # Manifest management (consolidated)
 try:
-    from lib.manifest import (
+    from lib.core.manifest import (
         ManifestLoader,
         ManifestManager,
         get_local_repository_manifests,
@@ -103,7 +101,7 @@ except ImportError:
 
 # User scripts management
 try:
-    from lib.user_scripts import CustomScriptManager
+    from lib.utilities.user_scripts import CustomScriptManager
 except ImportError:
     print("Warning: Custom scripts module not available")
     CustomScriptManager = None
@@ -117,14 +115,14 @@ except ImportError:
 
 # UI helpers
 try:
-    from lib import dialog_helpers as UI
+    from lib.ui import dialog_helpers as UI
 except ImportError:
     print("Warning: UI helpers module not available")
     UI = None
 
 # AI tools
 try:
-    from lib.ai_categorizer import OllamaAnalyzer, check_ollama_available
+    from lib.utilities.ai_categorizer import OllamaAnalyzer, check_ollama_available
 except ImportError:
     print("Warning: AI analyzer module not available")
     OllamaAnalyzer = None
@@ -132,18 +130,25 @@ except ImportError:
 
 # Tab handlers (refactored UI components)
 try:
-    from lib.repository_tab import RepositoryTabHandler
-    from lib.local_repository_tab import LocalRepositoryTabHandler
-    from lib.custom_manifest_tab import CustomManifestTabHandler
+    from lib.ui.repository_tab import RepositoryTabHandler
+    from lib.ui.local_repository_tab import LocalRepositoryTabHandler
+    from lib.ui.custom_manifest_tab import CustomManifestTabHandler
 except ImportError as e:
     print(f"Warning: Tab handler modules not available: {e}")
     RepositoryTabHandler = None
     LocalRepositoryTabHandler = None
     CustomManifestTabHandler = None
 
+# Event handlers (refactored from menu.py)
+try:
+    from lib.ui.handlers import RepositoryActionHandler
+except ImportError as e:
+    print(f"Warning: UI handler modules not available: {e}")
+    RepositoryActionHandler = None
+
 # Script management (consolidated)
 try:
-    from lib.script import (
+    from lib.core.script import (
         build_script_metadata,
         is_script_cached,
         should_use_cache_engine,
@@ -1824,6 +1829,14 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
 
         # wire search -> both filters
         self.header_search.connect("search-changed", self.on_search_changed)
+        
+        # Initialize repository action handler for extracted event handlers
+        self.repo_action_handler = None
+        if RepositoryActionHandler and self.repository:
+            try:
+                self.repo_action_handler = RepositoryActionHandler(self.repository, self.terminal, self)
+            except Exception as e:
+                print(f"Warning: Failed to initialize repository action handler: {e}")
 
         # Initialize terminal with bash shell
         GLib.idle_add(self._init_terminal)
@@ -3090,6 +3103,17 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         # Control buttons in a single row with logical grouping
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         
+        # Repository source toggle (prominently placed)
+        use_public_only_btn = Gtk.CheckButton(label="Public Repository Only")
+        use_public_only_btn.set_active(self.repo_config.get('use_public_repository', True))
+        use_public_only_btn.set_tooltip_text("Toggle between public repository only or including custom manifests")
+        use_public_only_btn.connect("toggled", self._on_toggle_public_repo_only)
+        button_box.pack_start(use_public_only_btn, False, False, 0)
+        
+        # Spacer
+        spacer = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        button_box.pack_start(spacer, False, False, 0)
+        
         # Selection group
         select_all_btn = Gtk.Button(label="Select All")
         select_all_btn.connect("clicked", self._on_select_all)
@@ -3249,21 +3273,17 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             
             # 1b. Check for manifests in config['custom_manifests'] (new system)
             custom_manifests_from_config = config.get('custom_manifests', {})
-            if hasattr(self, 'terminal'):
-                self.terminal.feed(f"\x1b[36m[DEBUG] Found {len(custom_manifests_from_config)} custom manifests in config\x1b[0m\r\n".encode())
+            print(f"[DEBUG] Found {len(custom_manifests_from_config)} custom manifests in config", flush=True)
             
             for manifest_name, manifest_config in custom_manifests_from_config.items():
-                if hasattr(self, 'terminal'):
-                    self.terminal.feed(f"\x1b[36m[DEBUG] Processing manifest: {manifest_name}\x1b[0m\r\n".encode())
+                print(f"[DEBUG] Processing manifest: {manifest_name}", flush=True)
                 # Skip if manifest_data is not present (shouldn't happen, but safe check)
                 if 'manifest_data' not in manifest_config:
-                    if hasattr(self, 'terminal'):
-                        self.terminal.feed(f"\x1b[33m[DEBUG] Skipping {manifest_name} - no manifest_data\x1b[0m\r\n".encode())
+                    print(f"[DEBUG] Skipping {manifest_name} - no manifest_data", flush=True)
                     continue
                 # Add all custom manifests, including local file:// ones (they should show in Repository tab)
                 custom_manifests_to_load.append((manifest_name, manifest_name, manifest_name))
-                if hasattr(self, 'terminal'):
-                    self.terminal.feed(f"\x1b[36m[*] Found custom manifest from config: {manifest_name}\x1b[0m\r\n".encode())
+                print(f"[*] Found custom manifest from config: {manifest_name}", flush=True)
             
             # 1c. Check for manifests created through Custom Manifests tab
             if hasattr(self, 'custom_manifest_creator') and self.custom_manifest_creator:
@@ -3300,8 +3320,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             for manifest_id, manifest_path, custom_manifest_name in custom_manifests_to_load:
                 import json
                 
-                if hasattr(self, 'terminal'):
-                    self.terminal.feed(f"\x1b[36m[DEBUG] Loading manifest: {custom_manifest_name} (id={manifest_id}, path={manifest_path})\x1b[0m\r\n".encode())
+                print(f"[DEBUG] Loading manifest: {custom_manifest_name} (id={manifest_id}, path={manifest_path})", flush=True)
                 
                 custom_scripts = []
                 try:
@@ -3309,8 +3328,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     custom_manifest = None
                     if custom_manifest_name in config.get('custom_manifests', {}):
                         custom_manifest = config['custom_manifests'][custom_manifest_name].get('manifest_data')
-                        if hasattr(self, 'terminal'):
-                            self.terminal.feed(f"\x1b[36m[DEBUG] Loaded manifest_data from config for {custom_manifest_name}\x1b[0m\r\n".encode())
+                        print(f"[DEBUG] Loaded manifest_data from config for {custom_manifest_name}", flush=True)
                     
                     # Fall back to loading from file (old system)
                     if not custom_manifest and Path(manifest_path).exists():
@@ -3328,24 +3346,21 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
                     verify_checksums = config.get('custom_manifests', {}).get(custom_manifest_name, {}).get('verify_checksums', True)
                     manifest_verify_settings[custom_manifest_name] = verify_checksums
                     
-                    if hasattr(self, 'terminal'):
-                        self.terminal.feed(f"\x1b[36m[*] Loaded custom manifest: {custom_manifest_name}\x1b[0m\r\n".encode())
-                        if not verify_checksums:
-                            self.terminal.feed(f"\x1b[33m[*] Note: Checksum verification disabled for '{custom_manifest_name}'\x1b[0m\r\n".encode())
+                    print(f"[*] Loaded custom manifest: {custom_manifest_name}", flush=True)
+                    if not verify_checksums:
+                        print(f"[*] Note: Checksum verification disabled for '{custom_manifest_name}'", flush=True)
                     
                     if custom_manifest:
                         # Handle both flat and nested script structures
                         manifest_scripts = custom_manifest.get('scripts', [])
                         
-                        if hasattr(self, 'terminal'):
-                            self.terminal.feed(f"\x1b[36m[DEBUG] Manifest scripts type: {type(manifest_scripts)}, count: {len(manifest_scripts) if isinstance(manifest_scripts, (list, dict)) else 'N/A'}\x1b[0m\r\n".encode())
+                        print(f"[DEBUG] Manifest scripts type: {type(manifest_scripts)}, count: {len(manifest_scripts) if isinstance(manifest_scripts, (list, dict)) else 'N/A'}", flush=True)
                         
                         if isinstance(manifest_scripts, dict):
                             # Nested structure (by category)
                             for category, category_scripts in manifest_scripts.items():
                                 if isinstance(category_scripts, list):
-                                    if hasattr(self, 'terminal'):
-                                        self.terminal.feed(f"\x1b[36m[DEBUG] Processing {len(category_scripts)} scripts from category '{category}'\x1b[0m\r\n".encode())
+                                    print(f"[DEBUG] Processing {len(category_scripts)} scripts from category '{category}'", flush=True)
                                     for script in category_scripts:
                                         script['category'] = category
                                         script['_source'] = 'custom'
@@ -3524,7 +3539,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         
         # Check Ollama availability first (needed for buttons and banner)
         try:
-            from lib.ai_categorizer import check_ollama_available
+            from lib.utilities.ai_categorizer import check_ollama_available
             self.ollama_available = check_ollama_available()
         except ImportError:
             self.ollama_available = False
@@ -3952,39 +3967,10 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     
     def _on_check_updates(self, button):
         """Manually check for updates"""
-        if not self.repository:
-            return
-        
-        self.terminal.feed(b"\r\n\x1b[32m[*] Checking for updates...\x1b[0m\r\n")
-        
-        try:
-            # Clear repository's internal cache to force fresh check
-            if hasattr(self.repository, '_manifest_cache'):
-                self.repository._manifest_cache = None
-            if hasattr(self.repository, '_scripts'):
-                self.repository._scripts = None
-            print("[DEBUG] Cleared repository cache for fresh update check", flush=True)
-            
-            update_count = self.repository.check_for_updates()
-            self.terminal.feed(f"\x1b[32m[*] Found {update_count} updates available\x1b[0m\r\n".encode())
-            
-            # Auto-complete after short delay
-            if TimerManager:
-                TimerManager.schedule_ui_refresh(self._check_updates_complete_callback)
-            else:
-                GLib.timeout_add(500, self._check_updates_complete_callback)
-            
-            # Refresh display with fresh data
-            self._update_repo_status()
-            self._populate_repository_tree()
-            print("[DEBUG] Repository tree refreshed after check", flush=True)
-            
-        except Exception as e:
-            self.terminal.feed(f"\x1b[31m[!] Error: {e}\x1b[0m\r\n".encode())
-            if TimerManager:
-                TimerManager.schedule_completion(self._complete_terminal_operation)
-            else:
-                GLib.timeout_add(1500, self._complete_terminal_operation)
+        if self.repo_action_handler:
+            self.repo_action_handler.on_check_updates()
+        else:
+            self.terminal.feed(b"\r\n\x1b[31m[!] Repository handler not available\x1b[0m\r\n")
     
     def _complete_terminal_operation(self):
         """Auto-complete terminal operation"""
@@ -4011,176 +3997,17 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     
     def _on_download_all(self, button):
         """Download all scripts from repository (only those currently shown in Repository tab)"""
-        if not self.repository:
-            return
-        
-        # Get count of scripts in the repo_store (respects current filtering)
-        total = len(self.repo_store)
-        
-        if total == 0:
-            dialog = Gtk.MessageDialog(
-                transient_for=self,
-                flags=0,
-                message_type=Gtk.MessageType.WARNING,
-                buttons=Gtk.ButtonsType.OK,
-                text="No Scripts Available"
-            )
-            dialog.format_secondary_text(
-                "No scripts are currently available to download.\n\n"
-                "Please configure a manifest source:\n"
-                "• Enable Public Repository in settings, or\n"
-                "• Add a Custom Manifest in the Sources tab"
-            )
-            dialog.run()
-            dialog.destroy()
-            return
-        
-        # Confirmation dialog
-        dialog = Gtk.MessageDialog(
-            transient_for=self,
-            flags=0,
-            message_type=Gtk.MessageType.QUESTION,
-            buttons=Gtk.ButtonsType.YES_NO,
-            text="Download All Scripts"
-        )
-        dialog.format_secondary_text(
-            f"This will download all {total} scripts shown in the Repository tab.\n\n"
-            "This may take a few minutes. Continue?"
-        )
-        
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response != Gtk.ResponseType.YES:
-            return
-        
-        self.terminal.feed(f"\r\n\x1b[32m[*] Downloading {total} scripts from configured sources...\x1b[0m\r\n".encode())
-        
-        # Download each script from the repo_store
-        downloaded = 0
-        failed = 0
-        
-        try:
-            for row in self.repo_store:
-                script_id = row[1]
-                script_name = row[2]
-                category = row[5].lower()
-                
-                try:
-                    # Download the script
-                    self.terminal.feed(f"\x1b[36m[*] Downloading {script_name}...\x1b[0m\r\n".encode())
-                    # Process pending GTK events to show terminal output immediately
-                    while Gtk.events_pending():
-                        Gtk.main_iteration()
-                    
-                    result = self.repository.download_script(script_id)
-                    success = result[0] if isinstance(result, tuple) else bool(result)
-                    
-                    if success:
-                        downloaded += 1
-                        # Derive cache path for display
-                        script_info = self.repository.get_script_by_id(script_id)
-                        file_name = script_info.get('file_name', '') if script_info else ''
-                        category_name = script_info.get('category', category) if script_info else category
-                        cache_path = os.path.join(str(self.repository.script_cache_dir), category_name, file_name)
-                        self.terminal.feed(f"\x1b[32m  ✓ Cached to {cache_path}\x1b[0m\r\n".encode())
-                    else:
-                        failed += 1
-                        self.terminal.feed(f"\x1b[33m  ! Failed to download\x1b[0m\r\n".encode())
-                    
-                    # Process pending GTK events after download
-                    while Gtk.events_pending():
-                        Gtk.main_iteration()
-                        
-                except Exception as e:
-                    failed += 1
-                    self.terminal.feed(f"\x1b[31m  ✗ Error: {e}\x1b[0m\r\n".encode())
-                    # Process pending GTK events for error output
-                    while Gtk.events_pending():
-                        Gtk.main_iteration()
-            
-            self.terminal.feed(f"\x1b[32m[*] Download complete: {downloaded} downloaded, {failed} failed\x1b[0m\r\n".encode())
-            
-            # Auto-complete with reduced delay
-            if TimerManager:
-                TimerManager.schedule_ui_refresh(self._complete_terminal_operation)
-            else:
-                GLib.timeout_add(500, self._complete_terminal_operation)
-            
-            # Refresh display
-            self._populate_repository_tree()
-            
-            # Reload main tabs to reflect changes
-            self._reload_main_tabs()
-            
-        except Exception as e:
-            self.terminal.feed(f"\x1b[31m[!] Error: {e}\x1b[0m\r\n".encode())
-            import traceback
-            self.terminal.feed(f"\x1b[31m{traceback.format_exc()}\x1b[0m\r\n".encode())
-            if TimerManager:
-                TimerManager.schedule_completion(self._complete_terminal_operation)
-            else:
-                GLib.timeout_add(1500, self._complete_terminal_operation)
+        if self.repo_action_handler:
+            self.repo_action_handler.on_download_all()
+        else:
+            self.terminal.feed(b"\r\n\x1b[31m[!] Repository handler not available\x1b[0m\r\n")
     
     def _on_clear_cache(self, button):
         """Clear script cache"""
-        if not self.repository:
-            return
-        
-        # Confirmation dialog
-        dialog = Gtk.MessageDialog(
-            transient_for=self,
-            flags=0,
-            message_type=Gtk.MessageType.WARNING,
-            buttons=Gtk.ButtonsType.YES_NO,
-            text="Remove All Scripts"
-        )
-        
-        dialog.format_secondary_text(
-            "This will remove all scripts from the cache.\n\n"
-            "You can download them again later. Continue?"
-        )
-        
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response != Gtk.ResponseType.YES:
-            return
-        
-        try:
-            # Clear script cache
-            self.repository.clear_cache()
-            self.terminal.feed(b"\r\n\x1b[32m[*] Script cache cleared successfully\x1b[0m\r\n")
-            
-            # Also clear manifest cache files (stale cached manifests)
-            self.terminal.feed(b"\x1b[36m[*] Cleaning up manifest cache files...\x1b[0m\r\n")
-            try:
-                cache_dir = Path.home() / '.lv_linux_learn'
-                removed_count = 0
-                for cache_file in cache_dir.glob('manifest_*.json'):
-                    cache_file.unlink(missing_ok=True)
-                    removed_count += 1
-                for cache_file in cache_dir.glob('temp_*_manifest.json'):
-                    cache_file.unlink(missing_ok=True)
-                    removed_count += 1
-                if removed_count > 0:
-                    self.terminal.feed(f"\x1b[32m[*] Removed {removed_count} cached manifest file(s)\x1b[0m\r\n".encode())
-            except Exception as e:
-                self.terminal.feed(f"\x1b[33m[!] Manifest cache cleanup warning: {e}\x1b[0m\r\n".encode())
-            
-            # Auto-complete with reduced delay
-            GLib.timeout_add(500, self._complete_terminal_operation)
-            
-            # Refresh display
-            self._update_repo_status()
-            self._populate_repository_tree()
-            
-            # Reload main tabs to reflect changes
-            self._reload_main_tabs()
-            
-        except Exception as e:
-            self.terminal.feed(f"\x1b[31m[!] Error: {e}\x1b[0m\r\n".encode())
-            GLib.timeout_add(1500, self._complete_terminal_operation)
+        if self.repo_action_handler:
+            self.repo_action_handler.on_clear_cache()
+        else:
+            self.terminal.feed(b"\r\n\x1b[31m[!] Repository handler not available\x1b[0m\r\n")
     
     def _on_repo_settings(self, button):
         """Show repository settings dialog"""
@@ -4189,13 +4016,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
         if not self.repository:
             try:
                 self.repository = ScriptRepository()
-                if ConfigManager:
-                    try:                        self.repo_config = self.repository.load_config()
-                    except Exception as cm_error:
-                        print(f"Warning: ConfigManager initialization failed: {cm_error}")
-                        self.repo_config = self.repository.load_config()
-                else:
-                    self.repo_config = self.repository.load_config()
+                self.repo_config = self.repository.load_config()
             except Exception as e:
                 # Show error dialog if repository can't be initialized
                 error_dialog = Gtk.MessageDialog(
@@ -4918,7 +4739,7 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
     def _run_ai_analysis(self, scripts):
         """Run AI analysis on scripts with real-time terminal progress"""
         import threading
-        from lib.ai_categorizer import OllamaAnalyzer
+        from lib.utilities.ai_categorizer import OllamaAnalyzer
         
         # Shared state for thread
         state = {
@@ -5614,6 +5435,11 @@ class ScriptMenuGTK(Gtk.ApplicationWindow):
             import traceback
             traceback.print_exc()
             self._show_error_dialog(self, error_msg)
+    
+    def _on_toggle_public_repo_only(self, checkbox):
+        """Handle Repository tab checkbox toggle for public repo"""
+        # Just forward to the existing handler
+        self._on_switch_to_public_repository(checkbox)
     
     def _refresh_ui_after_manifest_switch(self):
         """Refresh UI after switching manifests - delegates to UIRefreshCoordinator"""

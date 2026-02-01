@@ -19,9 +19,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call
 from datetime import datetime, timedelta
 
-from lib.repository import ScriptRepository
-from lib.script_execution import ScriptEnvironmentManager, build_script_command
-from lib.manifest import load_scripts_from_manifest
+from lib.core.repository import ScriptRepository
+from lib.core.script_execution import ScriptEnvironmentManager, build_script_command
+from lib.core.manifest import load_scripts_from_manifest
 
 
 @pytest.mark.e2e
@@ -99,7 +99,7 @@ class TestCompleteRepositoryWorkflow:
         
         # STEP 7: Execute script
         metadata = {"type": "cached", "file_exists": True}
-        command = build_script_command(cached_path, metadata, env_exports="")
+        command, status = build_script_command(cached_path, metadata, env_vars={})
         
         assert command is not None
         assert "test_app.sh" in command
@@ -157,23 +157,27 @@ class TestScriptExecutionWorkflows:
         
         # STEP 1: Detect required env vars
         env_vars = env_manager.get_required_env_vars(str(vpn_script))
-        assert "NORDVPN_TOKEN" in env_vars
+        assert "ZEROTIER_NETWORK_ID" in env_vars
         
         # STEP 2: Validate env var
-        is_valid, error = env_manager.validate_env_var("NORDVPN_TOKEN", "test_token_123")
+        is_valid, error = env_manager.validate_env_var("ZEROTIER_NETWORK_ID", "8bd5124fd60a971f")
         assert is_valid is True
         
         # STEP 3: Build exports
-        exports = env_manager.build_env_exports({"NORDVPN_TOKEN": "test_token_123"})
-        assert "export NORDVPN_TOKEN=" in exports
+        exports = env_manager.build_env_exports({"ZEROTIER_NETWORK_ID": "8bd5124fd60a971f"})
+        assert "export ZEROTIER_NETWORK_ID=" in exports
         
         # STEP 4: Build execution command
         metadata = {"type": "local", "file_exists": True}
-        command = build_script_command(str(vpn_script), metadata, exports)
+        command, status = build_script_command(
+            str(vpn_script),
+            metadata,
+            env_vars={"ZEROTIER_NETWORK_ID": "8bd5124fd60a971f"}
+        )
         
         assert command is not None
         assert "new_vpn.sh" in command
-        assert "NORDVPN_TOKEN" in command
+        assert "ZEROTIER_NETWORK_ID" in command
     
     def test_cached_script_execution_fallback(self, repo_with_cached_scripts, test_helpers):
         """
@@ -204,7 +208,7 @@ class TestScriptExecutionWorkflows:
         
         # Execute script
         metadata = {"type": "cached", "file_exists": True}
-        command = build_script_command(fallback_path, metadata, "")
+        command, status = build_script_command(fallback_path, metadata, env_vars={})
         assert command is not None
 
 
@@ -239,7 +243,13 @@ class TestUpdateDetectionAndUI:
         repo.manifest_file.write_text(json.dumps(manifest_data))
         
         # Cache one script with matching checksum (✓ state)
-        test_helpers.create_cached_script(repo, "uptodate-script", uptodate_content, "install")
+        test_helpers.create_cached_script(
+            repo,
+            "uptodate-script",
+            uptodate_content,
+            "install",
+            filename="uptodate.sh",
+        )
         
         # Cache another with wrong checksum (📥 state)
         old_content = b"#!/bin/bash\necho 'old version'\n"

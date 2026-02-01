@@ -88,7 +88,7 @@ class PathManager:
             True if path is under custom_manifests
         """
         try:
-            custom_root = PathManager.get_custom_manifests_dir()
+            custom_root: Path = PathManager.get_custom_manifests_dir()
             return custom_root in path.parents or path == custom_root
         except Exception:
             return False
@@ -101,7 +101,7 @@ class PathManager:
         Returns:
             Path to config directory
         """
-        config_dir = PathManager.get_config_dir()
+        config_dir: Path = PathManager.get_config_dir()
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir
     
@@ -113,6 +113,6 @@ class PathManager:
         Returns:
             Path to custom manifests directory
         """
-        manifests_dir = PathManager.get_custom_manifests_dir()
+        manifests_dir: Path = PathManager.get_custom_manifests_dir()
         manifests_dir.mkdir(parents=True, exist_ok=True)
         return manifests_dir

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 import os
 
-from lib.script import (
+from lib.core.script import (
     ScriptEnvironment,
     ScriptExecutor,
     get_script_env_requirements,

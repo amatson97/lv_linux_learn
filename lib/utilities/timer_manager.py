@@ -3,7 +3,7 @@ TimerManager - Centralized timer management for async operations
 
 Eliminates 20+ duplicate GLib.timeout_add calls with magic numbers
 """
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 from gi.repository import GLib
 
 
@@ -24,7 +24,7 @@ class TimerManager:
     @staticmethod
     def schedule(
         callback: Callable,
-        delay_ms: int = None,
+        delay_ms: Optional[int] = None,
         delay_type: str = 'normal'
     ) -> int:
         """
@@ -39,7 +39,7 @@ class TimerManager:
             Timer ID (can be used with GLib.source_remove to cancel)
         """
         if delay_ms is None:
-            delays = {
+            delays: dict[str, int] = {
                 'immediate': TimerManager.IMMEDIATE,
                 'fast': TimerManager.FAST,
                 'normal': TimerManager.NORMAL,
