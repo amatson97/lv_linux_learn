@@ -27,3 +27,4 @@ Thumbs.db
 *_OLD.*
 README_OLD.md
 *.env
+*.venv

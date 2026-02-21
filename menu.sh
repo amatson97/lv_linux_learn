@@ -54,10 +54,12 @@ mkdir -p "$CUSTOM_SCRIPTS_DIR"
 # Download manifest from configured URL if not cached or older than 1 hour
 fetch_manifest() {
   local cache_age=0
+  local config_file="${CONFIG_FILE:-$CUSTOM_SCRIPTS_DIR/config.json}"
   
   # Priority System (from highest to lowest):
   # 1. Environment variable CUSTOM_MANIFEST_URL (for testing/override)
   # 2. Custom manifest URL (custom_manifest_url in config)
+  # 2b. Active custom manifest (custom_manifests + active_custom_manifest)
   # 3. Public repository (if use_public_repository=true and no custom manifest)
   # 4. Error (if both disabled)
   #
@@ -81,6 +83,35 @@ fetch_manifest() {
       MANIFEST_URL="$custom_manifest_url"
       green_echo "[*] Using custom manifest (takes priority over public repository)"
     else
+      # Check active custom manifest (new system)
+      local active_custom_manifest
+      active_custom_manifest=$(get_config_value "active_custom_manifest" "")
+      if [ -n "$active_custom_manifest" ] && command -v jq &> /dev/null && [ -f "$config_file" ]; then
+        local active_url active_path manifest_data_type
+        active_url=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].url // ""' "$config_file" 2>/dev/null)
+        active_path=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_path // ""' "$config_file" 2>/dev/null)
+        manifest_data_type=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_data | type' "$config_file" 2>/dev/null)
+
+        if [ -n "$active_url" ]; then
+          MANIFEST_URL="$active_url"
+          green_echo "[*] Using active custom manifest: $active_custom_manifest"
+        elif [ -n "$active_path" ]; then
+          if [[ "$active_path" == file://* ]]; then
+            MANIFEST_URL="$active_path"
+          else
+            MANIFEST_URL="file://$active_path"
+          fi
+          green_echo "[*] Using active custom manifest: $active_custom_manifest"
+        elif [ "$manifest_data_type" = "object" ]; then
+          green_echo "[*] Using active custom manifest data: $active_custom_manifest"
+          if jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_data' "$config_file" > "$MANIFEST_CACHE" 2>/dev/null; then
+            return 0
+          fi
+          green_echo "[!] Failed to materialize active custom manifest data"
+          return 1
+        fi
+      fi
+
       # No custom manifest - check if public repository is enabled
       local use_public_repo
       use_public_repo=$(get_config_value "use_public_repository" "true")
@@ -89,6 +120,7 @@ fetch_manifest() {
         # Public repository disabled and no custom manifest
         green_echo "[!] Public repository disabled and no custom manifest configured"
         green_echo "[*] Configure a custom manifest in the 'Custom Manifests' menu"
+        rm -f "$MANIFEST_CACHE" 2>/dev/null || true
         return 1
       fi
       
@@ -107,7 +139,16 @@ fetch_manifest() {
     green_echo "[*] Connecting to: $MANIFEST_URL"
     
     local download_success=false
-    if command -v curl &> /dev/null; then
+    if [[ "$MANIFEST_URL" == file://* ]]; then
+      local local_path="${MANIFEST_URL#file://}"
+      if [ -f "$local_path" ]; then
+        cp "$local_path" "$MANIFEST_CACHE" && download_success=true
+      else
+        green_echo "[!] Local manifest not found: $local_path"
+      fi
+    elif [ -f "$MANIFEST_URL" ]; then
+      cp "$MANIFEST_URL" "$MANIFEST_CACHE" && download_success=true
+    elif command -v curl &> /dev/null; then
       green_echo "[*] Using curl for download..."
       if curl -sS -f -o "$MANIFEST_CACHE" "$MANIFEST_URL"; then
         download_success=true
@@ -138,6 +179,51 @@ fetch_manifest() {
   fi
   
   return 0
+}
+
+# Flatten manifest scripts for jq queries (supports nested and flat formats)
+jq_flat_scripts() {
+  local manifest_path="$1"
+  jq -c '
+    if (.scripts | type) == "object" then
+      .scripts | to_entries[] | .key as $cat | .value[] | . + {category: (.category // $cat)}
+    else
+      .scripts[]
+    end
+  ' "$manifest_path" 2>/dev/null
+}
+
+manifest_script_count() {
+  local manifest_path="$1"
+  jq -r '
+    if (.scripts | type) == "object" then
+      ([.scripts | to_entries[] | .value[]] | length)
+    else
+      (.scripts | length)
+    end
+  ' "$manifest_path" 2>/dev/null || echo "0"
+}
+
+manifest_category_count() {
+  local manifest_path="$1"
+  local category="$2"
+  jq -r --arg cat "$category" '
+    if (.scripts | type) == "object" then
+      ([.scripts | to_entries[] | .key as $catname | .value[] | . + {category: (.category // $catname)} | select(.category == $cat)] | length)
+    else
+      ([.scripts[] | select(.category == $cat)] | length)
+    end
+  ' "$manifest_path" 2>/dev/null || echo "0"
+}
+
+cached_category_count() {
+  local category="$1"
+  local cache_dir="$SCRIPT_CACHE_DIR/$category"
+  if [ -d "$cache_dir" ]; then
+    find "$cache_dir" -maxdepth 1 -name "*.sh" -type f 2>/dev/null | wc -l
+  else
+    echo "0"
+  fi
 }
 load_scripts_from_manifest() {
   # Always start with empty arrays to avoid stale menu entries when sources change
@@ -325,10 +411,10 @@ refresh_script_counts() {
   CACHED_UNINSTALL_COUNT=0
 
   if [ -f "$MANIFEST_CACHE" ] && command -v jq &> /dev/null; then
-    CACHED_INSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    CACHED_TOOLS_COUNT=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    CACHED_EXERCISES_COUNT=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-    CACHED_UNINSTALL_COUNT=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+    CACHED_INSTALL_COUNT=$(manifest_category_count "$MANIFEST_CACHE" "install")
+    CACHED_TOOLS_COUNT=$(manifest_category_count "$MANIFEST_CACHE" "tools")
+    CACHED_EXERCISES_COUNT=$(manifest_category_count "$MANIFEST_CACHE" "exercises")
+    CACHED_UNINSTALL_COUNT=$(manifest_category_count "$MANIFEST_CACHE" "uninstall")
   fi
 }
 
@@ -744,11 +830,11 @@ list_cached_scripts() {
         
         if [ "$has_manifest" = true ]; then
           # Try to find script in manifest (handle jq failures gracefully for pipefail)
-          script_id=$(jq -r ".scripts[] | select(.file_name == \"$script_name\" or .relative_path | endswith(\"$script_name\")) | .id" "$MANIFEST_CACHE" 2>/dev/null | head -1 || echo "")
+          script_id=$(jq_flat_scripts "$MANIFEST_CACHE" | jq -r "select(.file_name == \"$script_name\" or (.relative_path // \"\") | endswith(\"$script_name\")) | .id" 2>/dev/null | head -1 || echo "")
           
           if [ -n "$script_id" ] && [ "$script_id" != "null" ]; then
             # Check if update available by comparing checksums
-            local remote_checksum=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .checksum" "$MANIFEST_CACHE" 2>/dev/null | sed 's/^sha256://' || echo "")
+            local remote_checksum=$(jq_flat_scripts "$MANIFEST_CACHE" | jq -r "select(.id == \"$script_id\") | .checksum" 2>/dev/null | sed 's/^sha256://' || echo "")
             local verify_checksums=$(jq -r '.verify_checksums // true' "$MANIFEST_CACHE" 2>/dev/null || echo "true")
             
             # Get source/repository info
@@ -866,7 +952,8 @@ download_single_script() {
   fi
   
   # Get total scripts
-  local total_scripts=$(jq -r '.scripts | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+  local total_scripts
+  total_scripts=$(manifest_script_count "$MANIFEST_CACHE")
   
   if [ "$total_scripts" -eq 0 ]; then
     green_echo "[!] No scripts available in repository"
@@ -879,7 +966,8 @@ download_single_script() {
   
   # Load all scripts grouped by category
   for category in "${categories[@]}"; do
-    local scripts=$(jq -r ".scripts[] | select(.category == \"$category\") | .id + \"|\" + .file_name + \"|\" + (.description // \"No description\")" "$MANIFEST_CACHE" 2>/dev/null || echo "")
+    local scripts
+    scripts=$(jq_flat_scripts "$MANIFEST_CACHE" | jq -r "select(.category == \"$category\") | .id + \"|\" + .file_name + \"|\" + (.description // \"No description\")" 2>/dev/null || echo "")
     if [ -n "$scripts" ]; then
       category_scripts["$category"]="$scripts"
     fi
@@ -1155,6 +1243,29 @@ show_sources_menu() {
     local use_public=$(get_config_value "use_public_repository" "true")
     local custom_url=$(get_config_value "custom_manifest_url" "")
     local custom_name=$(get_config_value "custom_manifest_name" "Custom Repository")
+    local config_file="${CONFIG_FILE:-$CUSTOM_SCRIPTS_DIR/config.json}"
+    local active_custom=""
+
+    if [ -z "$custom_url" ] && command -v jq &> /dev/null && [ -f "$config_file" ]; then
+      active_custom=$(jq -r '.active_custom_manifest // ""' "$config_file" 2>/dev/null)
+      if [ -n "$active_custom" ]; then
+        local active_url active_path manifest_data_type
+        active_url=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].url // ""' "$config_file" 2>/dev/null)
+        active_path=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].manifest_path // ""' "$config_file" 2>/dev/null)
+        manifest_data_type=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].manifest_data | type' "$config_file" 2>/dev/null)
+
+        if [ -n "$active_url" ]; then
+          custom_url="$active_url"
+          custom_name="$active_custom"
+        elif [ -n "$active_path" ]; then
+          custom_url="file://$active_path"
+          custom_name="$active_custom"
+        elif [ "$manifest_data_type" = "object" ]; then
+          custom_name="$active_custom"
+          custom_url="(embedded manifest data)"
+        fi
+      fi
+    fi
     local manifests_dir="$HOME/.lv_linux_learn/custom_manifests"
     local local_count=0
     if [ -d "$manifests_dir" ]; then
@@ -1480,11 +1591,22 @@ show_main_menu() {
       done <<< "$categories"
     else
       # Public manifest - flat array
-      category_counts[install]=$(jq -r '[.scripts[] | select(.category == "install")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-      category_counts[tools]=$(jq -r '[.scripts[] | select(.category == "tools")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-      category_counts[exercises]=$(jq -r '[.scripts[] | select(.category == "exercises")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
-      category_counts[uninstall]=$(jq -r '[.scripts[] | select(.category == "uninstall")] | length' "$MANIFEST_CACHE" 2>/dev/null || echo "0")
+      category_counts[install]=$(manifest_category_count "$MANIFEST_CACHE" "install")
+      category_counts[tools]=$(manifest_category_count "$MANIFEST_CACHE" "tools")
+      category_counts[exercises]=$(manifest_category_count "$MANIFEST_CACHE" "exercises")
+      category_counts[uninstall]=$(manifest_category_count "$MANIFEST_CACHE" "uninstall")
     fi
+  fi
+
+  local cached_install=0
+  local cached_tools=0
+  local cached_exercises=0
+  local cached_uninstall=0
+  if [ -n "${SCRIPT_CACHE_DIR:-}" ] && [ "$REPO_ENABLED" = true ]; then
+    cached_install=$(cached_category_count "install")
+    cached_tools=$(cached_category_count "tools")
+    cached_exercises=$(cached_category_count "exercises")
+    cached_uninstall=$(cached_category_count "uninstall")
   fi
   
   echo "  Select a category:"
@@ -1492,22 +1614,38 @@ show_main_menu() {
   
   # Standard categories
   local menu_num=1
-  printf "   \033[1;32m%d)\033[0m 📦 Install Scripts         (%d scripts)\n" "$menu_num" "${category_counts[install]:-0}"
+  if [ "$cached_install" -gt 0 ]; then
+    printf "   \033[1;32m%d)\033[0m 📦 Install Scripts         (%d scripts, %d cached)\n" "$menu_num" "${category_counts[install]:-0}" "$cached_install"
+  else
+    printf "   \033[1;32m%d)\033[0m 📦 Install Scripts         (%d scripts)\n" "$menu_num" "${category_counts[install]:-0}"
+  fi
   echo "      System tools, browsers, development environments"
   echo
   menu_num=$((menu_num + 1))
   
-  printf "   \033[1;32m%d)\033[0m 🔧 Tools & Utilities       (%d scripts)\n" "$menu_num" "${category_counts[tools]:-0}"
+  if [ "$cached_tools" -gt 0 ]; then
+    printf "   \033[1;32m%d)\033[0m 🔧 Tools & Utilities       (%d scripts, %d cached)\n" "$menu_num" "${category_counts[tools]:-0}" "$cached_tools"
+  else
+    printf "   \033[1;32m%d)\033[0m 🔧 Tools & Utilities       (%d scripts)\n" "$menu_num" "${category_counts[tools]:-0}"
+  fi
   echo "      File management, git helpers, conversion tools"
   echo
   menu_num=$((menu_num + 1))
   
-  printf "   \033[1;32m%d)\033[0m 📚 Bash Exercises          (%d exercises)\n" "$menu_num" "${category_counts[exercises]:-0}"
+  if [ "$cached_exercises" -gt 0 ]; then
+    printf "   \033[1;32m%d)\033[0m 📚 Bash Exercises          (%d exercises, %d cached)\n" "$menu_num" "${category_counts[exercises]:-0}" "$cached_exercises"
+  else
+    printf "   \033[1;32m%d)\033[0m 📚 Bash Exercises          (%d exercises)\n" "$menu_num" "${category_counts[exercises]:-0}"
+  fi
   echo "      Learn bash scripting with interactive examples"
   echo
   menu_num=$((menu_num + 1))
   
-  printf "   \033[1;32m%d)\033[0m ⚠️  Uninstall               (%d scripts)\n" "$menu_num" "${category_counts[uninstall]:-0}"
+  if [ "$cached_uninstall" -gt 0 ]; then
+    printf "   \033[1;32m%d)\033[0m ⚠️  Uninstall               (%d scripts, %d cached)\n" "$menu_num" "${category_counts[uninstall]:-0}" "$cached_uninstall"
+  else
+    printf "   \033[1;32m%d)\033[0m ⚠️  Uninstall               (%d scripts)\n" "$menu_num" "${category_counts[uninstall]:-0}"
+  fi
   echo "      Remove installed applications and clean configurations"
   echo
   menu_num=$((menu_num + 1))
@@ -1693,7 +1831,7 @@ show_menu() {
       # Get version from manifest if available
       local version=""
       if [ -f "$MANIFEST_CACHE" ] && [ -n "$script_id" ] && [ "$script_id" != "__separator__" ]; then
-        version=$(jq -r ".scripts[] | select(.id == \"$script_id\") | .version" "$MANIFEST_CACHE" 2>/dev/null || echo "")
+        version=$(jq_flat_scripts "$MANIFEST_CACHE" | jq -r "select(.id == \"$script_id\") | .version" 2>/dev/null || echo "")
         if [ -n "$version" ] && [ "$version" != "null" ]; then
           file_info=" \033[2m│ v${version}\033[0m"
         fi
@@ -2124,11 +2262,31 @@ show_repository_menu() {
     echo "╚════════════════════════════════════════════════════════════════════════════════╝"
     echo
     
-    local total_scripts; total_scripts=$(jq -r '.scripts | length' "$MANIFEST_FILE" 2>/dev/null || echo "0")
+    local total_scripts; total_scripts=$(manifest_script_count "$MANIFEST_FILE")
     local cached_count; cached_count=$(count_cached_scripts)
     local updates="$REPO_UPDATES_AVAILABLE"
     local public_enabled; public_enabled=$(get_config_value "use_public_repository" "true")
     local active_custom; active_custom=$(get_config_value "custom_manifest_url" "")
+    local config_file="${CONFIG_FILE:-$CUSTOM_SCRIPTS_DIR/config.json}"
+
+    if [ -z "$active_custom" ] && command -v jq &> /dev/null && [ -f "$config_file" ]; then
+      local active_custom_name
+      active_custom_name=$(jq -r '.active_custom_manifest // ""' "$config_file" 2>/dev/null)
+      if [ -n "$active_custom_name" ]; then
+        local active_url active_path manifest_data_type
+        active_url=$(jq -r --arg name "$active_custom_name" '.custom_manifests[$name].url // ""' "$config_file" 2>/dev/null)
+        active_path=$(jq -r --arg name "$active_custom_name" '.custom_manifests[$name].manifest_path // ""' "$config_file" 2>/dev/null)
+        manifest_data_type=$(jq -r --arg name "$active_custom_name" '.custom_manifests[$name].manifest_data | type' "$config_file" 2>/dev/null)
+
+        if [ -n "$active_url" ]; then
+          active_custom="$active_url"
+        elif [ -n "$active_path" ]; then
+          active_custom="file://$active_path"
+        elif [ "$manifest_data_type" = "object" ]; then
+          active_custom="(embedded manifest data)"
+        fi
+      fi
+    fi
     
     echo "  Repository Status:"
     echo "  • Available scripts: $total_scripts"
@@ -2347,7 +2505,7 @@ run_script() {
     # Try to find script ID from manifest
     local script_id=""
     if [ -f "$MANIFEST_CACHE" ]; then
-      script_id=$(jq -r ".scripts[] | select(.relative_path | endswith(\"$script_name\")) | .id" "$MANIFEST_CACHE" 2>/dev/null | head -1)
+      script_id=$(jq_flat_scripts "$MANIFEST_CACHE" | jq -r "select(((.relative_path // \"\") | endswith(\"$script_name\")) or ((.file_name // \"\") | endswith(\"$script_name\"))) | .id" 2>/dev/null | head -1)
     fi
     
     if [ -n "$script_id" ] && [ "$script_id" != "null" ]; then
@@ -2536,10 +2694,29 @@ show_current_manifest_status() {
   
   # Check if custom manifest URL is set
   local custom_url=""
+  local config_file="${CONFIG_FILE:-$CUSTOM_SCRIPTS_DIR/config.json}"
   if [ -n "${CUSTOM_MANIFEST_URL:-}" ]; then
     custom_url="$CUSTOM_MANIFEST_URL"
-  elif command -v jq &> /dev/null && [ -f "$CONFIG_DIR/config.json" ]; then
-    custom_url=$(jq -r '.custom_manifest_url // ""' "$CONFIG_DIR/config.json" 2>/dev/null)
+  elif command -v jq &> /dev/null && [ -f "$config_file" ]; then
+    custom_url=$(jq -r '.custom_manifest_url // ""' "$config_file" 2>/dev/null)
+    if [ -z "$custom_url" ]; then
+      local active_custom
+      active_custom=$(jq -r '.active_custom_manifest // ""' "$config_file" 2>/dev/null)
+      if [ -n "$active_custom" ]; then
+        local active_url active_path manifest_data_type
+        active_url=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].url // ""' "$config_file" 2>/dev/null)
+        active_path=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].manifest_path // ""' "$config_file" 2>/dev/null)
+        manifest_data_type=$(jq -r --arg name "$active_custom" '.custom_manifests[$name].manifest_data | type' "$config_file" 2>/dev/null)
+
+        if [ -n "$active_url" ]; then
+          custom_url="$active_url"
+        elif [ -n "$active_path" ]; then
+          custom_url="file://$active_path"
+        elif [ "$manifest_data_type" = "object" ]; then
+          custom_url="(embedded manifest data)"
+        fi
+      fi
+    fi
   fi
   
   if [ -n "$custom_url" ]; then
@@ -2553,6 +2730,8 @@ show_current_manifest_status() {
       else
         echo "  • Active: Custom Local Manifest (file not found)"
       fi
+    elif [ "$custom_url" = "(embedded manifest data)" ]; then
+      echo "  • Active: Custom Manifest (embedded data)"
     else
       # Remote custom manifest
       echo "  • Active: Custom Remote Repository"

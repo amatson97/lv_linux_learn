@@ -121,14 +121,92 @@ log_repo_activity() {
 # ============================================================================
 
 fetch_remote_manifest() {
-  local manifest_url="$REPO_URL/manifest.json"
+  local manifest_url=""
   local temp_manifest
   temp_manifest=$(mktemp)
+  local config_file="$CONFIG_FILE"
+  local use_public_repo
+  use_public_repo=$(get_config_value "use_public_repository" "true")
+  local custom_manifest_url
+  custom_manifest_url=$(get_config_value "custom_manifest_url" "")
+
+  # Priority: env override -> legacy custom_manifest_url -> active custom manifest -> public repo
+  if [ -n "${CUSTOM_MANIFEST_URL:-}" ]; then
+    manifest_url="$CUSTOM_MANIFEST_URL"
+  elif [ -n "$custom_manifest_url" ]; then
+    manifest_url="$custom_manifest_url"
+  else
+    # Check active custom manifest (new system)
+    if command -v jq &> /dev/null && [ -f "$config_file" ]; then
+      local active_custom_manifest
+      active_custom_manifest=$(jq -r '.active_custom_manifest // ""' "$config_file" 2>/dev/null)
+      if [ -n "$active_custom_manifest" ]; then
+        local active_url active_path manifest_data_type
+        active_url=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].url // ""' "$config_file" 2>/dev/null)
+        active_path=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_path // ""' "$config_file" 2>/dev/null)
+        manifest_data_type=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_data | type' "$config_file" 2>/dev/null)
+
+        if [ -n "$active_url" ]; then
+          manifest_url="$active_url"
+        elif [ -n "$active_path" ]; then
+          if [[ "$active_path" == file://* ]]; then
+            manifest_url="$active_path"
+          else
+            manifest_url="file://$active_path"
+          fi
+        elif [ "$manifest_data_type" = "object" ]; then
+          if jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].manifest_data' "$config_file" > "$MANIFEST_FILE" 2>/dev/null; then
+            local timestamp version
+            timestamp=$(date -Iseconds)
+            version=$(jq -r '.repository_version // "unknown"' "$MANIFEST_FILE" 2>/dev/null)
+            if command -v jq &> /dev/null; then
+              local temp_meta
+              temp_meta=$(mktemp)
+              jq --arg ts "$timestamp" --arg ver "$version" \
+                 '.last_fetch = $ts | .manifest_version = $ver' \
+                 "$MANIFEST_META_FILE" > "$temp_meta" && mv "$temp_meta" "$MANIFEST_META_FILE"
+            fi
+            log_repo_activity "Manifest loaded from embedded custom data (version: $version)"
+            set_config_value "last_update_check" "$timestamp"
+            return 0
+          fi
+        fi
+      fi
+    fi
+
+    if [ -z "$manifest_url" ]; then
+      if [ "$use_public_repo" != "true" ]; then
+        log_repo_activity "ERROR: Public repository disabled and no custom manifest configured"
+        rm -f "$temp_manifest"
+        return 1
+      fi
+      manifest_url="$REPO_URL/manifest.json"
+    fi
+  fi
   
   log_repo_activity "Fetching manifest from $manifest_url"
   
   # Try to download manifest
-  if curl -sS -f -m 30 "$manifest_url" -o "$temp_manifest" 2>/dev/null; then
+  if [[ "$manifest_url" == file://* ]]; then
+    local local_path="${manifest_url#file://}"
+    if [ -f "$local_path" ]; then
+      cp "$local_path" "$temp_manifest" 2>/dev/null
+    else
+      log_repo_activity "ERROR: Local manifest not found: $local_path"
+      rm -f "$temp_manifest"
+      return 1
+    fi
+  elif [ -f "$manifest_url" ]; then
+    cp "$manifest_url" "$temp_manifest" 2>/dev/null
+  elif curl -sS -f -m 30 "$manifest_url" -o "$temp_manifest" 2>/dev/null; then
+    :
+  else
+    log_repo_activity "ERROR: Failed to download manifest"
+    rm -f "$temp_manifest"
+    return 1
+  fi
+
+  if [ -f "$temp_manifest" ]; then
     # Verify it's valid JSON
     if jq empty "$temp_manifest" 2>/dev/null; then
       mv "$temp_manifest" "$MANIFEST_FILE"
@@ -153,10 +231,6 @@ fetch_remote_manifest() {
       rm -f "$temp_manifest"
       return 1
     fi
-  else
-    log_repo_activity "ERROR: Failed to download manifest"
-    rm -f "$temp_manifest"
-    return 1
   fi
 }
 
@@ -730,6 +804,38 @@ get_repository_url() {
       echo "$manifest_repo_url"
       return 0
     fi
+  fi
+
+  # Check for custom manifest URL override (online repositories)
+  local override_url=""
+  if [ -n "${CUSTOM_MANIFEST_URL:-}" ] && [[ "$CUSTOM_MANIFEST_URL" == http* ]]; then
+    override_url="$CUSTOM_MANIFEST_URL"
+  else
+    local config_custom_url
+    config_custom_url=$(get_config_value "custom_manifest_url" "")
+    if [[ "$config_custom_url" == http* ]]; then
+      override_url="$config_custom_url"
+    else
+      if command -v jq &> /dev/null && [ -f "$CONFIG_FILE" ]; then
+        local active_custom_manifest
+        active_custom_manifest=$(jq -r '.active_custom_manifest // ""' "$CONFIG_FILE" 2>/dev/null)
+        if [ -n "$active_custom_manifest" ]; then
+          local active_url
+          active_url=$(jq -r --arg name "$active_custom_manifest" '.custom_manifests[$name].url // ""' "$CONFIG_FILE" 2>/dev/null)
+          if [[ "$active_url" == http* ]]; then
+            override_url="$active_url"
+          fi
+        fi
+      fi
+    fi
+  fi
+  if [ -n "$override_url" ]; then
+    if [[ "$override_url" == */manifest.json ]]; then
+      echo "${override_url%/manifest.json}"
+    else
+      echo "$override_url"
+    fi
+    return 0
   fi
   
   # Fallback to config file or default
