@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Description: Install DuckStation PS1 emulator as AppImage with desktop integration
-# Another change 2
 
 set -euo pipefail
 
@@ -12,15 +11,42 @@ source "$repo_root/includes/main.sh"
 
 APPIMAGE_DIR="$HOME/Applications"
 APPIMAGE_NAME="DuckStation-x64.AppImage"
-APPIMAGE_URL="https://github.com/stenzek/duckstation/releases/download/latest/$APPIMAGE_NAME"
+APPIMAGE_URL="https://github.com/stenzek/duckstation/releases/latest/download/$APPIMAGE_NAME"
+
+is_valid_appimage() {
+    local file_path="$1"
+    [[ -f "$file_path" ]] || return 1
+    # AppImage files are ELF binaries; verify magic bytes to avoid cached HTML/404 files.
+    local magic
+    magic=$(head -c 4 "$file_path" | od -An -tx1 | tr -d ' \n')
+    [[ "$magic" == "7f454c46" ]]
+}
+
+download_appimage() {
+    green_echo "Downloading DuckStation..."
+    if command -v curl &> /dev/null; then
+        curl -fL --retry 3 --retry-delay 2 -o "$APPIMAGE_NAME" "$APPIMAGE_URL"
+    else
+        wget -O "$APPIMAGE_NAME" "$APPIMAGE_URL"
+    fi
+    chmod +x "$APPIMAGE_NAME"
+}
 
 mkdir -p "$APPIMAGE_DIR"
 cd "$APPIMAGE_DIR"
 
-if [[ ! -f "$APPIMAGE_NAME" ]]; then
-    green_echo "Downloading DuckStation..."
-    wget -O "$APPIMAGE_NAME" "$APPIMAGE_URL"
-    chmod +x "$APPIMAGE_NAME"
+if ! is_valid_appimage "$APPIMAGE_NAME"; then
+    if [[ -f "$APPIMAGE_NAME" ]]; then
+        green_echo "Existing DuckStation file is invalid, re-downloading..."
+        rm -f "$APPIMAGE_NAME"
+    fi
+    download_appimage
+fi
+
+if ! is_valid_appimage "$APPIMAGE_NAME"; then
+    green_echo "Error: Downloaded file is not a valid AppImage."
+    green_echo "Please check: https://github.com/stenzek/duckstation/releases/latest"
+    exit 1
 fi
 
 # Extract for integration if not done
@@ -42,13 +68,9 @@ APPIMAGE_DIR="$HOME/Applications"
 APPIMAGE_NAME="DuckStation-x64.AppImage"
 
 # Set up environment for better Wayland/X11 compatibility
-export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
-
-# For Qt applications on Wayland, set QT_QPA_PLATFORM if needed
-if [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
-    # Try native Wayland first, fallback to XWayland if issues occur
-    export QT_QPA_PLATFORM="wayland"
-    export QT_QPA_PLATFORM_PLUGIN_PATH="/usr/lib/x86_64-linux-gnu/qt5/plugins"
+# For Qt applications on Wayland, prefer Wayland but allow XWayland fallback.
+if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+    export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
 fi
 
 # Run the AppImage

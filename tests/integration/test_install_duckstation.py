@@ -100,14 +100,14 @@ class TestDuckStationWrapperScript:
         wrapper = self.get_wrapper_content()
         runner.assert_true(wrapper is not None, "Wrapper script should exist")
         runner.assert_in("XDG_SESSION_TYPE", wrapper, "Should detect XDG_SESSION_TYPE")
-        runner.assert_in("x11", wrapper, "Should reference x11")
+        runner.assert_in("${XDG_SESSION_TYPE:-}", wrapper, "Should safely handle missing session type")
         
     def test_wrapper_script_wayland_support(self):
         wrapper = self.get_wrapper_content()
         runner.assert_true(wrapper is not None, "Wrapper script should exist")
         runner.assert_in('== "wayland"', wrapper, "Should check for Wayland")
-        runner.assert_in('QT_QPA_PLATFORM="wayland"', wrapper, "Should set QT platform for Wayland")
-        runner.assert_in("QT_QPA_PLATFORM_PLUGIN_PATH", wrapper, "Should set plugin path")
+        runner.assert_in('QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"', wrapper, "Should set Wayland with XWayland fallback")
+        runner.assert_not_in("QT_QPA_PLATFORM_PLUGIN_PATH", wrapper, "Should avoid distro-specific Qt plugin path")
     
     def test_wrapper_script_executes_appimage(self):
         wrapper = self.get_wrapper_content()
