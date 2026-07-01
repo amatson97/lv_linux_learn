@@ -68,6 +68,7 @@ main() {
         code --install-extension dbaeumer.vscode-eslint
         code --install-extension esbenp.prettier-vscode
         code --install-extension eamodio.gitlens
+        code --install-extension cline.cline
         green_echo "[+] Extensions installed."
     fi
     
